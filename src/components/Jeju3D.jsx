@@ -1,10 +1,12 @@
-import { useLayoutEffect, useMemo, useRef, useState } from 'react'
+import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
 import { Canvas, useFrame, useThree } from '@react-three/fiber'
 import { Html, OrbitControls, Sparkles, Stars } from '@react-three/drei'
 import * as THREE from 'three'
 import { GRID, HALLA, colorAt, heightAt, heightMap, toXZ } from './terrain'
 import { useTimeMode } from '../lib/timeOfDay'
-import { Boats, Clouds, Fireflies, Gulls, Lamps, Moon, Sun } from './skyThings'
+import { weatherKind } from '../lib/weather'
+import { useAppStore } from '../store/useAppStore'
+import { Boats, Clouds, Fireflies, Gulls, Lamps, Moon, Precip, Sun } from './skyThings'
 
 // 시간대별 하늘·빛·바다 색. 새벽 = 보랏빛 하늘 + 동쪽의 해돋이, 아침 = 맑은 낮, 밤 = 달빛
 const THEME = {
@@ -14,6 +16,25 @@ const THEME = {
 }
 
 // 섬: 실제 해안선·한라산 높이 지도(terrain.js)를 정점마다 입히고, 높이별 색·바다 깊이 그라데이션을 칠한다
+// 날씨(기상청 예보)에 따라 하늘·빛·바다를 어둡고 흐리게. gloom: 0 맑음 … 1
+const GLOOM = { clear: 0, cloudy: 0.25, overcast: 0.6, rain: 0.75, snow: 0.5 }
+const GRAY = { night: '#14151f', dawn: '#4a4458', morning: '#8e9aa8' }
+const hexOf = (c) => `#${c.getHexString()}`
+function withWeather(T, w, m) {
+  const g = GLOOM[w] ?? 0
+  if (!g) return T
+  return {
+    ...T,
+    bg: hexOf(new THREE.Color(T.bg).lerp(new THREE.Color(GRAY[m]), g)),
+    fog: [T.fog[0] * (1 - g * 0.4), T.fog[1] * (1 - g * 0.4)],
+    hemi: [T.hemi[0], T.hemi[1], T.hemi[2] * (1 - g * 0.2)],
+    ambient: T.ambient * (1 + g * 0.3),
+    key: { ...T.key, i: T.key.i * (1 - g * 0.55) },
+    stars: g >= 0.5 ? 0 : Math.round(T.stars * (1 - g * 1.5)),
+    sea: hexOf(new THREE.Color(T.sea).lerp(new THREE.Color('#3b4a5a'), g * 0.6)),
+  }
+}
+
 function Island() {
   const geometry = useMemo(() => {
     const g = new THREE.PlaneGeometry(GRID.w, GRID.d, GRID.nx - 1, GRID.nz - 1)
@@ -184,10 +205,17 @@ function CameraRig({ focus }) {
 }
 
 // items: [{ id, name, lat, lng, color, size?, label? }]
-export default function Jeju3D({ items = [], selectedId, onSelect, height = 460, autoRotate = false, mode }) {
+export default function Jeju3D({ items = [], selectedId, onSelect, height = 460, autoRotate = false, mode, weather }) {
   const auto = useTimeMode()
-  const T = THEME[mode ?? auto]            // mode 를 주지 않으면 지금 시각을 따른다
-  const m = mode ?? auto
+  const m = mode ?? auto                   // mode 를 주지 않으면 지금 시각을 따른다
+  const loadWeather = useAppStore((s) => s.loadWeather)
+  const real = useAppStore((s) => weatherKind(s.weather.제주시))
+  useEffect(() => { loadWeather() }, [loadWeather])
+  const w = weather ?? real                // weather 를 주지 않으면 지금 제주시의 실제 예보를 따른다
+  const g = GLOOM[w] ?? 0
+  const T = withWeather(THEME[m], w, m)
+  const dim = g >= 0.6                     // 짙게 흐리거나 비가 오면 해·달이 안 보인다
+  const calm = w === 'clear' || w === 'cloudy'
   const pins = items.filter((m) => Number(m.lat) > 0 && Number(m.lng) > 0)
   const focus = pins.find((m) => m.id === selectedId)
   // 휠 확대는 지도를 클릭한 뒤에만: 그냥 지나가며 스크롤할 때 지도가 휠을 가로채지 않게
@@ -207,9 +235,14 @@ export default function Jeju3D({ items = [], selectedId, onSelect, height = 460,
         <directionalLight position={T.fill.pos} intensity={T.fill.i} color={T.fill.color} />
         {T.halla > 0 && <pointLight position={[HALLA[0], 4, HALLA[1]]} intensity={T.halla} color="#b388ff" distance={8} />}
         {T.stars > 0 && <Stars radius={70} depth={35} count={T.stars} factor={3.5} fade speed={1} />}
-        {m === 'night' && <><Moon /><Fireflies /></>}
-        {m === 'dawn' && <><Sun mode="dawn" /><Lamps /></>}
-        {m === 'morning' && <><Sun mode="morning" /><Clouds /><Gulls /><Boats /></>}
+        {m === 'night' && <>{!dim && <Moon />}{calm && <Fireflies />}</>}
+        {m === 'dawn' && <>{!dim && <Sun mode="dawn" />}<Lamps /></>}
+        {m === 'morning' && <>{!dim && <Sun mode="morning" />}{calm && <><Gulls /><Boats /></>}</>}
+        {(m === 'morning' || w !== 'clear') && (
+          <Clouds color={hexOf(new THREE.Color('#ffffff').lerp(new THREE.Color(m === 'night' ? '#3a3f4d' : '#7d8794'), g))}
+            n={{ clear: 9, cloudy: 10, overcast: 12, rain: 13, snow: 11 }[w] ?? 9} low={g * 0.5} opacity={0.92 - g * 0.3} />
+        )}
+        {(w === 'rain' || w === 'snow') && <Precip kind={w} />}
         <Abyss />
         <Sea color={T.sea} opacity={T.seaOpacity} />
         <Island />

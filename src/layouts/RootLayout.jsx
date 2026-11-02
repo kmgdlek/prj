@@ -1,12 +1,13 @@
 import { useEffect, useState } from 'react'
 import { Link, NavLink, Outlet, useLocation, useNavigate } from 'react-router-dom'
-import { Badge, Button, Container, Nav, Navbar, Offcanvas, Toast, ToastContainer } from 'react-bootstrap'
+import { Badge, Button, Container, Navbar, Offcanvas, Toast, ToastContainer } from 'react-bootstrap'
 import ChatPanel from '../components/ChatPanel'
 import { NAV_ITEMS } from '../router'
 import LevelBadge from '../components/LevelBadge'
 import SideCard from '../components/SideCard'
 import AgentStatus from '../components/AgentStatus'
 import HealthMini from '../components/HealthMini'
+import Avatar from '../components/Avatar'
 import { displayName, useAppStore } from '../store/useAppStore'
 
 // 이야기꾼 AI: 오른쪽 아래 둥근 버튼을 누르면 채팅창이 부드럽게 열리고, 다시 누르면 부드럽게 닫힌다.
@@ -50,12 +51,23 @@ export default function RootLayout() {
   const cartCount = useAppStore((s) => s.cart.reduce((n, c) => n + c.qty, 0))
   const initAuth = useAppStore((s) => s.initAuth)
   const signOut = useAppStore((s) => s.signOut)
+  const pendingMap = useAppStore((s) => s.pendingMap)
+  const clearPendingMap = useAppStore((s) => s.clearPendingMap)
+  const selectMyth = useAppStore((s) => s.selectMyth)
   const navigate = useNavigate()
   const [menuOpen, setMenuOpen] = useState(false)
   const close = () => setMenuOpen(false)
 
   // 앱이 켜질 때 한 번: 로그인 상태를 확인하고, 로그인돼 있으면 별·장바구니·주문을 미리 불러온다
   useEffect(() => { initAuth() }, [initAuth])
+
+  // AI 가 "지도에서 보여 줘" 도구를 쓰면: 그 신화를 선택하고 탐라 지도로 이동 (지도가 그 장소로 다가간다)
+  useEffect(() => {
+    if (!pendingMap) return
+    selectMyth(pendingMap)
+    navigate('/map')
+    clearPendingMap()
+  }, [pendingMap, selectMyth, navigate, clearPendingMap])
 
   return (
     <div className="d-flex flex-column min-vh-100">
@@ -86,7 +98,7 @@ export default function RootLayout() {
             {user ? (
               <>
                 <div className="d-flex align-items-center gap-3">
-                  <i className="bi bi-person-circle fs-1 text-primary" />
+                  <Link to="/mypage" onClick={close} aria-label="마이페이지"><Avatar user={user} size={52} /></Link>
                   <div className="flex-grow-1 min-w-0">
                     <div className="d-flex align-items-center gap-2 min-w-0">
                       <span className="flex-shrink-0"><LevelBadge part="lv" /></span>
@@ -113,16 +125,17 @@ export default function RootLayout() {
               </div>
             )}
           </div>
-          <Nav className="flex-column">
-            {NAV_ITEMS.filter((item) => item.to !== '/agent').map((item) => (
-              <Nav.Link key={item.to} as={NavLink} to={item.to} end={item.to === '/'} onClick={close} className="fs-5 py-2">
-                <i className={`bi bi-${item.icon} me-2`} />{item.label}
-              </Nav.Link>
+          {/* 메뉴 목록: 칸마다 구분선 */}
+          <nav className="menu-list">
+            {[...NAV_ITEMS.filter((item) => item.to !== '/agent'), { to: '/cart', label: '장바구니', icon: 'cart3' }].map((item) => (
+              <NavLink key={item.to} to={item.to} end={item.to === '/'} onClick={close} className="menu-row">
+                <i className={`bi bi-${item.icon}`} />
+                <span className="flex-grow-1">{item.label}</span>
+                {item.to === '/cart' && cartCount > 0 && <Badge bg="warning" text="dark" pill>{cartCount}</Badge>}
+                <i className="bi bi-chevron-right chev" />
+              </NavLink>
             ))}
-            <Nav.Link as={NavLink} to="/cart" onClick={close} className="fs-5 py-2">
-              <i className="bi bi-cart3 me-2" />장바구니{cartCount > 0 && <Badge bg="warning" text="dark" pill className="ms-2">{cartCount}</Badge>}
-            </Nav.Link>
-          </Nav>
+          </nav>
           {menuOpen && <HealthMini />}
         </Offcanvas.Body>
       </Offcanvas>

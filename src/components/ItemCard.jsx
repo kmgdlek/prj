@@ -2,13 +2,15 @@ import { Badge, Button, Card } from 'react-bootstrap'
 import { useAppStore } from '../store/useAppStore'
 
 // 별 버튼 — 저장돼 있으면 채워진 별로 바뀌고, 다시 누르면 취소 (store 의 favorites 를 구독)
-export function FavButton({ fav, size = 'sm', className = '', label = true, dark = false }) {
+export function FavButton({ fav, size = 'sm', className = '', label = true, dark = false, icon = 'star', onLabel, offLabel }) {
   const toggle = useAppStore((s) => s.toggleFavorite)
   const saved = useAppStore((s) => s.favorites.some((f) => f.source === fav.source && f.item_id === String(fav.id)))
+  const on = onLabel ?? (icon === 'heart' ? '찜함' : '저장됨')
+  const off = offLabel ?? (icon === 'heart' ? '찜' : '즐겨찾기')
   return (
-    <Button size={size} variant={saved ? 'warning' : dark ? 'outline-light' : 'outline-dark'} className={className}
-      onClick={(e) => { e.stopPropagation(); toggle(fav) }}>
-      <i className={`bi bi-star${saved ? '-fill' : ''} ${label ? 'me-1' : ''}`} />{label && (saved ? '저장됨' : '즐겨찾기')}
+    <Button size={size} variant={saved ? (icon === 'heart' ? 'danger' : 'warning') : dark ? 'outline-light' : icon === 'heart' ? 'outline-danger' : 'outline-dark'} className={className}
+      aria-label={saved ? on : off} onClick={(e) => { e.preventDefault(); e.stopPropagation(); toggle(fav) }}>
+      <i className={`bi bi-${icon}${saved ? '-fill' : ''} ${label ? 'me-1' : ''}`} />{label && (saved ? on : off)}
     </Button>
   )
 }

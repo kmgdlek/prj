@@ -83,6 +83,13 @@ export const MYTHS = [
   },
 ];
 
+// 신화 이름·장소·키워드로 하나를 찾는다 (지도 이동 도구용). 못 찾으면 null
+export const findMyth = (q = '') => {
+  const k = q.trim()
+  if (!k) return null
+  return MYTHS.find((m) => [m.title, m.place, m.keyword].some((t) => t.includes(k) || k.includes(t))) ?? null
+};
+
 export const getMythStory = ({ keyword = '' } = {}) => {
   const k = keyword.trim();
   const list = k

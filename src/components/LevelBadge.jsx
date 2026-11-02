@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { Badge, Modal, ProgressBar } from 'react-bootstrap'
-import { LEVELS, levelOf, totalSpent } from '../lib/level'
+import { LEVELS, benefitLines, levelOf, totalSpent } from '../lib/level'
 import { won } from '../lib/format'
 import { useAppStore } from '../store/useAppStore'
 
@@ -67,6 +67,9 @@ function LevelModal({ show, onHide, current }) {
                 <div className="flex-grow-1">
                   <div className="fw-bold">{l.name}</div>
                   <div className="small text-body-secondary">{l.min === 0 ? '가입 즉시' : `누적 구매액 ${won(l.min)} 이상`}</div>
+                  <ul className="level-benefits">
+                    {benefitLines(l).map((b) => <li key={b}>{b}</li>)}
+                  </ul>
                 </div>
                 {mine && <Badge bg="primary" pill>내 등급</Badge>}
               </li>

@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
+import { useNavigate } from 'react-router-dom'
 import { Button } from 'react-bootstrap'
 import { useAppStore } from '../store/useAppStore'
 import { useAgentOnline } from './AgentStatus'
@@ -21,6 +22,8 @@ export default function ChatPanel() {
   const sendMessage = useAppStore((s) => s.sendMessage)
   const checkHealth = useAppStore((s) => s.checkHealth)
   const online = useAgentOnline()
+  const navigate = useNavigate()
+  const selectMyth = useAppStore((s) => s.selectMyth)
   const [input, setInput] = useState('')
   const bottom = useRef(null)
   const box = useRef(null)
@@ -66,6 +69,13 @@ export default function ChatPanel() {
               </div>
             )}
             {m.text}
+            {m.actions?.filter((a) => a.type === 'map').map((a) => (
+              <div key={a.mythId} className="mt-2">
+                <Button size="sm" variant="primary" onClick={() => { selectMyth(a.mythId); navigate('/map') }}>
+                  <i className="bi bi-map me-1" />지도에서 보기 · {a.title}
+                </Button>
+              </div>
+            ))}
           </Bubble>
         ))}
         {loading && (

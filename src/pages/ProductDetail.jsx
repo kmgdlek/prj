@@ -7,6 +7,9 @@ import { useAppStore } from '../store/useAppStore'
 import { MYTHS } from '../../server/myths'
 import { PRODUCTS, productOf, salePrice } from '../../server/products'
 import { Empty } from '../components/Status'
+import { FavButton } from '../components/ItemCard'
+import { Stars, ratingOf } from '../components/StarRating'
+import { pushRecent } from '../lib/recent'
 
 // 상품 상세 — 큰 사진(썸네일로 바꿔 보기) · 가격 · 수량 · 장바구니/바로구매 · 상품정보 · 이어진 신화 · 같은 분류 상품
 export default function ProductDetail() {
@@ -16,6 +19,9 @@ export default function ProductDetail() {
   const user = useAppStore((s) => s.user)
   const addToCart = useAppStore((s) => s.addToCart)
   const selectMyth = useAppStore((s) => s.selectMyth)
+  const reviews = useAppStore((s) => s.reviews)
+  const deleteReview = useAppStore((s) => s.deleteReview)
+  const stock = useAppStore((s) => s.stock[id] ?? p?.stock ?? 0)
   const [images, setImages] = useState([])
   const [shown, setShown] = useState(0)
   const [qty, setQty] = useState(1)
@@ -24,6 +30,7 @@ export default function ProductDetail() {
   useEffect(() => {
     if (!p) return
     let alive = true
+    pushRecent(p.id)                                 // 마이페이지 '최근 본 상품'에 기록
     setImages([]); setShown(0); setQty(1)
     fetchImages(p.photo, { lang: 'en', fallback: false, rows: 5 }).then((r) => alive && setImages(r)).catch(() => {})
     return () => { alive = false }
@@ -39,6 +46,8 @@ export default function ProductDetail() {
   const myth = MYTHS.find((m) => m.id === p.myth)
   const related = PRODUCTS.filter((x) => x.category === p.category && x.id !== p.id)
   const big = images[shown]
+  const rating = ratingOf(reviews, p.id)
+  const maxQty = Math.min(stock, 20)
 
   async function buyNow() {
     if (!user) return navigate('/login', { state: { from: `/shop/${p.id}` } })
@@ -69,7 +78,11 @@ export default function ProductDetail() {
 
         <Col md={6}>
           <Badge bg="primary" className="mb-2">{p.category}</Badge>
-          <h2 className="fw-bold">{p.name}</h2>
+          <h2 className="fw-bold mb-1">{p.name}</h2>
+          <a href="#reviews" className="d-inline-flex align-items-center gap-2 text-decoration-none mb-2">
+            <Stars value={rating.avg} />
+            <span className="small text-body-secondary">{rating.count > 0 ? `${rating.avg.toFixed(1)} · 후기 ${rating.count}개` : '아직 후기가 없어요'}</span>
+          </a>
           <p className="text-body-secondary">{p.desc}</p>
           {/* 왼쪽에 항목 이름을 붙인 가격 표: 일반판매가 → 할인가(깎인 금액) → 현재가(최종) */}
           <dl className="price-rows mb-3">
@@ -85,6 +98,9 @@ export default function ProductDetail() {
           <Card className="mb-3"><Card.Body className="small">
             <div className="d-flex gap-2"><i className="bi bi-truck" /> 과제용 샘플 상품이라 실제 배송은 이루어지지 않아요</div>
             <div className="d-flex gap-2 mt-1"><i className="bi bi-geo-alt" /> 제주특별자치도</div>
+            <div className={`d-flex gap-2 mt-1 ${stock <= 5 ? 'text-danger fw-bold' : ''}`}>
+              <i className="bi bi-box-seam" /> {stock <= 0 ? '품절' : stock <= 5 ? `품절 임박 · 남은 수량 ${stock}개` : `재고 ${stock}개`}
+            </div>
           </Card.Body></Card>
 
           <div className="d-flex align-items-center gap-3 mb-3">
@@ -92,15 +108,16 @@ export default function ProductDetail() {
             <div className="d-flex align-items-center gap-2">
               <Button size="sm" variant="outline-secondary" aria-label="하나 빼기" disabled={qty <= 1} onClick={() => setQty(qty - 1)}><i className="bi bi-dash" /></Button>
               <strong style={{ minWidth: 28, textAlign: 'center' }}>{qty}</strong>
-              <Button size="sm" variant="outline-secondary" aria-label="하나 더하기" disabled={qty >= 20} onClick={() => setQty(qty + 1)}><i className="bi bi-plus" /></Button>
+              <Button size="sm" variant="outline-secondary" aria-label="하나 더하기" disabled={qty >= maxQty} onClick={() => setQty(qty + 1)}><i className="bi bi-plus" /></Button>
             </div>
             <span className="ms-auto">합계 <strong className="fs-5 ms-1">{won(salePrice(p) * qty)}</strong></span>
           </div>
 
           {!user && <Alert variant="info" className="py-2 small"><Link to="/login" state={{ from: `/shop/${p.id}` }}>로그인</Link>하면 장바구니에 담을 수 있어요.</Alert>}
           <div className="d-flex gap-2">
-            <Button variant="outline-primary" className="flex-fill" onClick={() => addToCart(p.id, qty)}><i className="bi bi-cart-plus me-1" />장바구니 담기</Button>
-            <Button className="flex-fill" onClick={buyNow}><i className="bi bi-lightning-charge me-1" />바로 구매</Button>
+            <FavButton fav={{ source: 'product', id: p.id, title: p.name }} icon="heart" size="md" label={false} />
+            <Button variant="outline-primary" className="flex-fill" disabled={stock <= 0} onClick={() => addToCart(p.id, qty)}><i className="bi bi-cart-plus me-1" />장바구니 담기</Button>
+            <Button className="flex-fill" disabled={stock <= 0} onClick={buyNow}><i className="bi bi-lightning-charge me-1" />{stock <= 0 ? '품절' : '바로 구매'}</Button>
           </div>
         </Col>
       </Row>
@@ -114,6 +131,32 @@ export default function ProductDetail() {
           <tr><th className="bg-body-tertiary">설명</th><td>{p.desc}</td></tr>
         </tbody>
       </Table>
+
+      {/* 후기·별점 */}
+      <h5 className="fw-bold mb-3" id="reviews">후기 <small className="text-body-secondary fw-normal">({rating.count})</small></h5>
+      {rating.count > 0 && (
+        <div className="d-flex align-items-center gap-3 mb-3">
+          <span className="display-6 fw-bold">{rating.avg.toFixed(1)}</span>
+          <div><Stars value={rating.avg} size="1.3rem" /><div className="small text-body-secondary">후기 {rating.count}개</div></div>
+        </div>
+      )}
+      {rating.list.length === 0 ? (
+        <p className="text-body-secondary">아직 후기가 없어요. 배송이 끝난 주문에서 첫 후기를 남겨 보세요. <Link to="/orders">주문 내역</Link></p>
+      ) : (
+        <div className="mb-4">
+          {rating.list.slice(0, 10).map((r) => (
+            <div key={r.id} className="review-item">
+              <div className="d-flex align-items-center gap-2">
+                <Stars value={r.rating} />
+                <strong className="small">{r.nickname}</strong>
+                <span className="small text-body-secondary">{new Date(r.created_at).toLocaleDateString('ko-KR')}</span>
+                {r.user_id === user?.id && <Button size="sm" variant="link" className="ms-auto p-0 text-danger small" onClick={() => window.confirm('후기를 지울까요?') && deleteReview(r.id)}>삭제</Button>}
+              </div>
+              <p className="mb-0 mt-1" style={{ whiteSpace: 'pre-wrap' }}>{r.content}</p>
+            </div>
+          ))}
+        </div>
+      )}
 
       {myth && (
         <Card className="mb-4 border-primary-subtle">

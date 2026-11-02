@@ -103,16 +103,16 @@ export function Lamps() {
 }
 
 // ── 아침 ─────────────────────────────────────────────
-// 천천히 흘러가는 구름
-export function Clouds() {
+// 천천히 흘러가는 구름 (날씨에 따라 개수·색·높이가 달라진다: 흐린 날엔 많고 회색이고 낮게)
+export function Clouds({ color = '#ffffff', n = 9, low = 0, opacity = 0.92 }) {
   const ref = useRef()
   const clouds = useMemo(() => {
     const rnd = makeRnd(9)
-    return Array.from({ length: 9 }, () => ({
-      x: -22 + rnd() * 44, y: 5 + rnd() * 2.5, z: -9 + rnd() * 18, s: 0.8 + rnd() * 0.9, speed: 0.12 + rnd() * 0.12,
+    return Array.from({ length: n }, () => ({
+      x: -22 + rnd() * 44, y: 5 + rnd() * 2.5 - low, z: -9 + rnd() * 18, s: 0.8 + rnd() * 0.9, speed: 0.12 + rnd() * 0.12,
       puffs: Array.from({ length: 6 }, () => ({ dx: (rnd() - 0.5) * 2.2, dy: (rnd() - 0.3) * 0.5, dz: (rnd() - 0.5) * 1.1, r: 0.5 + rnd() * 0.55 })),
     }))
-  }, [])
+  }, [n, low])
   useFrame((_, dt) => {
     ref.current.children.forEach((g, i) => { g.position.x += clouds[i].speed * dt; if (g.position.x > 24) g.position.x = -24 })
   })
@@ -123,12 +123,52 @@ export function Clouds() {
           {c.puffs.map((p, j) => (
             <mesh key={j} position={[p.dx, p.dy, p.dz]} scale={[1, 0.62, 0.8]}>
               <sphereGeometry args={[p.r, 12, 10]} />
-              <meshStandardMaterial color="#ffffff" roughness={1} transparent opacity={0.92} />
+              <meshStandardMaterial color={color} roughness={1} transparent opacity={opacity} />
             </mesh>
           ))}
         </group>
       ))}
     </group>
+  )
+}
+
+// 비(빗줄기) · 눈(눈송이): 섬 위에서 떨어진다
+export function Precip({ kind }) {
+  const ref = useRef()
+  const rain = kind === 'rain'
+  const N = rain ? 1600 : 900
+  const data = useMemo(() => {
+    const rnd = makeRnd(rain ? 5 : 6)
+    const pos = new Float32Array(N * (rain ? 6 : 3)), spd = new Float32Array(N), base = []
+    for (let i = 0; i < N; i++) {
+      const x = (rnd() - 0.5) * 30, y = rnd() * 10, z = (rnd() - 0.5) * 20
+      spd[i] = rain ? 9 + rnd() * 4 : 0.6 + rnd() * 0.7
+      base.push([x, y, z, rnd() * 6.28])
+      if (rain) pos.set([x, y, z, x, y + 0.28, z], i * 6); else pos.set([x, y, z], i * 3)
+    }
+    return { pos, spd, base }
+  }, [rain, N])
+  useFrame(({ clock }, dt) => {
+    const a = ref.current.geometry.attributes.position, t = clock.elapsedTime
+    for (let i = 0; i < N; i++) {
+      const b = data.base[i]
+      b[1] -= data.spd[i] * dt
+      if (b[1] < 0) b[1] += 10
+      if (rain) { a.setXYZ(i * 2, b[0], b[1], b[2]); a.setXYZ(i * 2 + 1, b[0] - 0.02, b[1] + 0.28, b[2]) }
+      else a.setXYZ(i, b[0] + Math.sin(t * 0.8 + b[3]) * 0.3, b[1], b[2] + Math.cos(t * 0.6 + b[3]) * 0.2)
+    }
+    a.needsUpdate = true
+  })
+  return rain ? (
+    <lineSegments ref={ref} frustumCulled={false}>
+      <bufferGeometry><bufferAttribute attach="attributes-position" args={[data.pos, 3]} /></bufferGeometry>
+      <lineBasicMaterial color="#a8c6ff" transparent opacity={0.55} />
+    </lineSegments>
+  ) : (
+    <points ref={ref} frustumCulled={false}>
+      <bufferGeometry><bufferAttribute attach="attributes-position" args={[data.pos, 3]} /></bufferGeometry>
+      <pointsMaterial color="#ffffff" size={0.09} transparent opacity={0.9} depthWrite={false} />
+    </points>
   )
 }
 

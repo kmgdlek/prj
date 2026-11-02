@@ -7,6 +7,7 @@ import { FavButton } from '../components/ItemCard'
 import { useAppStore } from '../store/useAppStore'
 import { MYTHS } from '../../server/myths'
 import { MODES, modeAt } from '../lib/timeOfDay'
+import { WEATHER_ICON, WEATHER_LABEL, weatherKind } from '../lib/weather'
 
 const MARKERS = MYTHS.map((m) => ({ id: m.id, name: m.title, lat: m.lat, lng: m.lng, color: m.color }))
 
@@ -16,6 +17,8 @@ export default function MapPage() {
   const myth = MYTHS.find((m) => m.id === selectedMythId)
   const [sel, setSel] = useState('auto')                 // 'auto' = 지금 시각, 아니면 새벽·아침·밤을 직접 골라 보기
   const now = modeAt()
+  const [wsel, setWsel] = useState('auto')               // 'auto' = 지금 제주시의 실제 예보, 아니면 맑음·흐림·비·눈을 직접 골라 보기
+  const real = weatherKind(useAppStore((s) => s.weather.제주시))
 
   return (
     <>
@@ -31,12 +34,22 @@ export default function MapPage() {
             </Button>
           ))}
         </ButtonGroup>
-        <span className="small text-body-secondary">시간대에 따라 하늘과 풍경이 달라져요</span>
+        <ButtonGroup size="sm">
+          <Button variant={wsel === 'auto' ? 'success' : 'outline-success'} onClick={() => setWsel('auto')}>
+            <i className={`bi bi-${WEATHER_ICON[real]} me-1`} />실제 날씨 ({WEATHER_LABEL[real]})
+          </Button>
+          {['clear', 'overcast', 'rain', 'snow'].map((k) => (
+            <Button key={k} variant={wsel === k ? 'success' : 'outline-success'} onClick={() => setWsel(k)}>
+              <i className={`bi bi-${WEATHER_ICON[k]} me-1`} />{WEATHER_LABEL[k]}
+            </Button>
+          ))}
+        </ButtonGroup>
       </div>
+      <p className="small text-body-secondary mb-2">시간대와 제주의 실제 날씨(기상청)에 따라 하늘과 풍경이 달라져요. 버튼으로 다른 모습도 볼 수 있어요.</p>
       {/* 지도 안에 카드가 떠서 신화 내용이 나온다 (아래로 스크롤할 필요 없음) */}
       <div className="position-relative">
         <Scene height="64vh" items={MARKERS} selectedId={selectedMythId} onSelect={(m) => selectMyth(m.id)} autoRotate
-          mode={sel === 'auto' ? undefined : sel} />
+          mode={sel === 'auto' ? undefined : sel} weather={wsel === 'auto' ? undefined : wsel} />
         {myth ? (
           <div className="scene-overlay map-card" key={myth.id}>
             <div className="d-flex align-items-start gap-2">

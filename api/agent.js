@@ -2,7 +2,7 @@ import Anthropic from '@anthropic-ai/sdk';
 import { searchTour } from '../server/tour.js';
 import { getWeather } from '../server/weather.js';
 import { searchHeritage } from '../server/heritage.js';
-import { getMythStory } from '../server/myths.js';
+import { findMyth, getMythStory } from '../server/myths.js';
 import { searchProducts } from '../server/products.js';
 
 const client = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
@@ -16,6 +16,15 @@ const tools = [
     input_schema: {
       type: 'object',
       properties: { keyword: { type: 'string', description: '신화 이름이나 장소 (예: 설문대할망, 산방산). 비우면 전체 목록' } },
+    },
+  },
+  {
+    name: 'show_on_map',
+    description: '사용자가 "지도에서 보여줘", "~로 데려가 줘"처럼 3D 지도에서 어떤 신화 장소를 보고 싶다고 할 때 쓴다. 그러면 화면의 3D 지도가 그 장소로 이동한다',
+    input_schema: {
+      type: 'object',
+      properties: { place: { type: 'string', description: '신화 이름이나 장소 (예: 삼성혈, 산방산, 설문대할망, 한라산)' } },
+      required: ['place'],
     },
   },
   {
@@ -60,6 +69,10 @@ const tools = [
 // ② 도구 이름 → 실제 실행할 함수
 const runTool = {
   get_myth_story: async (input) => getMythStory(input),
+  show_on_map: async ({ place }) => {
+    const m = findMyth(place);
+    return m ? { moved: true, id: m.id, title: m.title, place: m.place } : { moved: false, error: '지도에 표시된 신화 장소에서 찾지 못했다' };
+  },
   search_tour_places: searchTour,
   search_products: async (input) => searchProducts(input),
   get_weather: getWeather,
@@ -67,7 +80,7 @@ const runTool = {
 };
 
 const SYSTEM = `너는 '탐라 신화 여행' 서비스의 이야기꾼 가이드 에이전트다.
-- 신화 이야기는 get_myth_story, 실제 장소는 search_tour_places, 국가유산은 search_heritage, 날씨는 get_weather, 살 만한 특산품은 search_products 도구로 확인한 뒤 답한다.
+- '지도에서 보여 줘' 같은 요청은 show_on_map(지도가 실제로 그 장소로 움직인다), 신화 이야기는 get_myth_story, 실제 장소는 search_tour_places, 국가유산은 search_heritage, 날씨는 get_weather, 살 만한 특산품은 search_products 도구로 확인한 뒤 답한다.
 - 도구 결과에 없는 장소나 신화는 지어내지 않는다.
 - 비가 오거나 강수확률이 높으면 실내 대안(박물관·전시관)을 함께 제안한다.
 - 신화 한 줄 + 갈 만한 장소 + 날씨 팁 순서로, 한국어 5문장 이내로 짧게 답한다.`;
@@ -77,6 +90,7 @@ export default async function handler(req, res) {
   const { message, history = [] } = req.body ?? {};
   const messages = [...history.slice(-10), { role: 'user', content: message }]; // 최근 10개만 보내 비용 절약
   const steps = []; // 화면에 "에이전트가 무엇을 했는지" 보여주기용
+  const actions = []; // 화면이 실제로 실행할 동작 (예: 3D 지도 이동)
 
   try {
     // ③ 에이전트 루프: 생각 → 도구 호출 → 결과 확인 → (반복) → 최종 답
@@ -91,7 +105,7 @@ export default async function handler(req, res) {
 
       if (r.stop_reason !== 'tool_use') {
         const answer = r.content.filter((b) => b.type === 'text').map((b) => b.text).join('\n');
-        return res.status(200).json({ answer, steps });
+        return res.status(200).json({ answer, steps, actions });
       }
 
       messages.push({ role: 'assistant', content: r.content }); // Claude의 도구 호출 요청을 대화에 기록
@@ -101,12 +115,13 @@ export default async function handler(req, res) {
         let result;
         try { result = await runTool[block.name](block.input ?? {}); }
         catch (e) { result = { error: e.message }; }
-        steps.push({ tool: block.name, args: block.input, count: Array.isArray(result) ? result.length : 0 });
+        steps.push({ tool: block.name, args: block.input, count: Array.isArray(result) ? result.length : result?.moved ? 1 : 0 });
+        if (block.name === 'show_on_map' && result?.moved) actions.push({ type: 'map', mythId: result.id, title: result.title });
         results.push({ type: 'tool_result', tool_use_id: block.id, content: JSON.stringify(result) });
       }
       messages.push({ role: 'user', content: results }); // 도구 결과를 Claude에게 돌려줌
     }
-    res.status(200).json({ answer: '도구 호출이 너무 많아 중단했어요. 질문을 좁혀 주세요.', steps });
+    res.status(200).json({ answer: '도구 호출이 너무 많아 중단했어요. 질문을 좁혀 주세요.', steps, actions });
   } catch (e) {
     res.status(e.status ?? 500).json({ error: e.status === 429 ? '사용량이 많아요. 1분 뒤 다시 시도하세요.' : e.message });
   }

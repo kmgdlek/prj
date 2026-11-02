@@ -1,11 +1,11 @@
 import { useEffect, useRef } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
-import { Badge, Button, Card, Col, Row } from 'react-bootstrap'
-import { displayName, useAppStore } from '../store/useAppStore'
+import { Badge, Col, Row } from 'react-bootstrap'
+import { useAppStore } from '../store/useAppStore'
 import { MYTHS } from '../../server/myths'
 import Scene from '../components/Scene'
-import WeatherBadge from '../components/WeatherBadge'
-import LevelBadge from '../components/LevelBadge'
+import WeatherLine from '../components/WeatherLine'
+import HomeExtras from '../components/HomeExtras'
 
 // 지도 오른쪽 바로가기 — 제주 장터가 맨 위
 const SHORTCUTS = [
@@ -19,7 +19,7 @@ const MARKERS = MYTHS.map((m) => ({ id: m.id, name: m.title, lat: m.lat, lng: m.
 
 // 홈 = 3D 신화 지도(누르면 지도 페이지) + 바로가기
 export default function Home() {
-  const { user, selectMyth } = useAppStore()
+  const selectMyth = useAppStore((s) => s.selectMyth)
   const navigate = useNavigate()
   const downAt = useRef(null)
 
@@ -34,7 +34,7 @@ export default function Home() {
         <p className="lead text-body-secondary">
           치마폭의 흙으로 한라산을 쌓은 여신과 1만 8천 신의 이야기를, 돌려 보고 눌러 보는 3D 섬 위에서 만나 보세요.
         </p>
-        <WeatherBadge place="서귀포시" /> <WeatherBadge place="제주시" />
+        <WeatherLine />
       </section>
 
       <Row className="g-3 mb-4">
@@ -69,20 +69,7 @@ export default function Home() {
         </Col>
       </Row>
 
-      <Card className="mt-4">
-        <Card.Body className="d-flex align-items-center gap-3 flex-wrap">
-          <i className="bi bi-person-circle fs-2 text-primary" />
-          <div className="flex-grow-1">
-            <Card.Title className="fs-6 fw-bold mb-0 d-flex align-items-center gap-2">
-              {user && <LevelBadge part="lv" />}
-              {user ? `${displayName(user)}님, 환영해요` : '로그인하고 별자리와 장바구니를 만들어 보세요'}
-            </Card.Title>
-            <small className="text-body-secondary">{user ? user.email : 'Supabase Auth · 이메일로 가입'}</small>
-            {user && <div className="mt-1"><LevelBadge part="name" /></div>}
-          </div>
-          {!user && <Button as={Link} to="/login" size="sm">로그인 · 회원가입</Button>}
-        </Card.Body>
-      </Card>
+      <HomeExtras />
     </>
   )
 }

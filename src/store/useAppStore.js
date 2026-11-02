@@ -1,9 +1,12 @@
 import { create } from 'zustand'
 import { supabase } from '../lib/supabase'
-import { askAgent, fetchShopImages, ping } from '../api/client'
+import { askAgent, fetchShopImages, fetchWeather, ping } from '../api/client'
 import { productOf, salePrice } from '../../server/products'
 import { levelOf, totalSpent } from '../lib/level'
 import { STATUS } from '../lib/order'
+import { DAY, PROMO_CODES, gradeCouponsFor } from '../lib/coupon'
+import { calcCheckout, pointsSummary } from '../lib/checkout'
+import { resizeToJpeg } from '../lib/image'
 
 const pendingFav = new Set()   // 저장·삭제가 진행 중인 항목 키 (연타 방지)
 let authStarted = false        // StrictMode 에서 구독이 두 번 걸리지 않게
@@ -11,26 +14,44 @@ let authStarted = false        // StrictMode 에서 구독이 두 번 걸리지 
 // 화면에 보여 줄 이름: 가입 때 적은 닉네임, 없으면 이메일 앞부분
 export const displayName = (user) => user?.user_metadata?.nickname || user?.email?.split('@')[0] || ''
 
+// DB 함수(rpc) 호출. SQL 을 아직 실행하지 않아 함수가 없으면 { missing: true } — 그때는 재고 처리를 건너뛴다
+async function rpcSafe(name, args) {
+  const { data, error } = await supabase.rpc(name, args)
+  if (error) {
+    const missing = error.code === 'PGRST202' || error.code === '42883' || /could not find the function/i.test(error.message)
+    return missing ? { missing: true } : { error }
+  }
+  return { data }
+}
+
 // ── 앱 전체가 함께 쓰는 상태(store) ──────────────────────
 // 여러 페이지에서 같이 쓰는 데이터는 여기에 둡니다. (한 페이지에서만 쓰면 useState)
 export const useAppStore = create((set, get) => ({
   // ① 로그인 — Supabase Auth (이메일 + 비밀번호). 세션은 Supabase 가 브라우저에 보관
   user: null,
   authReady: false,       // 처음 로그인 상태를 확인하기 전에는 false (깜빡임·잘못된 리다이렉트 방지)
+  // 로그인된 사용자의 데이터를 불러온다 (쿠폰 발급이 구매액(주문)에 달려 있어 주문을 먼저)
+  loadUserData: async () => {
+    await get().loadOrders()
+    get().loadCoupons()
+    get().loadFavorites({ quiet: true })
+    get().loadCart()
+  },
   initAuth: async () => {
     if (authStarted) return
     authStarted = true
+    get().loadStock(); get().loadReviews()               // 재고·후기는 누구나 볼 수 있어서 로그인 전에도
     if (!supabase) return set({ authReady: true })
     const { data } = await supabase.auth.getSession()
     set({ user: data.session?.user ?? null, authReady: true })
-    if (get().user) { get().loadFavorites({ quiet: true }); get().loadCart(); get().loadOrders() }
+    if (get().user) get().loadUserData()
     supabase.auth.onAuthStateChange((_event, session) => {
       const user = session?.user ?? null
       const changed = user?.id !== get().user?.id
       set({ user })
       if (!changed) return
-      set({ favorites: [], cart: [], orders: [] })     // 다른 사람의 데이터가 남지 않게 비움
-      if (user) { get().loadFavorites({ quiet: true }); get().loadCart(); get().loadOrders() }
+      set({ favorites: [], cart: [], orders: [], coupons: [] })     // 다른 사람의 데이터가 남지 않게 비움
+      if (user) get().loadUserData()
     })
   },
   signUp: async ({ email, password, nickname }) => {
@@ -47,6 +68,31 @@ export const useAppStore = create((set, get) => ({
   signOut: async () => {
     await supabase?.auth.signOut()
     get().toast('로그아웃했어요', 'secondary')
+  },
+  // 마이페이지: 닉네임·비밀번호·프로필 사진 (변경되면 Supabase 가 알려 줘서 user 가 자동 갱신된다)
+  updateNickname: async (nickname) => {
+    const { error } = await supabase.auth.updateUser({ data: { nickname: nickname.trim() } })
+    if (error) throw error
+  },
+  changePassword: async ({ current, next }) => {
+    const { error: e1 } = await supabase.auth.signInWithPassword({ email: get().user.email, password: current })
+    if (e1) throw new Error('현재 비밀번호가 맞지 않아요')
+    const { error } = await supabase.auth.updateUser({ password: next })
+    if (error) throw error
+  },
+  uploadAvatar: async (file) => {
+    const blob = await resizeToJpeg(file, 256)
+    const path = `${get().user.id}/avatar.jpg`
+    const { error } = await supabase.storage.from('avatars').upload(path, blob, { upsert: true, contentType: 'image/jpeg' })
+    if (error) throw new Error(/bucket/i.test(error.message) ? '프로필 사진 저장소가 아직 없어요 (supabase/schema.sql 을 실행하세요)' : error.message)
+    const url = `${supabase.storage.from('avatars').getPublicUrl(path).data.publicUrl}?v=${Date.now()}`   // v= 는 캐시 우회
+    const { error: e2 } = await supabase.auth.updateUser({ data: { avatar_url: url } })
+    if (e2) throw e2
+  },
+  removeAvatar: async () => {
+    await supabase.storage.from('avatars').remove([`${get().user.id}/avatar.jpg`])
+    const { error } = await supabase.auth.updateUser({ data: { avatar_url: null } })
+    if (error) throw error
   },
 
   // 서버·DB 상태 — 메뉴 맨 아래 '동작 체크'와 이야기꾼 AI 의 온라인/오프라인 표시가 함께 쓴다
@@ -70,11 +116,22 @@ export const useAppStore = create((set, get) => ({
     setTimeout(() => set({ toasts: get().toasts.filter((t) => t.id !== id) }), 2500)
   },
 
-  // ③ 선택한 신화 — 홈·신화 페이지의 3D 지도와 목록이 같은 선택을 공유
+  // ③ 선택한 신화 — 홈·지도·신화 페이지의 3D 지도와 목록이 같은 선택을 공유
   selectedMythId: null,
   selectMyth: (id) => set({ selectedMythId: id }),
+  pendingMap: null,        // AI 가 "지도에서 보여 줘" 도구를 쓰면 여기에 신화 id 가 들어오고, 레이아웃이 /map 으로 이동시킨다
+  clearPendingMap: () => set({ pendingMap: null }),
 
-  // ④ 즐겨찾기 — 내 계정(user_id)의 favorites 행. RLS 가 내 것만 돌려준다
+  // ④ 제주 날씨 (기상청) — 3D 지도의 하늘·비·눈, 홈의 날씨 한 줄, 정보 창이 함께 쓴다
+  weather: { 제주시: null, 서귀포시: null, loaded: false },
+  loadWeather: async () => {
+    if (get().weather.loaded) return
+    set({ weather: { ...get().weather, loaded: true } })      // 중복 호출 방지
+    const r = await Promise.all(['제주시', '서귀포시'].map((p) => fetchWeather(p).then((l) => l[0]).catch(() => null)))
+    set({ weather: { 제주시: r[0], 서귀포시: r[1], loaded: true } })
+  },
+
+  // ⑤ 즐겨찾기 — 내 계정(user_id)의 favorites 행. RLS 가 내 것만 돌려준다 (별자리 + 찜한 상품)
   favorites: [],
   favLoading: false,
   loadFavorites: async ({ quiet = false } = {}) => {
@@ -88,10 +145,10 @@ export const useAppStore = create((set, get) => ({
     if (error) return quiet ? undefined : get().toast(error.message, 'danger')
     set({ favorites: data })
   },
-  // 별 버튼: 저장돼 있으면 취소, 없으면 저장. 화면에 먼저 반영하고 DB는 뒤따라 처리(실패하면 되돌림)
+  // 별/하트 버튼: 저장돼 있으면 취소, 없으면 저장. 화면에 먼저 반영하고 DB는 뒤따라 처리(실패하면 되돌림)
   toggleFavorite: async ({ source, id, title }) => {
     const { user } = get()
-    if (!user) return get().toast('로그인하면 별을 저장할 수 있어요', 'warning')
+    if (!user) return get().toast('로그인하면 저장할 수 있어요', 'warning')
     const itemId = String(id)
     const key = `${source}:${itemId}`
     if (pendingFav.has(key)) return            // 처리 중 연타 → 중복 저장 방지
@@ -105,7 +162,7 @@ export const useAppStore = create((set, get) => ({
           const { error } = await supabase.from('favorites').delete().eq('id', existing.id)
           if (error) throw error
         }
-        get().toast('즐겨찾기에서 뺐어요', 'secondary')
+        get().toast('저장 목록에서 뺐어요', 'secondary')
       } else {
         const temp = { id: `tmp-${key}`, user_id: user.id, source, item_id: itemId, title, created_at: new Date().toISOString() }
         set({ favorites: [temp, ...before] })
@@ -113,7 +170,7 @@ export const useAppStore = create((set, get) => ({
           .insert({ user_id: user.id, source, item_id: itemId, title }).select().single()
         if (error && error.code !== '23505') throw error      // 23505 = 이미 저장됨(유니크 제약)
         if (data) set({ favorites: get().favorites.map((f) => (f.id === temp.id ? data : f)) })
-        get().toast('즐겨찾기에 저장했어요')
+        get().toast(source === 'product' ? '찜했어요' : '즐겨찾기에 저장했어요')
       }
     } catch (e) {
       set({ favorites: before })
@@ -123,7 +180,16 @@ export const useAppStore = create((set, get) => ({
     }
   },
 
-  // ⑤ 장바구니 — 내 계정의 cart_items. 담는 순간 화면에 먼저 반영하고 DB 에는 "이 수량"으로 덮어쓴다(upsert)
+  // ⑥ 재고 — stock 테이블(없으면 상품 데이터의 기본 재고). 주문하면 줄고, 취소·환불하면 돌아온다
+  stock: {},
+  loadStock: async () => {
+    if (!supabase) return
+    const { data, error } = await supabase.from('stock').select('product_id, qty')
+    if (!error && data) set({ stock: Object.fromEntries(data.map((r) => [r.product_id, r.qty])) })
+  },
+  stockOf: (id) => get().stock[id] ?? productOf(id)?.stock ?? 0,
+
+  // ⑦ 장바구니 — 내 계정의 cart_items. 담는 순간 화면에 먼저 반영하고 DB 에는 "이 수량"으로 덮어쓴다(upsert)
   cart: [],            // { product_id, qty }
   cartLoading: false,
   loadCart: async () => {
@@ -134,9 +200,12 @@ export const useAppStore = create((set, get) => ({
     set({ cartLoading: false })
     if (!error) set({ cart: data })
   },
-  setCartQty: async (productId, qty) => {
+  setCartQty: async (productId, wanted) => {
     const { user } = get()
     if (!user) return get().toast('로그인하면 장바구니를 쓸 수 있어요', 'warning')
+    const max = get().stockOf(productId)
+    if (wanted > max) get().toast(max > 0 ? `재고가 ${max}개뿐이에요` : '품절된 상품이에요', 'warning')
+    const qty = Math.min(wanted, max)
     const before = get().cart
     const rest = before.filter((c) => c.product_id !== productId)
     const next = qty > 0 ? [...rest, { product_id: productId, qty }] : rest
@@ -152,6 +221,7 @@ export const useAppStore = create((set, get) => ({
   addToCart: async (productId, n = 1) => {
     const { user, cart } = get()
     if (!user) { get().toast('로그인하면 장바구니에 담을 수 있어요', 'warning'); return false }
+    if (get().stockOf(productId) <= 0) { get().toast('품절된 상품이에요', 'warning'); return false }
     const qty = (cart.find((c) => c.product_id === productId)?.qty ?? 0) + n
     await get().setCartQty(productId, qty)
     get().toast(`${productOf(productId)?.name ?? '상품'}을(를) 담았어요`)
@@ -165,7 +235,62 @@ export const useAppStore = create((set, get) => ({
     try { set({ productImages: await fetchShopImages() }) } catch { /* 사진 없이도 동작 */ }
   },
 
-  // ⑥ 주문 — 주문 당시의 상품·가격을 그대로 저장하고 장바구니를 비운다 (실제 결제는 연동하지 않음)
+  // ⑧ 쿠폰함 — 등급 쿠폰은 등급에 도달한 순간 자동으로 들어온다 (이미 받은 건 다시 안 받음)
+  coupons: [],
+  loadCoupons: async () => {
+    const { user } = get()
+    if (!supabase || !user) return
+    const { data: rows, error } = await supabase.from('coupons').select('*').eq('user_id', user.id).order('created_at', { ascending: false })
+    if (error) return                               // 쿠폰 테이블이 아직 없으면 조용히 건너뜀
+    let list = rows
+    const have = new Set(rows.map((c) => c.source))
+    const missing = gradeCouponsFor(levelOf(totalSpent(get().orders)).lv).filter((c) => !have.has(c.source))
+    if (missing.length) {
+      const { data: added } = await supabase.from('coupons').upsert(
+        missing.map((c) => ({ user_id: user.id, source: c.source, title: c.title, kind: c.kind, value: c.value, min: c.min, expires_at: new Date(Date.now() + c.expiresDays * DAY).toISOString() })),
+        { onConflict: 'user_id,source', ignoreDuplicates: true },
+      ).select()
+      if (added?.length) { list = [...added, ...rows]; get().toast(`쿠폰 ${added.length}장이 도착했어요 🎁`, 'info') }
+    }
+    set({ coupons: list })
+  },
+  registerCoupon: async (code) => {
+    const key = code.trim().toUpperCase()
+    const promo = PROMO_CODES[key]
+    if (!promo) throw new Error('없는 쿠폰 코드예요')
+    const { user } = get()
+    const { data, error } = await supabase.from('coupons').insert({
+      user_id: user.id, source: `code:${key}`, title: promo.title, kind: promo.kind, value: promo.value, min: promo.min,
+      expires_at: new Date(Date.now() + promo.expiresDays * DAY).toISOString(),
+    }).select().single()
+    if (error) throw new Error(error.code === '23505' ? '이미 등록한 코드예요' : error.message)
+    set({ coupons: [data, ...get().coupons] })
+    get().toast(`${promo.title}을(를) 받았어요`)
+  },
+
+  // ⑨ 후기·별점 — 모두가 읽을 수 있다. 쓰기는 배송완료된 내 주문의 상품에만 (화면에서 확인, DB 는 내 행만 허용)
+  reviews: [],
+  loadReviews: async () => {
+    if (!supabase) return
+    const { data, error } = await supabase.from('reviews').select('*').order('created_at', { ascending: false }).limit(500)
+    if (!error) set({ reviews: data })
+  },
+  addReview: async ({ product_id, order_id, rating, content }) => {
+    const { user } = get()
+    const { data, error } = await supabase.from('reviews')
+      .insert({ user_id: user.id, product_id, order_id, rating, content: content.trim(), nickname: displayName(user) }).select().single()
+    if (error) throw new Error(error.code === '23505' ? '이미 후기를 남긴 상품이에요' : error.message)
+    set({ reviews: [data, ...get().reviews] })
+    get().toast('후기를 남겼어요. 고마워요!')
+  },
+  deleteReview: async (id) => {
+    const before = get().reviews
+    set({ reviews: before.filter((r) => r.id !== id) })
+    const { error } = await supabase.from('reviews').delete().eq('id', id)
+    if (error) { set({ reviews: before }); get().toast(error.message, 'danger') } else get().toast('후기를 지웠어요', 'secondary')
+  },
+
+  // ⑩ 주문 — 주문 당시의 상품·가격·할인·쿠폰·적립금·배송비를 그대로 저장하고 장바구니를 비운다 (실제 결제는 연동하지 않음)
   orders: [],
   loadOrders: async () => {
     const { user } = get()
@@ -173,6 +298,17 @@ export const useAppStore = create((set, get) => ({
     const { data, error } = await supabase.from('orders').select('*').eq('user_id', user.id)
       .order('created_at', { ascending: false }).limit(200)
     if (!error) set({ orders: data })
+  },
+  // 주문을 취소·환불하면 재고와 쿠폰을 되돌린다 (적립금은 주문 상태로 계산해서 자동으로 돌아간다)
+  restoreOrder: async (order) => {
+    for (const i of order.items) {
+      const r = await rpcSafe('give_stock', { p_id: i.product_id, p_qty: i.qty })
+      if (!r.missing && !r.error) set({ stock: { ...get().stock, [i.product_id]: get().stockOf(i.product_id) + i.qty } })
+    }
+    if (order.coupon_id) {
+      await supabase.from('coupons').update({ used_at: null }).eq('id', order.coupon_id)
+      set({ coupons: get().coupons.map((c) => (c.id === order.coupon_id ? { ...c, used_at: null } : c)) })
+    }
   },
   // 주문 상태 변경 — 화면에 먼저 반영하고 DB 가 거절하면 되돌린다
   updateOrder: async (id, patch, doneMessage) => {
@@ -183,8 +319,16 @@ export const useAppStore = create((set, get) => ({
     get().toast(doneMessage)
     return true
   },
-  cancelOrder: (id) => get().updateOrder(id, { status: STATUS.cancelled }, '주문을 취소했어요'),
-  requestRefund: (id, reason) => get().updateOrder(id, { status: STATUS.refund, refund_reason: reason }, '반품·환불을 접수했어요'),
+  cancelOrder: async (order) => {
+    const ok = await get().updateOrder(order.id, { status: STATUS.cancelled }, '주문을 취소했어요')
+    if (ok) await get().restoreOrder(order)
+    return ok
+  },
+  requestRefund: async (order, reason) => {
+    const ok = await get().updateOrder(order.id, { status: STATUS.refund, refund_reason: reason }, '반품·환불을 접수했어요')
+    if (ok) await get().restoreOrder(order)
+    return ok
+  },
   deleteOrder: async (id) => {
     const before = get().orders
     set({ orders: before.filter((o) => o.id !== id) })
@@ -193,33 +337,73 @@ export const useAppStore = create((set, get) => ({
     get().toast('주문 내역을 삭제했어요', 'secondary')
     return true
   },
-  checkout: async () => {
-    const { user, cart } = get()
+  // 주문하기: 금액 계산 → 재고 차감 → 주문 저장 → 쿠폰 사용 처리 → 장바구니 비우기 → 등급·쿠폰 갱신
+  checkout: async ({ couponId = null, pointsUse = 0 } = {}) => {
+    const { user, cart, orders } = get()
     if (!user || cart.length === 0) return false
-    const items = cart.map((c) => {
-      const p = productOf(c.product_id)
-      return { product_id: c.product_id, name: p?.name ?? c.product_id, price: p ? salePrice(p) : 0, qty: c.qty }
-    })
-    const total = items.reduce((sum, i) => sum + i.price * i.qty, 0)
-    const { data, error } = await supabase.from('orders').insert({ user_id: user.id, total, items }).select().single()
-    if (error) { get().toast(error.message, 'danger'); return false }
+    await get().loadStock()
+    const lines = cart.map((c) => ({ p: productOf(c.product_id), qty: c.qty })).filter((l) => l.p)
+    const short = lines.find((l) => l.qty > get().stockOf(l.p.id))
+    if (short) { get().toast(`${short.p.name} 재고가 ${get().stockOf(short.p.id)}개뿐이에요`, 'warning'); return false }
+
+    const coupon = get().coupons.find((c) => c.id === couponId) ?? null
+    const calc = calcCheckout({ lines, spent: totalSpent(orders), coupon, pointsWanted: pointsUse, pointsBalance: pointsSummary(orders).balance })
+
+    // 재고 차감 — 하나라도 실패하면 이미 차감한 것을 되돌린다 (함수가 아직 없으면 건너뜀)
+    const taken = []
+    for (const l of lines) {
+      const r = await rpcSafe('take_stock', { p_id: l.p.id, p_qty: l.qty })
+      if (r.missing) break
+      if (r.error || r.data === false) {
+        for (const t of taken) await rpcSafe('give_stock', { p_id: t.p.id, p_qty: t.qty })
+        get().toast(r.error ? r.error.message : `${l.p.name} 재고가 부족해요`, 'danger')
+        await get().loadStock()
+        return false
+      }
+      taken.push(l)
+    }
+
+    const items = lines.map((l) => ({ product_id: l.p.id, name: l.p.name, price: salePrice(l.p), qty: l.qty }))
+    const full = {
+      user_id: user.id, total: calc.total, items, original: calc.original, grade_discount: calc.gradeDiscount,
+      coupon_id: coupon && calc.couponOff > 0 ? coupon.id : null, coupon_discount: calc.couponOff,
+      points_used: calc.pointsUsed, points_earned: calc.earn, shipping_fee: calc.shipping,
+    }
+    let { data, error } = await supabase.from('orders').insert(full).select().single()
+    if (error && /column/i.test(error.message)) {            // 새 컬럼이 아직 없으면(SQL 미실행) 기본 정보만 저장
+      ;({ data, error } = await supabase.from('orders').insert({ user_id: user.id, total: calc.total, items }).select().single())
+    }
+    if (error) {
+      for (const t of taken) await rpcSafe('give_stock', { p_id: t.p.id, p_qty: t.qty })
+      get().toast(error.message, 'danger')
+      return false
+    }
     await supabase.from('cart_items').delete().eq('user_id', user.id)
-    const before = levelOf(totalSpent(get().orders)).lv
-    set({ cart: [], orders: [data, ...get().orders] })
+    if (data.coupon_id) {
+      await supabase.from('coupons').update({ used_at: new Date().toISOString() }).eq('id', data.coupon_id)
+      set({ coupons: get().coupons.map((c) => (c.id === data.coupon_id ? { ...c, used_at: new Date().toISOString() } : c)) })
+    }
+    const stockNow = { ...get().stock }
+    for (const t of taken) stockNow[t.p.id] = get().stockOf(t.p.id) - t.qty
+    const before = levelOf(totalSpent(orders)).lv
+    set({ cart: [], orders: [data, ...orders], stock: stockNow })
     const after = levelOf(totalSpent(get().orders))
     get().toast(after.lv > before ? `주문 완료! LV.${after.lv} ${after.name} 달성 🎉` : '주문이 접수됐어요')
-    return true
+    if (after.lv > before) get().loadCoupons()               // 새 등급 쿠폰 받기
+    return data
   },
 
-  // ⑦ 에이전트 대화 — 페이지를 옮겨도 대화가 남도록 store 에 둡니다
-  messages: [],          // { role: 'user' | 'assistant', text, steps }
+  // ⑪ 에이전트 대화 — 페이지를 옮겨도 대화가 남도록 store 에 둡니다
+  messages: [],          // { role: 'user' | 'assistant', text, steps, actions }
   chatLoading: false,
   sendMessage: async (text) => {
     const history = get().messages.map((m) => ({ role: m.role, content: m.text }))  // Claude 형식
     set({ messages: [...get().messages, { role: 'user', text, at: Date.now() }], chatLoading: true })
     try {
-      const { answer, steps } = await askAgent(text, history)
-      set({ messages: [...get().messages, { role: 'assistant', text: answer, steps, at: Date.now() }] })
+      const { answer, steps, actions = [] } = await askAgent(text, history)
+      set({ messages: [...get().messages, { role: 'assistant', text: answer, steps, actions, at: Date.now() }] })
+      const map = actions.find((a) => a.type === 'map')
+      if (map) set({ pendingMap: map.mythId })             // AI 가 지도를 움직이라고 했다 → 레이아웃이 /map 으로 이동
     } catch (e) {
       get().toast(e.message, 'danger')
       get().checkHealth()                     // 실패하면 서버 상태를 다시 확인해 온라인/오프라인 표시를 갱신
@@ -228,3 +412,4 @@ export const useAppStore = create((set, get) => ({
     }
   },
 }))
+

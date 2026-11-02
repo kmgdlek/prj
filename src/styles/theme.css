@@ -229,3 +229,67 @@ body { font-family: 'Pretendard', system-ui, sans-serif; }
 @media (max-width: 575px) { .map-card { max-width: none; } }
 
 .price-now-sm { font-size: 1.5rem; font-weight: 800; }
+
+/* 별점 */
+.stars { color: #f5a623; white-space: nowrap; letter-spacing: .05em; }
+.star-input button { border: 0; background: none; padding: 0 .1rem; color: inherit; cursor: pointer; line-height: 1; }
+
+/* 프로필 사진 */
+.avatar-img { border-radius: 50%; object-fit: cover; flex: none; display: inline-flex; }
+.avatar-empty { align-items: center; justify-content: center; background: var(--bs-secondary-bg); color: var(--bs-secondary-color); }
+
+/* 주문 진행 단계 */
+.order-tracker { list-style: none; margin: 0; padding: 0; display: flex; }
+.order-tracker li { flex: 1; display: flex; flex-direction: column; align-items: center; position: relative; text-align: center; font-size: .8rem; color: var(--bs-secondary-color); }
+.order-tracker li:not(:first-child)::before { content: ''; position: absolute; top: 14px; right: 50%; width: 100%; height: 3px; background: var(--bs-border-color); }
+.order-tracker li.done:not(:first-child)::before, .order-tracker li.now:not(:first-child)::before { background: var(--bs-primary); }
+.order-tracker .dot { position: relative; z-index: 1; width: 30px; height: 30px; border-radius: 50%; display: inline-flex; align-items: center; justify-content: center; font-weight: 700; background: var(--bs-border-color); color: var(--bs-secondary-color); }
+.order-tracker li.done .dot { background: var(--bs-primary); color: #fff; }
+.order-tracker li.now .dot { background: var(--bs-body-bg); color: var(--bs-primary); border: 3px solid var(--bs-primary); animation: dot-pulse-blue 1.8s infinite; }
+.order-tracker li.now .label { color: var(--bs-body-color); font-weight: 700; }
+.order-tracker .label { margin-top: .3rem; }
+.order-tracker.compact .dot { width: 22px; height: 22px; font-size: .7rem; }
+.order-tracker.compact li:not(:first-child)::before { top: 10px; height: 2px; }
+.order-tracker.compact .label { font-size: .7rem; }
+@keyframes dot-pulse-blue { 70% { box-shadow: 0 0 0 8px rgba(var(--bs-primary-rgb), 0); } 100% { box-shadow: 0 0 0 0 rgba(var(--bs-primary-rgb), 0); } }
+
+/* 결제 요약: 왼쪽 항목, 오른쪽 금액 */
+.sum-rows { display: grid; grid-template-columns: 1fr auto; gap: .35rem 1rem; font-size: .92rem; }
+.sum-rows dt { font-weight: 500; color: var(--bs-secondary-color); margin: 0; }
+.sum-rows dd { margin: 0; text-align: right; }
+
+/* 장터: 찜 버튼·품절 */
+.wish-btn { position: absolute; top: .5rem; right: .5rem; border-radius: 50%; width: 36px; height: 36px; padding: 0; background: rgba(255, 255, 255, .85); }
+.soldout { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; background: rgba(0, 0, 0, .5); color: #fff; font-weight: 800; font-size: 1.4rem; pointer-events: none; }
+.review-item { padding: .85rem 0; border-bottom: 1px solid var(--bs-border-color); }
+
+/* 마이페이지 */
+.mypage-tabs { flex-wrap: wrap; gap: .25rem; }
+@media (max-width: 767px) { .mypage-tabs { flex-wrap: nowrap; overflow-x: auto; padding-bottom: .25rem; } }
+.mypage-tabs .nav-link { white-space: nowrap; }
+.mypage-tile { width: 100%; border: 1px solid var(--bs-border-color); background: var(--bs-tertiary-bg); border-radius: .75rem; padding: .5rem .25rem; cursor: pointer; transition: border-color .15s; }
+.mypage-tile:hover { border-color: var(--bs-primary); }
+.coupon { border-left: 6px solid var(--bs-primary); }
+.coupon.off { opacity: .55; border-left-color: var(--bs-secondary); }
+.coupon-value { font-size: 1.35rem; font-weight: 800; color: var(--bs-primary); min-width: 4.2rem; text-align: center; }
+
+/* 홈: 날씨 한 줄 · 오늘의 특가 */
+.weather-line { display: flex; flex-wrap: wrap; gap: .25rem 1rem; font-size: .9rem; color: var(--bs-secondary-color); }
+.weather-line i { margin-right: .35rem; }
+.deal-img { width: 100%; height: 90px; object-fit: cover; border-radius: .6rem; display: block; }
+.deal:hover .deal-img { filter: brightness(1.05); }
+
+/* 메뉴 목록: 한 칸마다 구분선 */
+.menu-list { border-top: 1px solid var(--bs-border-color); }
+.menu-row { display: flex; align-items: center; gap: .85rem; padding: .85rem .35rem; border-bottom: 1px solid var(--bs-border-color); color: var(--bs-body-color); text-decoration: none; font-size: 1.05rem; transition: background .15s, padding .15s; }
+.menu-row > .bi:first-child { width: 1.4rem; text-align: center; color: var(--bs-primary); }
+.menu-row .chev { color: var(--bs-secondary-color); font-size: .8rem; }
+.menu-row:hover { background: var(--bs-tertiary-bg); color: var(--bs-body-color); padding-left: .65rem; }
+.menu-row.active { font-weight: 700; color: var(--bs-primary); }
+
+/* 등급 안내: 등급별 혜택 */
+.level-benefits { margin: .3rem 0 0; padding-left: 1rem; font-size: .8rem; color: var(--bs-body-color); }
+.level-benefits li { margin: 0; }
+.level-item { align-items: flex-start; }
+.level-item .level-dot { margin-top: .1rem; }
+.level-item:not(:last-child)::after { top: calc(.6rem + 36px); }

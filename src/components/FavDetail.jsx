@@ -1,19 +1,21 @@
 import { useEffect, useState } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { Link, useNavigate } from 'react-router-dom'
 import { Badge, Button, Col, Modal, Row } from 'react-bootstrap'
 import { fetchImages } from '../api/client'
 import { useAppStore } from '../store/useAppStore'
 import { MYTHS } from '../../server/myths'
+import { productOf } from '../../server/products'
 import { ErrorAlert, Loading } from './Status'
 
-const SOURCE = { myth: '신화', tour: '장소', heritage: '유산' }
+const SOURCE = { myth: '신화', tour: '장소', heritage: '유산', product: '상품' }
 
 // 내 별자리에서 별을 누르면 뜨는 상세 창 — 신화는 이야기, 모두 Pixabay 사진 갤러리
 export default function FavDetail({ fav, onHide }) {
   const navigate = useNavigate()
   const selectMyth = useAppStore((s) => s.selectMyth)
   const myth = fav?.source === 'myth' ? MYTHS.find((m) => m.id === fav.item_id) : null
-  const keyword = myth?.keyword ?? fav?.title
+  const product = fav?.source === 'product' ? productOf(fav.item_id) : null
+  const keyword = product?.photo ?? myth?.keyword ?? fav?.title
   const [images, setImages] = useState([])
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
@@ -22,12 +24,12 @@ export default function FavDetail({ fav, onHide }) {
     if (!fav) return
     let alive = true
     setLoading(true); setError(''); setImages([])
-    fetchImages(keyword)
+    fetchImages(keyword, product ? { lang: 'en', fallback: false, rows: 6 } : undefined)
       .then((r) => alive && setImages(r))
       .catch((e) => alive && setError(e.message))
       .finally(() => alive && setLoading(false))
     return () => { alive = false }
-  }, [fav, keyword])
+  }, [fav, keyword, product])
 
   return (
     <Modal show={Boolean(fav)} onHide={onHide} size="lg" centered scrollable>
@@ -40,6 +42,14 @@ export default function FavDetail({ fav, onHide }) {
             </Modal.Title>
           </Modal.Header>
           <Modal.Body>
+            {product && (
+              <>
+                <p className="mb-2">{product.desc}</p>
+                <Button as={Link} to={`/shop/${product.id}`} size="sm" variant="outline-primary" className="mb-3" onClick={onHide}>
+                  <i className="bi bi-bag-heart me-1" />상품 보러 가기
+                </Button>
+              </>
+            )}
             {myth && (
               <>
                 <p className="text-primary small mb-1"><i className="bi bi-geo-alt me-1" />{myth.place}</p>

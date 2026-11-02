@@ -65,5 +65,102 @@ create policy "orders own insert" on orders     for insert with check (auth.uid(
 create policy "orders own update" on orders     for update using (auth.uid() = user_id) with check (auth.uid() = user_id);
 create policy "orders own delete" on orders     for delete using (auth.uid() = user_id);
 
+-- ═══════════════════════════════════════════════════════════
+-- ⑤ 쇼핑 확장: 재고 · 쿠폰 · 후기 · 주문 상세 컬럼 · 프로필 사진 저장소
+-- ═══════════════════════════════════════════════════════════
+
+-- 재고: 모두가 읽을 수 있고, 증감은 아래 함수로만 한다 (주문하면 take_stock, 취소·환불하면 give_stock)
+create table if not exists stock (
+  product_id text primary key,
+  qty        int  not null check (qty >= 0)
+);
+alter table stock enable row level security;
+drop policy if exists "stock read" on stock;
+create policy "stock read" on stock for select using (true);
+
+create or replace function take_stock(p_id text, p_qty int) returns boolean
+language plpgsql security definer set search_path = public as $$
+begin
+  update stock set qty = qty - p_qty where product_id = p_id and qty >= p_qty;
+  return found;
+end $$;
+
+create or replace function give_stock(p_id text, p_qty int) returns void
+language plpgsql security definer set search_path = public as $$
+begin
+  update stock set qty = qty + p_qty where product_id = p_id;
+end $$;
+
+grant execute on function take_stock(text, int) to authenticated;
+grant execute on function give_stock(text, int) to authenticated;
+
+insert into stock (product_id, qty) values
+  ('hallabong', 48), ('choco', 120), ('omegi', 36), ('dolharubang', 62), ('sora-magnet', 150),
+  ('baengnyeoncho', 28), ('candle', 24), ('ecobag', 80), ('greentea', 95)
+on conflict (product_id) do nothing;
+
+-- 쿠폰함: 사용자별. (user_id, source) 가 유일해서 같은 쿠폰이 두 번 발급되지 않는다
+create table if not exists coupons (
+  id         bigint generated always as identity primary key,
+  user_id    uuid not null default auth.uid() references auth.users(id) on delete cascade,
+  source     text not null,                 -- 'welcome' | 'lv2'..'lv5' | 'code:JEJU10' ...
+  title      text not null,
+  kind       text not null check (kind in ('amount', 'percent')),
+  value      int  not null,
+  min        int  not null default 0,       -- 최소 주문금액
+  expires_at timestamptz not null,
+  used_at    timestamptz,
+  created_at timestamptz not null default now(),
+  unique (user_id, source)
+);
+alter table coupons enable row level security;
+drop policy if exists "coupons own" on coupons;
+create policy "coupons own" on coupons for all using (auth.uid() = user_id) with check (auth.uid() = user_id);
+
+-- 후기·별점: 누구나 읽고, 내 것만 쓰고 지운다. 같은 주문의 같은 상품에는 한 번만
+create table if not exists reviews (
+  id         bigint generated always as identity primary key,
+  user_id    uuid not null default auth.uid() references auth.users(id) on delete cascade,
+  product_id text not null,
+  order_id   bigint not null,
+  rating     int  not null check (rating between 1 and 5),
+  content    text not null,
+  nickname   text not null default '익명',
+  created_at timestamptz not null default now(),
+  unique (user_id, order_id, product_id)
+);
+alter table reviews enable row level security;
+drop policy if exists "reviews read" on reviews;
+drop policy if exists "reviews own insert" on reviews;
+drop policy if exists "reviews own update" on reviews;
+drop policy if exists "reviews own delete" on reviews;
+create policy "reviews read"       on reviews for select using (true);
+create policy "reviews own insert" on reviews for insert with check (auth.uid() = user_id);
+create policy "reviews own update" on reviews for update using (auth.uid() = user_id) with check (auth.uid() = user_id);
+create policy "reviews own delete" on reviews for delete using (auth.uid() = user_id);
+
+-- 주문 상세: 할인·쿠폰·적립금·배송비 내역 (예전 주문은 0)
+alter table orders add column if not exists original        int not null default 0;
+alter table orders add column if not exists grade_discount  int not null default 0;
+alter table orders add column if not exists coupon_id       bigint;
+alter table orders add column if not exists coupon_discount int not null default 0;
+alter table orders add column if not exists points_used     int not null default 0;
+alter table orders add column if not exists points_earned   int not null default 0;
+alter table orders add column if not exists shipping_fee    int not null default 0;
+
+-- 프로필 사진 저장소 (공개 읽기, 내 폴더(사용자 id)에만 쓰기)
+insert into storage.buckets (id, name, public) values ('avatars', 'avatars', true) on conflict (id) do nothing;
+drop policy if exists "avatars read" on storage.objects;
+drop policy if exists "avatars insert own" on storage.objects;
+drop policy if exists "avatars update own" on storage.objects;
+drop policy if exists "avatars delete own" on storage.objects;
+create policy "avatars read" on storage.objects for select using (bucket_id = 'avatars');
+create policy "avatars insert own" on storage.objects for insert to authenticated
+  with check (bucket_id = 'avatars' and (storage.foldername(name))[1] = auth.uid()::text);
+create policy "avatars update own" on storage.objects for update to authenticated
+  using (bucket_id = 'avatars' and (storage.foldername(name))[1] = auth.uid()::text);
+create policy "avatars delete own" on storage.objects for delete to authenticated
+  using (bucket_id = 'avatars' and (storage.foldername(name))[1] = auth.uid()::text);
+
 -- 새 컬럼·정책을 API 가 바로 인식하도록 스키마 캐시를 새로고침
 notify pgrst, 'reload schema';

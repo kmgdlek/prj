@@ -6,7 +6,7 @@ import FavDetail from '../components/FavDetail'
 import { Empty, Loading } from '../components/Status'
 import { useAppStore } from '../store/useAppStore'
 
-const SOURCE = { myth: '신화', tour: '장소', heritage: '유산' }
+const SOURCE = { myth: '신화', tour: '장소', heritage: '유산', product: '상품' }
 
 // 내 별자리 — 즐겨찾기를 Supabase 에서 불러와 보여주고, 별을 누르면 상세(사진·이야기)가 열립니다
 export default function My() {

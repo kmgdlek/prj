@@ -1,24 +1,21 @@
 import { useEffect, useRef, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { Badge, Button } from 'react-bootstrap'
-import { fetchWeather } from '../api/client'
 import { useLagFollow } from '../hooks/useLagFollow'
 import { displayName, useAppStore } from '../store/useAppStore'
 import LevelBadge from './LevelBadge'
+import Avatar from './Avatar'
 
 const ICON = { 맑음: 'sun', 구름많음: 'cloud-sun', 흐림: 'clouds' }
 const PLACES = ['제주시', '서귀포시']
 
-// 위: 날씨 두 곳 한 줄씩
+// 위: 날씨 두 곳 한 줄씩 (store 의 예보를 함께 쓴다)
 function WeatherMini() {
-  const [rows, setRows] = useState(null)       // null = 불러오는 중, [] = 실패
-  useEffect(() => {
-    let alive = true
-    Promise.all(PLACES.map((p) => fetchWeather(p).then((l) => l[0]).catch(() => null)))
-      .then((r) => alive && setRows(r.filter(Boolean)))
-    return () => { alive = false }
-  }, [])
-  if (rows === null) return <div className="small text-body-secondary">날씨 불러오는 중...</div>
+  const weather = useAppStore((s) => s.weather)
+  const loadWeather = useAppStore((s) => s.loadWeather)
+  useEffect(() => { loadWeather() }, [loadWeather])
+  const rows = PLACES.map((p) => weather[p]).filter(Boolean)
+  if (!weather.loaded) return <div className="small text-body-secondary">날씨 불러오는 중...</div>
   if (rows.length === 0) return <div className="small text-body-secondary"><i className="bi bi-cloud-slash me-1" />날씨 연결 대기</div>
   return rows.map((w) => (
     <div key={w.place} className="d-flex justify-content-between small">
@@ -50,7 +47,7 @@ export default function SideCard() {
           <section className="mb-3">
             {user ? (
               <div className="d-flex gap-2">
-                <i className="bi bi-person-circle fs-2 text-primary" />
+                <Link to="/mypage" aria-label="마이페이지"><Avatar user={user} size={40} /></Link>
                 <div className="min-w-0">
                   <div className="d-flex align-items-center gap-2 min-w-0">
                     <span className="flex-shrink-0"><LevelBadge part="lv" /></span>
@@ -72,6 +69,7 @@ export default function SideCard() {
           </section>
           <section className="mb-3 pt-3 border-top"><WeatherMini /></section>
           <section className="pt-3 border-top d-flex flex-column gap-2">
+            <Button as={Link} to="/mypage" size="sm" variant="outline-secondary" className="text-start"><i className="bi bi-person-circle me-2" />마이페이지</Button>
             <Button as={Link} to="/orders" size="sm" variant="outline-secondary" className="text-start"><i className="bi bi-receipt me-2" />주문 내역</Button>
             <Button as={Link} to="/cart" size="sm" variant="outline-secondary" className="text-start">
               <i className="bi bi-cart3 me-2" />장바구니{cartCount > 0 && <Badge bg="warning" text="dark" pill className="ms-2">{cartCount}</Badge>}
