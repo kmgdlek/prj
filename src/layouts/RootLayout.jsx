@@ -91,7 +91,7 @@ export default function RootLayout() {
   useEffect(() => { initAuth() }, [initAuth])
 
   // 알림: 시세가 바뀌거나(1분) 설정·찜·날씨가 바뀔 때 새 알림이 있는지 본다. 추천 장소는 날씨가 필요해서 먼저 불러온다
-  useEffect(() => { if (notifPrefs.enabled && notifPrefs.place) loadWeather() }, [notifPrefs.enabled, notifPrefs.place, loadWeather])
+  useEffect(() => { if (user && notifPrefs.enabled && notifPrefs.place) loadWeather() }, [user, notifPrefs.enabled, notifPrefs.place, loadWeather])
   useEffect(() => { runNotifier() }, [runNotifier, slot, notifsReady, notifPrefs, weatherLoaded, favCount, user?.id])
 
   // 시세(1분)·재고(10분)가 바뀌는 시각을 넘겼는지 2초마다 확인
@@ -114,7 +114,7 @@ export default function RootLayout() {
             <BrandLogo />탐라신화 3D
           </Navbar.Brand>
           <div className="d-flex align-items-center gap-1">
-            <NotificationBell />
+            {user && <NotificationBell />}
             <Button as={Link} to="/cart" variant="outline-light" className="border-0 fs-4 py-0 px-2 position-relative" aria-label={`장바구니 ${cartCount}개`}>
               <i className="bi bi-cart3" />
               {cartCount > 0 && <Badge bg="warning" text="dark" pill className="position-absolute top-0 start-100 translate-middle fs-6">{cartCount}</Badge>}

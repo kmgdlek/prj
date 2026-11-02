@@ -233,7 +233,7 @@ export const useAppStore = create((set, get) => ({
   loadNotifs: () => {
     const { user } = get()
     const meta = user?.user_metadata?.notif_prefs
-    set({ notifsReady: true, notifs: safeLS.get(notifKey(user)) ?? [], ...(meta ? { notifPrefs: { ...DEFAULT_PREFS, ...meta } } : {}) })
+    set({ notifsReady: true, notifs: user ? (safeLS.get(notifKey(user)) ?? []) : [], ...(meta ? { notifPrefs: { ...DEFAULT_PREFS, ...meta } } : {}) })
   },
   setNotifPrefs: async (patch) => {
     const notifPrefs = { ...get().notifPrefs, ...patch }
@@ -244,7 +244,7 @@ export const useAppStore = create((set, get) => ({
   // 지금 상황을 보고 새 알림을 만든다 (RootLayout 이 시세가 바뀔 때마다 부른다)
   runNotifier: () => {
     const { notifPrefs: prefs, notifs, user } = get()
-    if (!prefs.enabled || !get().notifsReady) return
+    if (!user || !prefs.enabled || !get().notifsReady) return          // 알림은 로그인했을 때만
     const now = Date.now()
     const fresh = buildNotifications({ now, slot: get().slot, stockSlot: get().stockSlot, favorites: get().favorites, weather: get().weather, prefs, notifs, stockOf: get().stockOf })
     if (!notifs.some((n) => n.id === 'welcome')) {
