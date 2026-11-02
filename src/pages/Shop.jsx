@@ -1,3 +1,4 @@
+import RetryImg from '../components/RetryImg'
 import RollingNumber from '../components/RollingNumber'
 import { useEffect, useState } from 'react'
 import { Link, useSearchParams } from 'react-router-dom'
@@ -91,7 +92,7 @@ export default function Shop() {
                   <div className="position-relative">
                     <Link to={`/shop/${p.id}`} aria-label={`${p.name} 상세 보기`}>
                       {images[p.id]
-                        ? <img src={images[p.id].url} alt={p.name} loading="lazy" className="product-photo" />
+                        ? <RetryImg src={images[p.id].url} alt={p.name} loading="lazy" className="product-photo" />
                         : <div className="product-tile" style={{ background: `linear-gradient(135deg, ${p.color}, #1a0b3d)` }}>{p.emoji}</div>}
                     </Link>
                     <FavButton fav={{ source: 'product', id: p.id, title: p.name }} icon="heart" label={false} className="wish-btn" />

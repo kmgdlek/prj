@@ -1,3 +1,4 @@
+import RetryImg from './RetryImg'
 import { useEffect, useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { Badge, Button, Col, Modal, Row } from 'react-bootstrap'
@@ -69,7 +70,7 @@ export default function FavDetail({ fav, onHide }) {
                   {images.map((img) => (
                     <Col key={img.id}>
                       <a href={img.page} target="_blank" rel="noreferrer">
-                        <img src={img.thumb} alt={img.tags} className="img-fluid rounded" style={{ aspectRatio: '4 / 3', objectFit: 'cover', width: '100%' }} />
+                        <RetryImg src={img.thumb} alt={img.tags} className="img-fluid rounded" style={{ aspectRatio: '4 / 3', objectFit: 'cover', width: '100%' }} />
                       </a>
                     </Col>
                   ))}

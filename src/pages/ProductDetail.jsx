@@ -6,6 +6,7 @@ import { won } from '../lib/format'
 import { useAppStore } from '../store/useAppStore'
 import { MYTHS } from '../../server/myths'
 import { MAX_PER_ITEM, PRODUCTS, basePrice, discountPct, flashRate, liveStock, productOf, salePrice, surgeLabel, surgePct, trendOf } from '../../server/products'
+import RetryImg from '../components/RetryImg'
 import RollingNumber from '../components/RollingNumber'
 import PriceChart from '../components/PriceChart'
 import { Empty } from '../components/Status'
@@ -91,7 +92,7 @@ export default function ProductDetail() {
                 <div className="photo-track" style={{ transform: `translateX(-${pos * 100}%)`, transition: snap ? 'none' : undefined }}>
                   {slides.map((img, i) => (
                     <a key={i} href={img.page} target="_blank" rel="noreferrer" title={`Pixabay · ${img.user}`} className="photo-slide" tabIndex={i === shown ? 0 : -1}>
-                      <img src={img.large || img.thumb} alt={i === shown ? p.name : ''} className="detail-photo" />
+                      <RetryImg src={img.large || img.thumb} alt={i === shown ? p.name : ''} className="detail-photo" />
                     </a>
                   ))}
                 </div>
@@ -102,7 +103,7 @@ export default function ProductDetail() {
           {images.length > 1 && (
             <div className="d-flex gap-2 mt-2">
               {images.map((img, i) => (
-                <img key={img.id} src={img.thumb} alt="" className={`detail-thumb ${i === shown ? 'on' : ''}`} onClick={() => setPos(i)} />
+                <RetryImg key={img.id} src={img.thumb} alt="" className={`detail-thumb ${i === shown ? 'on' : ''}`} onClick={() => setPos(i)} />
               ))}
             </div>
           )}

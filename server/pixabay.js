@@ -5,15 +5,18 @@ async function query(q, rows, lang) {
   const params = new URLSearchParams({
     key: process.env.PIXABAY_KEY,
     q, lang, image_type: 'photo', safesearch: 'true', orientation: 'horizontal',
-    per_page: String(rows),
+    per_page: String(Math.max(3, rows)),            // Pixabay 는 3 미만이면 오류("per_page is out of valid range")
   });
   const r = await fetch(`${BASE}?${params}`);
   const text = await r.text();
   let data;
   try { data = JSON.parse(text); }
   catch { throw new Error('Pixabay 응답이 JSON이 아님: ' + text.slice(0, 120)); }
-  return data.hits ?? [];
+  return (data.hits ?? []).slice(0, rows);
 }
+
+// 사진은 우리 서버(/api/img)를 거쳐 받는다 → 하루 캐시돼서 Pixabay 의 429 에 덜 걸린다
+const viaProxy = (url) => (url ? `/api/img?u=${encodeURIComponent(url)}` : url);
 
 // 검색어로 못 찾으면 '제주도'로 한 번 더 찾아, 상세 화면이 빈 칸이 되지 않게 한다
 export async function searchImages({ keyword = '', rows = 6, lang = 'ko', fallbackJeju = true } = {}) {
@@ -22,7 +25,7 @@ export async function searchImages({ keyword = '', rows = 6, lang = 'ko', fallba
   let fallback = false;
   if (hits.length === 0 && fallbackJeju) { hits = await query('제주도', rows, 'ko'); fallback = true; }
   return hits.map((h) => ({
-    id: h.id, thumb: h.webformatURL, large: h.largeImageURL,
+    id: h.id, thumb: viaProxy(h.webformatURL), large: viaProxy(h.largeImageURL),
     tags: h.tags, user: h.user, page: h.pageURL, fallback,
   }));
 }
