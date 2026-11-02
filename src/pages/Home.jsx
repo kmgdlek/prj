@@ -19,6 +19,9 @@ export default function Home() {
     : { state: 'fail', msg: '.env.local 에 VITE_SUPABASE_URL / ANON_KEY 를 넣으세요' })
   const [api, setApi] = useState({ state: 'wait', msg: '확인 중...' })
 
+  // 홈에 올 때마다 선택을 비워서, 항상 섬 전체가 보이는 처음 모습으로 시작한다
+  useEffect(() => { selectMyth(null) }, [selectMyth])
+
   useEffect(() => {
     if (isSupabaseReady) supabase.from('favorites').select('id').limit(1).then(({ error }) =>
       setDb(error ? { state: 'fail', msg: error.message } : { state: 'ok', msg: '연결 OK' }))

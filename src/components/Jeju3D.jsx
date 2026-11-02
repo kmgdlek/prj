@@ -135,7 +135,10 @@ function Marker({ m, selected, onSelect }) {
   )
 }
 
-// 선택한 마커로 카메라를 부드럽게 날려 보낸다 (이동이 끝나면 다시 마우스로 자유롭게 회전)
+// 회전 중심은 언제나 섬 한가운데로 고정한다.
+// 마커를 누르면 중심은 그대로 두고, 카메라가 그 마커가 있는 쪽으로 빙 돌아 정면에서 바라본다.
+const CENTER = new THREE.Vector3(0, 0.3, 0)
+
 function CameraRig({ focus }) {
   const controls = useThree((s) => s.controls)
   const camera = useThree((s) => s.camera)
@@ -143,13 +146,18 @@ function CameraRig({ focus }) {
   const lastId = useRef(null)
   useFrame(({ clock }, dt) => {
     if (!controls) return
-    if (focus && focus.id !== lastId.current) { lastId.current = focus.id; until.current = clock.elapsedTime + 1.6 }
+    controls.target.copy(CENTER)                      // 중심 고정
+    if (focus && focus.id !== lastId.current) { lastId.current = focus.id; until.current = clock.elapsedTime + 1.4 }
     if (!focus || clock.elapsedTime > until.current) return
     const [x, z] = toXZ(Number(focus.lat), Number(focus.lng))
-    const target = new THREE.Vector3(x, heightAt(x, z), z)
-    const k = 1 - Math.pow(0.001, dt)
-    controls.target.lerp(target, k)
-    camera.position.lerp(target.clone().add(new THREE.Vector3(0, 3.2, 5.2)), k)
+    if (Math.hypot(x, z) < 0.8) return                // 한라산처럼 중심 근처면 돌리지 않음
+    const off = camera.position.clone().sub(CENTER)
+    const r = Math.hypot(off.x, off.z)
+    let a = Math.atan2(off.x, off.z)
+    const goal = Math.atan2(x, z)
+    const diff = Math.atan2(Math.sin(goal - a), Math.cos(goal - a))   // 가장 짧은 방향
+    a += diff * (1 - Math.pow(0.001, dt))
+    camera.position.set(CENTER.x + Math.sin(a) * r, camera.position.y, CENTER.z + Math.cos(a) * r)
     controls.update()
   })
   return null
@@ -176,7 +184,7 @@ export default function Jeju3D({ items = [], selectedId, onSelect, height = 460,
       <Oreums />
       <Halo />
       {pins.map((m) => <Marker key={m.id} m={m} selected={m.id === selectedId} onSelect={onSelect} />)}
-      <OrbitControls makeDefault enablePan={false} minDistance={3} maxDistance={20} maxPolarAngle={Math.PI / 2.15}
+      <OrbitControls makeDefault enablePan={false} target={[0, 0.3, 0]} minDistance={3} maxDistance={20} maxPolarAngle={Math.PI / 2.15}
         autoRotate={autoRotate && !selectedId} autoRotateSpeed={0.6} />
       <CameraRig focus={focus} />
     </Canvas>
