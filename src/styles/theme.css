@@ -84,6 +84,11 @@ body { font-family: 'Pretendard', system-ui, sans-serif; }
 .agent-fab.is-open .fab-icon-robot { opacity: 0; transform: rotate(90deg) scale(.5); }
 .agent-fab.is-open .fab-icon-close { opacity: 1; transform: none; }
 @media (prefers-reduced-motion: reduce) { .chat-window, .chat-window.open { transition-duration: .01s; } }
+/* 확대: 화면을 꽉 채운다 (닫기 버튼 왼쪽의 확대 버튼) */
+.chat-window.open { transition: opacity .28s ease, transform .32s cubic-bezier(.2, .9, .3, 1.1), visibility 0s, width .3s ease, height .3s ease, right .3s ease, bottom .3s ease, border-radius .3s ease; }
+.chat-window.wide { right: 0; bottom: 0; width: 100vw; height: 100dvh; border-radius: 0; border: 0; }
+.chat-window.wide .chat-box { padding-inline: max(1rem, calc((100% - 860px) / 2)) !important; }
+.chat-window.wide .chat-footer { padding-inline: max(.75rem, calc((100% - 860px) / 2 + .25rem)); }
 
 /* 쇼핑 상품 카드의 이모지 타일 */
 .product-tile { height: 140px; display: flex; align-items: center; justify-content: center; font-size: 4rem; }

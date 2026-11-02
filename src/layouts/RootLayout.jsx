@@ -17,27 +17,33 @@ import { displayName, useAppStore } from '../store/useAppStore'
 function AgentWindow() {
   const { pathname } = useLocation()
   const [open, setOpen] = useState(false)
+  const [wide, setWide] = useState(false)               // 확대: 창이 화면을 꽉 채운다
 
   useEffect(() => {
     if (!open) return
-    const onKey = (e) => { if (e.key === 'Escape') setOpen(false) }
+    const onKey = (e) => { if (e.key === 'Escape') { if (wide) setWide(false); else setOpen(false) } }   // Esc: 확대부터 풀고, 다음에 닫는다
     window.addEventListener('keydown', onKey)
     return () => window.removeEventListener('keydown', onKey)
-  }, [open])
+  }, [open, wide])
 
   if (pathname === '/agent') return null            // 전체 화면 AI 페이지에서는 숨김
   return (
     <>
-      <section className={`chat-window ${open ? 'open' : ''}`} role="dialog" aria-label="이야기꾼 AI" aria-hidden={!open}>
+      <section className={`chat-window ${open ? 'open' : ''} ${wide ? 'wide' : ''}`} role="dialog" aria-label="이야기꾼 AI" aria-hidden={!open}>
         <header className="chat-window-head">
           <span className="fw-bold d-flex align-items-center gap-2"><i className="bi bi-robot text-primary" />이야기꾼 AI {open && <AgentStatus poll />}</span>
-          <Button variant="link" className="p-0 text-body-secondary" aria-label="닫기" onClick={() => setOpen(false)}>
-            <i className="bi bi-x-lg" />
-          </Button>
+          <span className="d-flex align-items-center gap-3">
+            <Button variant="link" className="p-0 text-body-secondary" aria-label={wide ? '작게' : '크게'} title={wide ? '작게' : '크게'} onClick={() => setWide((v) => !v)}>
+              <i className={`bi bi-${wide ? 'fullscreen-exit' : 'arrows-fullscreen'}`} />
+            </Button>
+            <Button variant="link" className="p-0 text-body-secondary" aria-label="닫기" onClick={() => { setOpen(false); setWide(false) }}>
+              <i className="bi bi-x-lg" />
+            </Button>
+          </span>
         </header>
         <div className="flex-grow-1 overflow-hidden"><ChatPanel /></div>
       </section>
-      <button type="button" className={`agent-fab ${open ? 'is-open' : ''}`} aria-label={open ? '이야기꾼 AI 닫기' : '이야기꾼 AI 열기'}
+      <button type="button" className={`agent-fab ${open ? 'is-open' : ''} ${wide ? 'd-none' : ''}`} aria-label={open ? '이야기꾼 AI 닫기' : '이야기꾼 AI 열기'}
         onClick={() => setOpen((v) => !v)}>
         {!open && <span className="fab-tip">이야기꾼 AI에게 물어보기</span>}
         <i className="bi bi-robot fab-icon-robot" />
