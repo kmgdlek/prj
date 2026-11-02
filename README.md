@@ -176,6 +176,12 @@ vercel dev                     # 화면 + /api 서버 함수 → http://localhos
 3. Authentication → URL Configuration 에서 **Site URL** 을 배포 주소(`https://prj-kappa-nine.vercel.app`)로 바꾸고, Redirect URLs 에 `https://prj-kappa-nine.vercel.app/**` 를 추가 (가입 완료 페이지 `/welcome` 으로 돌아오려면 필요. 안 하면 가입 인증 메일의 링크가 다른 사이트로 돌아간다)
 4. 첫 화면의 동작 체크 카드가 모두 초록색이면 연결 성공
 
+### 링크 미리보기 · 홈 화면에 앱 추가
+
+- 링크 미리보기(OG): `index.html` 의 `og:title`·`og:description`·`og:image`(`/images/og.png`, 1200×630)·`og:url` — 카톡·슬랙에 주소를 붙이면 큰 사진과 함께 나옵니다.
+- 홈 화면에 앱 추가: `public/manifest.webmanifest`(이름 '탐라신화 3D — 설문대할망의 섬' / 짧은 이름 '탐라신화', standalone) + `apple-touch-icon`(`/images/icon-180.png`) + 192·512 아이콘.
+  안드로이드는 Chrome 메뉴의 '앱 설치', 아이폰은 Safari 공유 버튼 → '홈 화면에 추가'.
+
 ### 단계별 확인 (홈 화면 "동작 체크")
 
 - [x] React · 라우터
