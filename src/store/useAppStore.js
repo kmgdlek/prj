@@ -180,11 +180,11 @@ export const useAppStore = create((set, get) => ({
     }
   },
 
-  // ⑥ 재고 — stock 테이블(없으면 상품 데이터의 기본 재고). 주문하면 줄고, 취소·환불하면 돌아온다
+  // ⑥ 재고 — shop_stock 테이블(없으면 상품 데이터의 기본 재고). 주문하면 줄고, 취소·환불하면 돌아온다
   stock: {},
   loadStock: async () => {
     if (!supabase) return
-    const { data, error } = await supabase.from('stock').select('product_id, qty')
+    const { data, error } = await supabase.from('shop_stock').select('product_id, qty')
     if (!error && data) set({ stock: Object.fromEntries(data.map((r) => [r.product_id, r.qty])) })
   },
   stockOf: (id) => get().stock[id] ?? productOf(id)?.stock ?? 0,
@@ -240,13 +240,13 @@ export const useAppStore = create((set, get) => ({
   loadCoupons: async () => {
     const { user } = get()
     if (!supabase || !user) return
-    const { data: rows, error } = await supabase.from('coupons').select('*').eq('user_id', user.id).order('created_at', { ascending: false })
+    const { data: rows, error } = await supabase.from('shop_coupons').select('*').eq('user_id', user.id).order('created_at', { ascending: false })
     if (error) return                               // 쿠폰 테이블이 아직 없으면 조용히 건너뜀
     let list = rows
     const have = new Set(rows.map((c) => c.source))
     const missing = gradeCouponsFor(levelOf(totalSpent(get().orders)).lv).filter((c) => !have.has(c.source))
     if (missing.length) {
-      const { data: added } = await supabase.from('coupons').upsert(
+      const { data: added } = await supabase.from('shop_coupons').upsert(
         missing.map((c) => ({ user_id: user.id, source: c.source, title: c.title, kind: c.kind, value: c.value, min: c.min, expires_at: new Date(Date.now() + c.expiresDays * DAY).toISOString() })),
         { onConflict: 'user_id,source', ignoreDuplicates: true },
       ).select()
@@ -259,7 +259,7 @@ export const useAppStore = create((set, get) => ({
     const promo = PROMO_CODES[key]
     if (!promo) throw new Error('없는 쿠폰 코드예요')
     const { user } = get()
-    const { data, error } = await supabase.from('coupons').insert({
+    const { data, error } = await supabase.from('shop_coupons').insert({
       user_id: user.id, source: `code:${key}`, title: promo.title, kind: promo.kind, value: promo.value, min: promo.min,
       expires_at: new Date(Date.now() + promo.expiresDays * DAY).toISOString(),
     }).select().single()
@@ -272,12 +272,12 @@ export const useAppStore = create((set, get) => ({
   reviews: [],
   loadReviews: async () => {
     if (!supabase) return
-    const { data, error } = await supabase.from('reviews').select('*').order('created_at', { ascending: false }).limit(500)
+    const { data, error } = await supabase.from('shop_reviews').select('*').order('created_at', { ascending: false }).limit(500)
     if (!error) set({ reviews: data })
   },
   addReview: async ({ product_id, order_id, rating, content }) => {
     const { user } = get()
-    const { data, error } = await supabase.from('reviews')
+    const { data, error } = await supabase.from('shop_reviews')
       .insert({ user_id: user.id, product_id, order_id, rating, content: content.trim(), nickname: displayName(user) }).select().single()
     if (error) throw new Error(error.code === '23505' ? '이미 후기를 남긴 상품이에요' : error.message)
     set({ reviews: [data, ...get().reviews] })
@@ -286,7 +286,7 @@ export const useAppStore = create((set, get) => ({
   deleteReview: async (id) => {
     const before = get().reviews
     set({ reviews: before.filter((r) => r.id !== id) })
-    const { error } = await supabase.from('reviews').delete().eq('id', id)
+    const { error } = await supabase.from('shop_reviews').delete().eq('id', id)
     if (error) { set({ reviews: before }); get().toast(error.message, 'danger') } else get().toast('후기를 지웠어요', 'secondary')
   },
 
@@ -303,11 +303,11 @@ export const useAppStore = create((set, get) => ({
   restoreOrder: async (order) => {
     for (const i of order.items) {
       if (get().stock[i.product_id] === undefined) continue          // DB 재고 행이 없는 상품은 되돌릴 것도 없다
-      const r = await rpcSafe('give_stock', { p_id: i.product_id, p_qty: i.qty })
+      const r = await rpcSafe('shop_give_stock', { p_id: i.product_id, p_qty: i.qty })
       if (!r.missing && !r.error) set({ stock: { ...get().stock, [i.product_id]: get().stockOf(i.product_id) + i.qty } })
     }
     if (order.coupon_id) {
-      await supabase.from('coupons').update({ used_at: null }).eq('id', order.coupon_id)
+      await supabase.from('shop_coupons').update({ used_at: null }).eq('id', order.coupon_id)
       set({ coupons: get().coupons.map((c) => (c.id === order.coupon_id ? { ...c, used_at: null } : c)) })
     }
   },
@@ -354,10 +354,10 @@ export const useAppStore = create((set, get) => ({
     const taken = []
     for (const l of lines) {
       if (get().stock[l.p.id] === undefined) continue                 // DB 재고 행이 없는 상품(SQL 미실행)은 기본 재고만 쓴다
-      const r = await rpcSafe('take_stock', { p_id: l.p.id, p_qty: l.qty })
+      const r = await rpcSafe('shop_take_stock', { p_id: l.p.id, p_qty: l.qty })
       if (r.missing) break
       if (r.error || r.data === false) {
-        for (const t of taken) await rpcSafe('give_stock', { p_id: t.p.id, p_qty: t.qty })
+        for (const t of taken) await rpcSafe('shop_give_stock', { p_id: t.p.id, p_qty: t.qty })
         get().toast(r.error ? r.error.message : `${l.p.name} 재고가 부족해요`, 'danger')
         await get().loadStock()
         return false
@@ -376,13 +376,13 @@ export const useAppStore = create((set, get) => ({
       ;({ data, error } = await supabase.from('orders').insert({ user_id: user.id, total: calc.total, items }).select().single())
     }
     if (error) {
-      for (const t of taken) await rpcSafe('give_stock', { p_id: t.p.id, p_qty: t.qty })
+      for (const t of taken) await rpcSafe('shop_give_stock', { p_id: t.p.id, p_qty: t.qty })
       get().toast(error.message, 'danger')
       return false
     }
     await supabase.from('cart_items').delete().eq('user_id', user.id)
     if (data.coupon_id) {
-      await supabase.from('coupons').update({ used_at: new Date().toISOString() }).eq('id', data.coupon_id)
+      await supabase.from('shop_coupons').update({ used_at: new Date().toISOString() }).eq('id', data.coupon_id)
       set({ coupons: get().coupons.map((c) => (c.id === data.coupon_id ? { ...c, used_at: new Date().toISOString() } : c)) })
     }
     const stockNow = { ...get().stock }

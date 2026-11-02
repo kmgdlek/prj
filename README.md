@@ -124,7 +124,7 @@ vercel dev                     # 화면 + /api 서버 함수 → http://localhos
 
 ### Supabase 준비
 
-1. 프로젝트 생성 후 SQL Editor 에서 [`supabase/schema.sql`](supabase/schema.sql) 실행 (favorites · cart_items · orders · stock · coupons · reviews 테이블, 재고 함수, 프로필 사진 저장소, RLS. 여러 번 실행해도 안전)
+1. 프로젝트 생성 후 SQL Editor 에서 [`supabase/schema.sql`](supabase/schema.sql) 실행 (favorites · cart_items · orders · shop_stock · shop_coupons · shop_reviews 테이블, 재고 함수, 프로필 사진 저장소, RLS. 여러 번 실행해도 안전)
 2. Authentication → Providers → Email 에서 **Confirm email** 을 끄면 가입 즉시 로그인됩니다(수업용). 켜 두면 메일 인증 후 로그인
 3. 첫 화면의 **동작 체크** 카드가 모두 초록색이면 연결 성공
 

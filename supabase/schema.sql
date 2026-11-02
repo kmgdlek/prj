@@ -67,34 +67,35 @@ create policy "orders own delete" on orders     for delete using (auth.uid() = u
 
 -- ═══════════════════════════════════════════════════════════
 -- ⑤ 쇼핑 확장: 재고 · 쿠폰 · 후기 · 주문 상세 컬럼 · 프로필 사진 저장소
+--    (다른 실습과 이름이 겹치지 않도록 새 테이블·함수에는 shop_ 를 붙였습니다)
 -- ═══════════════════════════════════════════════════════════
 
--- 재고: 모두가 읽을 수 있고, 증감은 아래 함수로만 한다 (주문하면 take_stock, 취소·환불하면 give_stock)
-create table if not exists stock (
+-- 재고: 모두가 읽을 수 있고, 증감은 아래 함수로만 한다 (주문하면 shop_take_stock, 취소·환불하면 shop_give_stock)
+create table if not exists shop_stock (
   product_id text primary key,
   qty        int  not null check (qty >= 0)
 );
-alter table stock enable row level security;
-drop policy if exists "stock read" on stock;
-create policy "stock read" on stock for select using (true);
+alter table shop_stock enable row level security;
+drop policy if exists "shop_stock read" on shop_stock;
+create policy "shop_stock read" on shop_stock for select using (true);
 
-create or replace function take_stock(p_id text, p_qty int) returns boolean
+create or replace function shop_take_stock(p_id text, p_qty int) returns boolean
 language plpgsql security definer set search_path = public as $$
 begin
-  update stock set qty = qty - p_qty where product_id = p_id and qty >= p_qty;
+  update shop_stock set qty = qty - p_qty where product_id = p_id and qty >= p_qty;
   return found;
 end $$;
 
-create or replace function give_stock(p_id text, p_qty int) returns void
+create or replace function shop_give_stock(p_id text, p_qty int) returns void
 language plpgsql security definer set search_path = public as $$
 begin
-  update stock set qty = qty + p_qty where product_id = p_id;
+  update shop_stock set qty = qty + p_qty where product_id = p_id;
 end $$;
 
-grant execute on function take_stock(text, int) to authenticated;
-grant execute on function give_stock(text, int) to authenticated;
+grant execute on function shop_take_stock(text, int) to authenticated;
+grant execute on function shop_give_stock(text, int) to authenticated;
 
-insert into stock (product_id, qty) values
+insert into shop_stock (product_id, qty) values
   ('hallabong', 48), ('choco', 120), ('omegi', 36), ('dolharubang', 62), ('sora-magnet', 150),
   ('baengnyeoncho', 28), ('candle', 24), ('ecobag', 80), ('greentea', 95),
   ('cheonhyehyang', 40), ('citrus-jam', 55), ('jerky', 70), ('barley-cookie', 90), ('dried-orange', 85),
@@ -102,7 +103,7 @@ insert into stock (product_id, qty) values
 on conflict (product_id) do nothing;
 
 -- 쿠폰함: 사용자별. (user_id, source) 가 유일해서 같은 쿠폰이 두 번 발급되지 않는다
-create table if not exists coupons (
+create table if not exists shop_coupons (
   id         bigint generated always as identity primary key,
   user_id    uuid not null default auth.uid() references auth.users(id) on delete cascade,
   source     text not null,                 -- 'welcome' | 'lv2'..'lv5' | 'code:JEJU10' ...
@@ -115,12 +116,12 @@ create table if not exists coupons (
   created_at timestamptz not null default now(),
   unique (user_id, source)
 );
-alter table coupons enable row level security;
-drop policy if exists "coupons own" on coupons;
-create policy "coupons own" on coupons for all using (auth.uid() = user_id) with check (auth.uid() = user_id);
+alter table shop_coupons enable row level security;
+drop policy if exists "shop_coupons own" on shop_coupons;
+create policy "shop_coupons own" on shop_coupons for all using (auth.uid() = user_id) with check (auth.uid() = user_id);
 
 -- 후기·별점: 누구나 읽고, 내 것만 쓰고 지운다. 같은 주문의 같은 상품에는 한 번만
-create table if not exists reviews (
+create table if not exists shop_reviews (
   id         bigint generated always as identity primary key,
   user_id    uuid not null default auth.uid() references auth.users(id) on delete cascade,
   product_id text not null,
@@ -131,15 +132,15 @@ create table if not exists reviews (
   created_at timestamptz not null default now(),
   unique (user_id, order_id, product_id)
 );
-alter table reviews enable row level security;
-drop policy if exists "reviews read" on reviews;
-drop policy if exists "reviews own insert" on reviews;
-drop policy if exists "reviews own update" on reviews;
-drop policy if exists "reviews own delete" on reviews;
-create policy "reviews read"       on reviews for select using (true);
-create policy "reviews own insert" on reviews for insert with check (auth.uid() = user_id);
-create policy "reviews own update" on reviews for update using (auth.uid() = user_id) with check (auth.uid() = user_id);
-create policy "reviews own delete" on reviews for delete using (auth.uid() = user_id);
+alter table shop_reviews enable row level security;
+drop policy if exists "shop_reviews read" on shop_reviews;
+drop policy if exists "shop_reviews own insert" on shop_reviews;
+drop policy if exists "shop_reviews own update" on shop_reviews;
+drop policy if exists "shop_reviews own delete" on shop_reviews;
+create policy "shop_reviews read"       on shop_reviews for select using (true);
+create policy "shop_reviews own insert" on shop_reviews for insert with check (auth.uid() = user_id);
+create policy "shop_reviews own update" on shop_reviews for update using (auth.uid() = user_id) with check (auth.uid() = user_id);
+create policy "shop_reviews own delete" on shop_reviews for delete using (auth.uid() = user_id);
 
 -- 주문 상세: 할인·쿠폰·적립금·배송비 내역 (예전 주문은 0)
 alter table orders add column if not exists original        int not null default 0;
