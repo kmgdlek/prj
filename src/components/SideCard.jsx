@@ -37,6 +37,7 @@ export default function SideCard() {
   const [open, setOpen] = useState(true)
 
   return (
+    <div className="side-card-wrap">
     <aside ref={ref} className="side-card" aria-label="내 정보">
       <div className="side-card-head">
         <span className="fw-bold small">내 정보</span>
@@ -76,5 +77,6 @@ export default function SideCard() {
         </div>
       )}
     </aside>
+    </div>
   )
 }
