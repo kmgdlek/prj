@@ -5,7 +5,7 @@ import PageHeader from '../components/PageHeader'
 import { isSupabaseReady } from '../lib/supabase'
 import { authErrorMessage } from '../lib/authError'
 import { useAppStore } from '../store/useAppStore'
-import { INVITEE_COUPON, getSavedInvite } from '../lib/invite'
+import { INVITEE_COUPON, captureInvite, clearSavedInvite, getSavedInvite, normalizeInvite } from '../lib/invite'
 
 // 회원가입 전용 화면 (로그인은 /login). 가입하면 '가입 완료' 화면을 보여 준다:
 // 이메일 인증을 켜 둔 프로젝트면 인증 메일 안내(다시 보내기 포함), 꺼 둔 프로젝트면 바로 환영 + 갈 곳 안내
@@ -13,7 +13,7 @@ export default function Signup() {
   const { user, signUp, resendConfirm, toast } = useAppStore()
   const navigate = useNavigate()
   const from = useLocation().state?.from ?? '/'
-  const [form, setForm] = useState({ nickname: '', email: '', password: '', password2: '' })
+  const [form, setForm] = useState(() => ({ nickname: '', email: '', password: '', password2: '', invite: captureInvite() ?? getSavedInvite() ?? '' }))   // 초대 링크로 왔으면 추천 코드가 미리 채워진다
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState('')
   const [done, setDone] = useState(null)             // 가입 완료 정보 { needsConfirm, email, nickname }
@@ -31,9 +31,12 @@ export default function Signup() {
   async function onSubmit(e) {
     e.preventDefault()
     if (form.password !== form.password2) return setError('비밀번호가 서로 달라요')
+    const invite = normalizeInvite(form.invite)
+    if (invite === null) return setError('추천 코드는 영문·숫자 8자리예요 (친구의 초대 화면에서 확인)')
     setBusy(true); setError('')
     try {
-      const { needsConfirm } = await signUp(form)
+      const { needsConfirm } = await signUp({ ...form, invite })
+      clearSavedInvite()                                   // 한 번 쓴 초대 코드는 지운다
       if (!needsConfirm) { navigate('/welcome', { replace: true }); return }       // 인증 없이 바로 가입 → 가입 완료 페이지
       setDone({ needsConfirm, email: form.email.trim(), nickname: form.nickname.trim() })
       setWait(60)
@@ -72,6 +75,11 @@ export default function Signup() {
             <Form.Group className="mb-3">
               <Form.Label>비밀번호 확인</Form.Label>
               <Form.Control required type="password" minLength={6} autoComplete="new-password" value={form.password2} onChange={set('password2')} />
+            </Form.Group>
+            <Form.Group className="mb-3">
+              <Form.Label>추천 코드 <span className="text-body-secondary small">(선택)</span></Form.Label>
+              <Form.Control maxLength={8} autoComplete="off" value={form.invite} onChange={(e) => setForm({ ...form, invite: e.target.value.toUpperCase() })} placeholder="예: A1B2C3D4" className="font-monospace" />
+              <Form.Text className="text-body-secondary">친구에게 받은 추천 코드를 넣으면 {INVITEE_COUPON.title}을 드려요</Form.Text>
             </Form.Group>
             {error && <Alert variant="danger" className="py-2">{error}</Alert>}
             <Button type="submit" className="w-100" disabled={busy || !isSupabaseReady}>{busy ? '가입 중...' : '가입하기'}</Button>

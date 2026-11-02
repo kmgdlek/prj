@@ -15,6 +15,13 @@ export function captureInvite() {
   return null
 }
 
+// 입력창에 적은 추천 코드를 다듬는다: 공백 제거 + 대문자. 비어 있으면 '' (선택 항목), 형식이 틀리면 null
+export function normalizeInvite(input = '') {
+  const c = input.replace(/\s/g, '').toUpperCase()
+  return c === '' ? '' : VALID.test(c) ? c : null
+}
+export const clearSavedInvite = () => { try { localStorage.removeItem(KEY) } catch { /* 지우지 못해도 큰 문제 없음 */ } }
+
 // 보상 (모두 쿠폰함으로)
 export const INVITEE_COUPON = { source: 'invite:joined', title: '친구 초대 환영 5,000원 쿠폰', kind: 'amount', value: 5000, min: 30000, expiresDays: 60 }
 export const FRIEND_COUPON = { title: '친구 초대 감사 3,000원 쿠폰', kind: 'amount', value: 3000, min: 20000, expiresDays: 60 }
