@@ -77,19 +77,22 @@ export const flashRate = (p, slot = slotOf()) => {
   return Math.max(1, Math.round(unit(`${p.id}:b:${slot}`) * 20));
 };
 
-// 급등락(아주 드문 이벤트): 60분을 한 구간으로 보고, 상품·구간마다 SURGE_CHANCE 확률로 이벤트가 일어난다.
-// 일어나면 가격이 50~70% 오르거나(일반판매가를 넘을 수도 있다) 내리는데, 갑자기가 아니라
-// 20분에 걸쳐 천천히 변하고 → 10분 유지 → 20분에 걸쳐 천천히 돌아온다. 이것도 상품·시각으로 정해지는 고정된 값
-export const SURGE_CHANCE = 0.006;               // 상품 하나가 한 시간 구간에 급등락할 확률 (0.6% — 상품 하나당 평균 7일에 한 번, 가게 전체로는 하루 2~3번)
-const SURGE_EPOCH = 60, SURGE_RAMP = 20, SURGE_HOLD = 10, SURGE_MIN = 0.5, SURGE_MAX = 0.7
+// 급등락(아주 드문 이벤트): 2시간을 한 구간으로 보고, 상품·구간마다 SURGE_CHANCE 확률로 이벤트가 일어난다.
+// 일어나면 가격이 오르거나(최대 +300%, 일반판매가를 훌쩍 넘길 수 있다) 내리는데(최대 -95%), 갑자기가 아니라
+// 20~40분에 걸쳐 천천히 변하고(폭이 클수록 더 천천히) → 10분 유지 → 같은 시간에 걸쳐 천천히 돌아온다. 이것도 상품·시각으로 정해지는 고정된 값
+export const SURGE_CHANCE = 0.012;               // 상품 하나가 2시간 구간에 급등락할 확률 (1.2% — 한 시간으로 치면 0.6%, 상품 하나당 평균 7일에 한 번)
+const SURGE_EPOCH = 120, SURGE_HOLD = 10, SURGE_MIN = 0.5, SURGE_UP_MAX = 3, SURGE_DOWN_MAX = 0.95
 const ease = (t) => t * t * (3 - 2 * t)          // 시작과 끝이 부드러운 곡선 (smoothstep)
 export const surgeFactor = (p, slot = slotOf()) => {
   const epoch = Math.floor(slot / SURGE_EPOCH)
   if (unit(`${p.id}:ev:${epoch}`) >= SURGE_CHANCE) return 1
-  const t = (slot % SURGE_EPOCH) - Math.floor(unit(`${p.id}:evs:${epoch}`) * 11)   // 이벤트 시작(구간 앞 10분 안)부터 지난 분
-  const shape = t < 0 ? 0 : t < SURGE_RAMP ? ease(t / SURGE_RAMP) : t < SURGE_RAMP + SURGE_HOLD ? 1 : t < 2 * SURGE_RAMP + SURGE_HOLD ? ease((2 * SURGE_RAMP + SURGE_HOLD - t) / SURGE_RAMP) : 0
-  const mag = SURGE_MIN + unit(`${p.id}:evm:${epoch}`) * (SURGE_MAX - SURGE_MIN)
-  return 1 + (unit(`${p.id}:evd:${epoch}`) < 0.5 ? -1 : 1) * mag * shape
+  const up = unit(`${p.id}:evd:${epoch}`) >= 0.5                                       // 방향: 오름·내림 반반
+  const top = up ? SURGE_UP_MAX : SURGE_DOWN_MAX
+  const mag = SURGE_MIN + unit(`${p.id}:evm:${epoch}`) * (top - SURGE_MIN)              // 변하는 폭 (0.5 = 50%)
+  const ramp = Math.round(20 + (20 * (mag - SURGE_MIN)) / (SURGE_UP_MAX - SURGE_MIN))  // 폭이 클수록 천천히 (20~40분)
+  const t = (slot % SURGE_EPOCH) - Math.floor(unit(`${p.id}:evs:${epoch}`) * 11)        // 이벤트 시작(구간 앞 10분 안)부터 지난 분
+  const shape = t < 0 ? 0 : t < ramp ? ease(t / ramp) : t < ramp + SURGE_HOLD ? 1 : t < 2 * ramp + SURGE_HOLD ? ease((2 * ramp + SURGE_HOLD - t) / ramp) : 0
+  return 1 + (up ? 1 : -1) * mag * shape
 }
 // 급등락으로 평소보다 몇 % 달라졌는지 (+면 급등, -면 급락, 0이면 평소)
 export const surgePct = (p, slot = slotOf()) => Math.round((surgeFactor(p, slot) - 1) * 100)
