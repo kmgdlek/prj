@@ -42,6 +42,7 @@
 | 🛍️ 제주 장터 | 제주 특산품·기념품 20종(태그·정렬·별점·찜). 가격은 1분마다, 재고는 10분마다 바뀌는 타임특가에, 아주 드물게 50~70% 급등·급락(일반판매가를 넘기도 함, 아래 '시세 규칙'). 상품 상세에 사진 슬라이더·후기·이어진 신화와 1분봉 차트(최고가 빨간 화살표 · 최저가 파란 화살표 · 일반판매가 회색 선) |
 | 🧾 장바구니·결제 | 쿠폰 · 적립금 · 등급 혜택(추가 할인·적립률·무료배송 기준) · 배송비를 계산하는 결제 요약. 주문하면 재고가 줄고 취소하면 돌아옴 (실제 결제 없음) |
 | 🚚 주문 진행 | 결제완료 → 상품준비중 → 배송중 → 배송완료 단계 표시. 취소는 배송 전, 반품/환불은 배송 후, 배송 후 후기·별점 작성 |
+| 🛠️ 시세 관리(관리자) | 관리자 등급(`shop_admins`)만 상품별 시세를 직접 정하고(10분~3시간) 되돌릴 수 있음. 정한 가격은 모든 접속자에게 15초 안에 반영. 쓰기 권한은 DB의 RLS(`is_shop_admin()`)가 막고, 메뉴·페이지는 관리자에게만 보임 |
 | 🎁 제주 혜택 | 탐나는전(지역사랑상품권) 같은 제주 지역 혜택 안내 + 장터 혜택(타임특가·쿠폰·찜) + 등급별 혜택을 한 페이지에. 지역 혜택 문구는 예시이므로 공식 안내 확인 필요 |
 | 🏅 등급·쿠폰 | 누적 구매액으로 일반·실버·골드·VIP·VVIP. 등급 달성 쿠폰 자동 지급, 쿠폰 코드 등록 |
 | 👤 마이페이지 | 프로필 사진·닉네임·비밀번호 변경, 주문·배송 현황, 쿠폰함, 적립금, 찜한 상품, 최근 본 상품, 내 후기, 고객센터(FAQ) |
@@ -102,6 +103,16 @@ flowchart LR
 
 가끔 일어나는 이벤트라 시연 때 바로 보이지 않을 수 있습니다. 확률은 `SURGE_CHANCE` 한 줄로 조절합니다.
 
+### 🛠️ 관리자 지정 방법
+
+앱에서는 누구도 관리자가 될 수 없고, Supabase SQL Editor에서만 지정합니다.
+
+```sql
+insert into shop_admins (user_id) select id from auth.users where email = '관리자 이메일';
+```
+
+로그인하면 메뉴 '내 정보'에 시세 관리가 나타납니다. (해제: `delete from shop_admins where user_id = ...`)
+
 ### 에이전트 루프
 
 ```
@@ -151,7 +162,7 @@ vercel dev                     # 화면 + /api 서버 함수 → http://localhos
 
 ### Supabase 준비
 
-1. 프로젝트 생성 후 SQL Editor 에서 [`supabase/schema.sql`](supabase/schema.sql) 실행 (favorites · cart_items · orders · shop_stock · shop_coupons · shop_reviews · shop_chat_messages 테이블, 재고 함수, 프로필 사진 저장소, RLS. 여러 번 실행해도 안전)
+1. 프로젝트 생성 후 SQL Editor 에서 [`supabase/schema.sql`](supabase/schema.sql) 실행 (favorites · cart_items · orders · shop_stock · shop_coupons · shop_reviews · shop_chat_messages · shop_admins · shop_price_override 테이블, 재고 함수, 프로필 사진 저장소, RLS. 여러 번 실행해도 안전)
 2. Authentication → Providers → Email 에서 Confirm email 을 끄면 가입 즉시 로그인됩니다(수업용). 켜 두면 메일 인증 후 로그인
 3. 첫 화면의 동작 체크 카드가 모두 초록색이면 연결 성공
 
