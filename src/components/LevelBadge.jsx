@@ -12,8 +12,10 @@ const lightText = (color) => (color === 'warning' || color === 'info' ? 'dark' :
 export default function LevelBadge({ withProgress = false, part = 'full' }) {
   const orders = useAppStore((s) => s.orders)
   const [open, setOpen] = useState(false)
+  const isAdmin = useAppStore((s) => s.isAdmin)
   const L = levelOf(totalSpent(orders))
   const show = (e) => { e.stopPropagation(); setOpen(true) }
+  if (isAdmin) return null                         // 관리자는 등급 대신 '관리자' 배지(AdminBadge)만 보인다
   return (
     <>
       <Badge as="button" type="button" bg={L.color} text={lightText(L.color)} className="border-0" style={{ cursor: 'pointer' }}
