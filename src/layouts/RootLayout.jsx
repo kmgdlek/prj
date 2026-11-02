@@ -57,6 +57,7 @@ export default function RootLayout() {
   const [theme, toggleTheme] = useTheme()
   const toasts = useAppStore((s) => s.toasts)
   const user = useAppStore((s) => s.user)
+  const isAdmin = useAppStore((s) => s.isAdmin)
   const cartCount = useAppStore((s) => s.cart.reduce((n, c) => n + c.qty, 0))
   const initAuth = useAppStore((s) => s.initAuth)
   const signOut = useAppStore((s) => s.signOut)
@@ -152,7 +153,7 @@ export default function RootLayout() {
                 <div className="menu-group-title">
                   <i className={`bi bi-${g.icon}`} /><span className="en">{g.en}</span><span className="ko">{g.label}</span>
                 </div>
-                {NAV_ITEMS.filter((item) => item.group === g.key).map((item) => (
+                {NAV_ITEMS.filter((item) => item.group === g.key && (!item.admin || isAdmin)).map((item) => (
                   <NavLink key={item.to} to={item.to} end={item.to === '/'} onClick={close} className="menu-row">
                     <i className={`bi bi-${item.icon}`} />
                     <span className="flex-grow-1">{item.label}</span>

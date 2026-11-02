@@ -22,6 +22,7 @@ export default function ProductDetail() {
   const selectMyth = useAppStore((s) => s.selectMyth)
   const reviews = useAppStore((s) => s.reviews)
   const deleteReview = useAppStore((s) => s.deleteReview)
+  useAppStore((s) => s.priceVer)                        // 관리자가 시세를 바꾸면 다시 그린다
   const slot = useAppStore((s) => s.slot)               // 1분마다 바뀌는 시세 번호
   const stockSlot = useAppStore((s) => s.stockSlot)     // 10분마다 바뀌는 재고 번호
   const rawStock = useAppStore((s) => s.stock[id] ?? p?.stock ?? 0)

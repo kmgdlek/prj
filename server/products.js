@@ -94,8 +94,19 @@ export const surgeFactor = (p, slot = slotOf()) => {
 // 급등락으로 평소보다 몇 % 달라졌는지 (+면 급등, -면 급락, 0이면 평소)
 export const surgePct = (p, slot = slotOf()) => Math.round((surgeFactor(p, slot) - 1) * 100)
 
+// 관리자가 정한 가격(shop_price_override): { [상품 id]: { price, from, until(ms) } }. 앱이 DB 에서 불러와 넣는다.
+// 정한 시각(from)부터 until 전까지의 분에만 적용되고, 그 이전 분의 가격(차트 과거)은 원래대로 둔다
+let overrides = {}
+export const setPriceOverrides = (map) => { overrides = map ?? {} }
+export const overrideOf = (p, slot = slotOf()) => {
+  const o = overrides[p.id], t = slot * PRICE_SLOT_MS
+  return o && t + PRICE_SLOT_MS > o.from && t < o.until ? o : null
+}
+
 // 지금 팔리는 가격 (장바구니·주문·화면 모두 이 값을 쓴다)
 export const salePrice = (p, slot = slotOf()) => {
+  const o = overrideOf(p, slot)
+  if (o) return o.price
   const base = basePrice(p), r = flashRate(p, slot), f = surgeFactor(p, slot)
   const flash = r ? (base * (100 - r)) / 100 : base
   const w = Math.min(1, Math.abs(f - 1) / SURGE_MIN)                          // 급등락이 깊어질수록 타임특가 잡음을 서서히 끈다 (가격이 튀지 않게)

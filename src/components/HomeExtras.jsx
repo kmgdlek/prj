@@ -11,6 +11,7 @@ export default function HomeExtras() {
   const navigate = useNavigate()
   const selectMyth = useAppStore((s) => s.selectMyth)
   const images = useAppStore((s) => s.productImages)
+  useAppStore((s) => s.priceVer)                        // 관리자가 시세를 바꾸면 다시 그린다
   const slot = useAppStore((s) => s.slot)               // 1분마다 특가 상품이 바뀐다
   const loadProductImages = useAppStore((s) => s.loadProductImages)
   useEffect(() => { loadProductImages() }, [loadProductImages])

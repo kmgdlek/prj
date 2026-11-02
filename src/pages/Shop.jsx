@@ -16,6 +16,7 @@ export default function Shop() {
   const cart = useAppStore((s) => s.cart)
   const reviews = useAppStore((s) => s.reviews)
   const stock = useAppStore((s) => s.stock)
+  useAppStore((s) => s.priceVer)                        // 관리자가 시세를 바꾸면 다시 그린다
   const slot = useAppStore((s) => s.slot)               // 1분마다 바뀌는 시세 번호 (바뀌면 화면이 다시 그려진다)
   const stockSlot = useAppStore((s) => s.stockSlot)     // 10분마다 바뀌는 재고 번호
   const images = useAppStore((s) => s.productImages)

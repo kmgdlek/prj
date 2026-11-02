@@ -13,6 +13,8 @@ import Shop from './pages/Shop'
 import ProductDetail from './pages/ProductDetail'
 import Cart from './pages/Cart'
 import Orders from './pages/Orders'
+import Admin from './pages/Admin'
+import RequireAdmin from './components/RequireAdmin'
 import Benefits from './pages/Benefits'
 import MyPage from './pages/MyPage'
 import RequireAuth from './components/RequireAuth'
@@ -39,6 +41,7 @@ export const NAV_ITEMS = [
   { to: '/orders', label: '주문 내역', icon: 'receipt', group: 'shop', auth: true },
   { to: '/agent', label: '이야기꾼 AI', icon: 'robot' },
   { to: '/mypage', label: '마이페이지', icon: 'person-circle', group: 'my', auth: true },
+  { to: '/admin', label: '시세 관리', icon: 'sliders', group: 'my', admin: true },
   { to: '/my', label: '내 별자리', icon: 'stars', group: 'my', auth: true },
 ]
 
@@ -60,6 +63,7 @@ export const router = createBrowserRouter([
       { path: 'cart', element: <RequireAuth><Cart /></RequireAuth> },
       { path: 'orders', element: <RequireAuth><Orders /></RequireAuth> },
       { path: 'mypage', element: <RequireAuth><MyPage /></RequireAuth> },
+      { path: 'admin', element: <RequireAdmin><Admin /></RequireAdmin> },
       { path: 'login', element: <Login /> },
       { path: 'signup', element: <Signup /> },
       { path: 'my', element: <RequireAuth><My /></RequireAuth> },

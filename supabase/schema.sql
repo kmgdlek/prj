@@ -180,5 +180,34 @@ alter table shop_chat_messages enable row level security;
 drop policy if exists "shop_chat own" on shop_chat_messages;
 create policy "shop_chat own" on shop_chat_messages for all using (auth.uid() = user_id) with check (auth.uid() = user_id);
 
+-- ⑬ 관리자 · 관리자가 직접 정하는 시세
+-- 관리자 지정은 SQL Editor 에서만 가능 (앱에서는 누구도 관리자로 올릴 수 없다):
+--   insert into shop_admins (user_id) select id from auth.users where email = '내 이메일';
+create table if not exists shop_admins (user_id uuid primary key references auth.users(id) on delete cascade);
+alter table shop_admins enable row level security;
+drop policy if exists "shop_admins read self" on shop_admins;
+create policy "shop_admins read self" on shop_admins for select using (auth.uid() = user_id);   -- 내가 관리자인지만 볼 수 있다
+
+create or replace function is_shop_admin() returns boolean
+language sql security definer stable set search_path = public as
+$$ select exists (select 1 from shop_admins where user_id = auth.uid()) $$;
+
+create table if not exists shop_price_override (
+  product_id text primary key,
+  price int not null check (price > 0),
+  starts_at timestamptz not null default now(),
+  until timestamptz not null,
+  set_by uuid default auth.uid()
+);
+alter table shop_price_override enable row level security;
+drop policy if exists "price_override read" on shop_price_override;
+drop policy if exists "price_override admin insert" on shop_price_override;
+drop policy if exists "price_override admin update" on shop_price_override;
+drop policy if exists "price_override admin delete" on shop_price_override;
+create policy "price_override read"         on shop_price_override for select using (true);
+create policy "price_override admin insert" on shop_price_override for insert with check (is_shop_admin());
+create policy "price_override admin update" on shop_price_override for update using (is_shop_admin()) with check (is_shop_admin());
+create policy "price_override admin delete" on shop_price_override for delete using (is_shop_admin());
+
 -- 새 컬럼·정책을 API 가 바로 인식하도록 스키마 캐시를 새로고침
 notify pgrst, 'reload schema';

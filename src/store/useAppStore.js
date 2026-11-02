@@ -1,7 +1,7 @@
 import { create } from 'zustand'
 import { supabase } from '../lib/supabase'
 import { askAgent, fetchShopImages, fetchWeather, ping } from '../api/client'
-import { MAX_PER_ITEM, liveStock, productOf, salePrice, slotOf, stockSlotOf } from '../../server/products'
+import { MAX_PER_ITEM, liveStock, productOf, salePrice, setPriceOverrides, slotOf, stockSlotOf } from '../../server/products'
 import { levelOf, totalSpent } from '../lib/level'
 import { STATUS } from '../lib/order'
 import { DAY, PROMO_CODES, gradeCouponsFor } from '../lib/coupon'
@@ -9,6 +9,7 @@ import { calcCheckout, pointsSummary } from '../lib/checkout'
 import { resizeToJpeg } from '../lib/image'
 
 const pendingFav = new Set()   // 저장·삭제가 진행 중인 항목 키 (연타 방지)
+let lastOverrideLoad = 0
 let authStarted = false        // StrictMode 에서 구독이 두 번 걸리지 않게
 
 // 화면에 보여 줄 이름: 가입 때 적은 닉네임, 없으면 이메일 앞부분
@@ -37,11 +38,12 @@ export const useAppStore = create((set, get) => ({
     get().loadFavorites({ quiet: true })
     get().loadCart()
     get().loadChat()
+    get().loadAdmin()
   },
   initAuth: async () => {
     if (authStarted) return
     authStarted = true
-    get().loadStock(); get().loadReviews()               // 재고·후기는 누구나 볼 수 있어서 로그인 전에도
+    get().loadStock(); get().loadReviews(); get().loadOverrides()               // 재고·후기는 누구나 볼 수 있어서 로그인 전에도
     if (!supabase) return set({ authReady: true })
     const { data } = await supabase.auth.getSession()
     set({ user: data.session?.user ?? null, authReady: true })
@@ -51,7 +53,7 @@ export const useAppStore = create((set, get) => ({
       const changed = user?.id !== get().user?.id
       set({ user })
       if (!changed) return
-      set({ favorites: [], cart: [], orders: [], coupons: [], messages: [] })     // 다른 사람의 데이터가 남지 않게 비움
+      set({ favorites: [], cart: [], orders: [], coupons: [], messages: [], isAdmin: false })     // 다른 사람의 데이터가 남지 않게 비움
       if (user) get().loadUserData()
     })
   },
@@ -191,10 +193,43 @@ export const useAppStore = create((set, get) => ({
   rawStockOf: (id) => get().stock[id] ?? productOf(id)?.stock ?? 0,                  // DB(또는 기본) 재고
   stockOf: (id) => liveStock(get().rawStockOf(id), id, get().stockSlot),              // 화면에 보이는 재고 (10분마다 변동)
   // 시세는 1분마다, 재고는 10분마다 바뀐다: 슬롯 번호가 바뀌면 값을 갱신해 화면을 다시 그린다 (RootLayout 이 2초마다 확인)
+  // ⑭ 관리자 — shop_admins 에 내 id 가 있으면 관리자. 관리자만 시세를 직접 정할 수 있다 (RLS 가 DB 에서 막음)
+  isAdmin: false,
+  priceVer: 0,                 // 관리자가 정한 가격이 바뀌면 올라가서 화면을 다시 그리게 한다
+  overrideRows: [],
+  loadAdmin: async () => {
+    if (!supabase || !get().user) return
+    const { data } = await supabase.from('shop_admins').select('user_id').eq('user_id', get().user.id).maybeSingle()
+    set({ isAdmin: !!data })
+  },
+  loadOverrides: async () => {
+    if (!supabase) return
+    lastOverrideLoad = Date.now()
+    const { data, error } = await supabase.from('shop_price_override').select('*')
+    if (error) return                                           // 테이블이 아직 없으면 조용히 건너뜀
+    const now = Date.now()
+    const rows = data.filter((r) => new Date(r.until).getTime() > now)
+    setPriceOverrides(Object.fromEntries(rows.map((r) => [r.product_id, { price: r.price, from: new Date(r.starts_at).getTime(), until: new Date(r.until).getTime() }])))
+    set({ overrideRows: rows, priceVer: get().priceVer + 1 })
+  },
+  setPriceOverride: async (productId, price, minutes) => {
+    if (!get().isAdmin) throw new Error('관리자만 바꿀 수 있어요')
+    const row = { product_id: productId, price, starts_at: new Date().toISOString(), until: new Date(Date.now() + minutes * 60000).toISOString() }
+    const { error } = await supabase.from('shop_price_override').upsert(row)
+    if (error) throw error
+    await get().loadOverrides()
+  },
+  clearPriceOverride: async (productId) => {
+    if (!get().isAdmin) throw new Error('관리자만 바꿀 수 있어요')
+    const { error } = await supabase.from('shop_price_override').delete().eq('product_id', productId)
+    if (error) throw error
+    await get().loadOverrides()
+  },
   slot: slotOf(),
   stockSlot: stockSlotOf(),
   tickSlot: () => {
     const price = slotOf(), stock = stockSlotOf()
+    if (Date.now() - lastOverrideLoad > 15000) get().loadOverrides()   // 다른 사람(관리자)이 바꾼 시세를 15초 안에 따라온다
     if (price !== get().slot) set({ slot: price })
     if (stock !== get().stockSlot) set({ stockSlot: stock })        // 알림 없이 조용히 갱신
   },
