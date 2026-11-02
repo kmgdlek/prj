@@ -9,8 +9,9 @@ import { useAppStore } from '../store/useAppStore'
 export default function Login() {
   const { user, signIn, signUp, toast } = useAppStore()
   const navigate = useNavigate()
-  const from = useLocation().state?.from ?? '/'
-  const [mode, setMode] = useState('login')            // 'login' | 'signup'
+  const location = useLocation()
+  const from = location.state?.from ?? '/'
+  const [mode, setMode] = useState(location.state?.mode ?? 'login')   // 'login' | 'signup'
   const [form, setForm] = useState({ email: '', password: '', nickname: '' })
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState('')

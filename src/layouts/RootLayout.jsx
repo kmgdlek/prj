@@ -93,8 +93,13 @@ export default function RootLayout() {
               </>
             ) : (
               <>
-                <div className="flex-grow-1 small text-body-secondary">로그인하면 별자리·장바구니가 저장돼요</div>
-                <Button as={Link} to="/login" size="sm" onClick={close}>로그인</Button>
+                <div className="flex-grow-1">
+                  <div className="small text-body-secondary mb-2">로그인하면 별자리·장바구니가 저장돼요</div>
+                  <div className="d-flex gap-2">
+                    <Button as={Link} to="/login" size="sm" className="text-nowrap" onClick={close}>로그인</Button>
+                    <Button as={Link} to="/login" state={{ mode: 'signup' }} size="sm" variant="outline-primary" className="text-nowrap" onClick={close}>회원가입</Button>
+                  </div>
+                </div>
               </>
             )}
           </div>
