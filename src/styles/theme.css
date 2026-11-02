@@ -343,7 +343,10 @@ body { font-family: 'Pretendard', system-ui, sans-serif; }
 .brand-logo { height: 46px; width: auto; margin: -4px .65rem -4px 0; filter: drop-shadow(0 1px 3px rgba(0, 0, 0, .45)); }
 
 /* 신화 도감 목록: 장소가 많아져서 목록만 스크롤 */
-.myth-list { max-height: 640px; overflow-y: auto; }
+.myth-list { }
+/* 지도 옆 목록 칸: 이 칸만 스크롤된다 */
+.side-scroll { max-height: 70vh; overflow-y: auto; padding-right: .25rem; }
+@media (min-width: 992px) { .side-scroll { max-height: none; height: var(--side-h, 460px); } }
 
 /* ── 다크 모드 보정: Bootstrap 이 못 바꾸는 고정 색 ── */
 [data-bs-theme="dark"] .wish-btn { background: rgba(33, 37, 41, .85); }

@@ -3,6 +3,7 @@ import { Button, Col, Form, InputGroup, Row } from 'react-bootstrap'
 import PageHeader from '../components/PageHeader'
 import ItemCard from '../components/ItemCard'
 import Scene from '../components/Scene'
+import MapListLayout from '../components/MapListLayout'
 import { Empty, ErrorAlert, Loading } from '../components/Status'
 import { fetchPlaces } from '../api/client'
 
@@ -56,22 +57,23 @@ export default function Places() {
       </div>
 
       <ErrorAlert error={error} />
-      <div className="mb-4 scene-half"><Scene height={300} items={pins} selectedId={selected} onSelect={(p) => setSelected(p.id)} /></div>
-      {loading ? <Loading /> : places.length === 0 ? <Empty /> : (
-        <Row xs={1} sm={2} lg={3} className="g-3">
-          {places.map((p) => {
-            const t = typeOf(p.type)
-            return (
-              <Col key={p.id}>
-                <ItemCard title={p.title} subtitle={p.addr} image={p.image}
-                  badge={<><i className={`bi bi-${t.icon} me-1`} />{t.label}</>}
-                  active={p.id === selected} onClick={() => setSelected(p.id)}
-                  fav={{ source: 'tour', id: p.id, title: p.title }} />
-              </Col>
-            )
-          })}
-        </Row>
-      )}
+      <MapListLayout height={460}
+        map={<Scene height={460} items={pins} selectedId={selected} onSelect={(p) => setSelected(p.id)} />}
+        list={loading ? <Loading /> : places.length === 0 ? <Empty /> : (
+          <Row xs={1} sm={2} lg={1} xl={2} className="g-3">
+            {places.map((p) => {
+              const t = typeOf(p.type)
+              return (
+                <Col key={p.id}>
+                  <ItemCard title={p.title} subtitle={p.addr} image={p.image}
+                    badge={<><i className={`bi bi-${t.icon} me-1`} />{t.label}</>}
+                    active={p.id === selected} onClick={() => setSelected(p.id)}
+                    fav={{ source: 'tour', id: p.id, title: p.title }} />
+                </Col>
+              )
+            })}
+          </Row>
+        )} />
     </>
   )
 }

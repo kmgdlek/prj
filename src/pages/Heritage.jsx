@@ -3,6 +3,7 @@ import { Button, Col, Form, InputGroup, Row } from 'react-bootstrap'
 import PageHeader from '../components/PageHeader'
 import ItemCard from '../components/ItemCard'
 import Scene from '../components/Scene'
+import MapListLayout from '../components/MapListLayout'
 import { Empty, ErrorAlert, Loading } from '../components/Status'
 import { fetchHeritage } from '../api/client'
 
@@ -35,18 +36,19 @@ export default function Heritage() {
       </Form>
 
       <ErrorAlert error={error} />
-      <div className="mb-4 scene-half"><Scene height={300} items={pins} selectedId={selected} onSelect={(p) => setSelected(p.id)} /></div>
-      {loading ? <Loading /> : list.length === 0 ? <Empty /> : (
-        <Row xs={1} sm={2} lg={3} className="g-3">
-          {list.map((h, i) => (
-            <Col key={`${h.name}-${i}`}>
-              <ItemCard title={h.name} subtitle={`${h.city ?? ''}`} image={h.image} badge={h.kind}
-                active={selected === `${h.name}-${i}`} onClick={() => setSelected(`${h.name}-${i}`)}
-                fav={{ source: 'heritage', id: h.name, title: h.name }} />
-            </Col>
-          ))}
-        </Row>
-      )}
+      <MapListLayout height={460}
+        map={<Scene height={460} items={pins} selectedId={selected} onSelect={(p) => setSelected(p.id)} />}
+        list={loading ? <Loading /> : list.length === 0 ? <Empty /> : (
+          <Row xs={1} sm={2} lg={1} xl={2} className="g-3">
+            {list.map((h, i) => (
+              <Col key={`${h.name}-${i}`}>
+                <ItemCard title={h.name} subtitle={`${h.city ?? ''}`} image={h.image} badge={h.kind}
+                  active={selected === `${h.name}-${i}`} onClick={() => setSelected(`${h.name}-${i}`)}
+                  fav={{ source: 'heritage', id: h.name, title: h.name }} />
+              </Col>
+            ))}
+          </Row>
+        )} />
     </>
   )
 }

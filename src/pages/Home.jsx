@@ -11,8 +11,8 @@ import HomeExtras from '../components/HomeExtras'
 const SHORTCUTS = [
   { to: '/shop', icon: 'bag-heart', label: '제주 장터', desc: '한라봉·오메기떡·기념품 최대 5% 할인', badge: 'SALE' },
   { to: '/myths', icon: 'book', label: '신화 도감', desc: `탐라 신화 ${MYTHS.length}편의 이야기` },
-  { to: '/places', icon: 'compass', label: '신화 속 장소', desc: '관광공사 데이터로 찾는 가 볼 만한 곳' },
-  { to: '/heritage', icon: 'bank', label: '국가유산', desc: '신화와 이어진 제주의 문화유산' },
+  { to: '/benefits', icon: 'gift', label: '제주 혜택', desc: '탐나는전·타임특가·등급별 혜택 모아 보기' },
+  { to: '/my', icon: 'stars', label: '내 별자리', desc: '별표로 담아 둔 신화·장소·유산 모아 보기' },
 ]
 
 // 작은 지도에서는 이름표를 숨긴다 (마커가 많아 겹침). 선택한 마커의 이름표는 항상 보인다
