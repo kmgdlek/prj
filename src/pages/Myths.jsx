@@ -44,7 +44,8 @@ export default function Myths() {
               <h3 className="fw-bold mb-0">{myth.title}</h3>
               <FavButton fav={{ source: 'myth', id: myth.id, title: myth.title }} />
             </div>
-            <p className="text-primary small"><i className="bi bi-geo-alt me-1" />{myth.place}</p>
+            <p className="text-primary small mb-1"><i className="bi bi-geo-alt me-1" />{myth.place}</p>
+            <p className="small text-body-secondary"><i className="bi bi-signpost me-1" />주소 · {myth.addr}</p>
             <p>{myth.story}</p>
           </div>
         )}

@@ -54,6 +54,7 @@ export default function FavDetail({ fav, onHide }) {
             {myth && (
               <>
                 <p className="text-primary small mb-1"><i className="bi bi-geo-alt me-1" />{myth.place}</p>
+                <p className="small text-body-secondary mb-2"><i className="bi bi-signpost me-1" />주소 · {myth.addr}</p>
                 <p>{myth.story}</p>
                 <Button size="sm" variant="outline-primary" className="mb-3"
                   onClick={() => { selectMyth(myth.id); navigate('/myths') }}>

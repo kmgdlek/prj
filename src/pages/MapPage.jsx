@@ -60,7 +60,8 @@ export default function MapPage() {
               <h5 className="fw-bold mb-1 flex-grow-1"><span className="myth-dot me-2" style={{ background: myth.color, color: myth.color }} />{myth.title}</h5>
               <Button size="sm" variant="link" className="p-0 text-white-50" aria-label="닫기 · 전체 보기" onClick={() => selectMyth(null)}><i className="bi bi-x-lg" /></Button>
             </div>
-            <div className="small text-warning mb-2"><i className="bi bi-geo-alt me-1" />{myth.place} <Badge bg="light" text="dark" className="ms-1">{myth.kind}</Badge></div>
+            <div className="small text-warning mb-1"><i className="bi bi-geo-alt me-1" />{myth.place} <Badge bg="light" text="dark" className="ms-1">{myth.kind}</Badge></div>
+            <div className="small mb-2 opacity-75"><i className="bi bi-signpost me-1" />주소 · {myth.addr}</div>
             <p className="small mb-2 map-card-story">{myth.story}</p>
             <div className="d-flex gap-2 flex-wrap">
               <FavButton fav={{ source: 'myth', id: myth.id, title: myth.title }} dark />
