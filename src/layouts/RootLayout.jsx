@@ -62,7 +62,7 @@ export default function RootLayout() {
   // 앱이 켜질 때 한 번: 로그인 상태를 확인하고, 로그인돼 있으면 별·장바구니·주문을 미리 불러온다
   useEffect(() => { initAuth() }, [initAuth])
 
-  // 10분마다 시세·재고가 바뀌는 시각을 넘겼는지 2초마다 확인
+  // 시세(1분)·재고(10분)가 바뀌는 시각을 넘겼는지 2초마다 확인
   useEffect(() => { const t = setInterval(tickSlot, 2000); return () => clearInterval(t) }, [tickSlot])
 
   // AI 가 "지도에서 보여 줘" 도구를 쓰면: 그 신화를 선택하고 탐라 지도로 이동 (지도가 그 장소로 다가간다)

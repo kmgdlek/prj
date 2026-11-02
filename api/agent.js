@@ -40,7 +40,7 @@ const tools = [
   },
   {
     name: 'search_products',
-    description: '제주 장터에서 파는 특산품·기념품을 찾는다 (한라봉, 오메기떡, 돌하르방, 에코백 등). 가격과 재고는 10분마다 바뀌는 타임특가(최대 20% 추가 인하)이며, 결과의 salePrice 가 지금 판매가, flashPercent 가 추가 인하율, stock 이 지금 재고다. 선물·기념품·살 거리 질문에 쓴다',
+    description: '제주 장터에서 파는 특산품·기념품을 찾는다 (한라봉, 오메기떡, 돌하르방, 에코백 등). 가격은 1분마다, 재고는 10분마다 바뀌는 타임특가(최대 20% 추가 인하)이며, 결과의 salePrice 가 지금 판매가, flashPercent 가 추가 인하율, stock 이 지금 재고다. 선물·기념품·살 거리 질문에 쓴다',
     input_schema: {
       type: 'object',
       properties: {

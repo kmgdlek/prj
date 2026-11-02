@@ -7,7 +7,7 @@ import { FavButton } from '../components/ItemCard'
 import { Stars, ratingOf } from '../components/StarRating'
 import { useAppStore } from '../store/useAppStore'
 import { won } from '../lib/format'
-import { CATEGORIES, MAX_PER_ITEM, PRODUCTS, TAGS, discountPct, flashRate, liveStock, salePrice, trendOf } from '../../server/products'
+import { CATEGORIES, MAX_PER_ITEM, PRODUCTS, STOCK_SLOT_MS, TAGS, discountPct, flashRate, liveStock, salePrice, trendOf } from '../../server/products'
 import SlotTimer from '../components/SlotTimer'
 
 // 제주 특산품·기념품 — 담기 버튼은 store 의 장바구니에 연결
@@ -17,7 +17,8 @@ export default function Shop() {
   const cart = useAppStore((s) => s.cart)
   const reviews = useAppStore((s) => s.reviews)
   const stock = useAppStore((s) => s.stock)
-  const slot = useAppStore((s) => s.slot)               // 10분마다 바뀌는 시세·재고 번호 (바뀌면 화면이 다시 그려진다)
+  const slot = useAppStore((s) => s.slot)               // 1분마다 바뀌는 시세 번호 (바뀌면 화면이 다시 그려진다)
+  const stockSlot = useAppStore((s) => s.stockSlot)     // 10분마다 바뀌는 재고 번호
   const images = useAppStore((s) => s.productImages)
   const loadProductImages = useAppStore((s) => s.loadProductImages)
   useEffect(() => { loadProductImages() }, [loadProductImages])
@@ -27,7 +28,7 @@ export default function Shop() {
   const [tags, setTags] = useState(() => params.getAll('tag').filter((t) => TAGS.includes(t)))   // 상세 화면의 태그를 누르면 /shop?tag=선물 로 들어온다
   const toggleTag = (t) => setTags((cur) => (cur.includes(t) ? cur.filter((x) => x !== t) : [...cur, t]))
   const [sort, setSort] = useState('basic')
-  const stockOf = (p) => liveStock(stock[p.id] ?? p.stock, p.id, slot)
+  const stockOf = (p) => liveStock(stock[p.id] ?? p.stock, p.id, stockSlot)
 
   const SORTS = {
     basic: () => 0,
@@ -50,11 +51,11 @@ export default function Shop() {
           <i className="bi bi-info-circle me-2" />장바구니에 담으려면 <Link to="/login" state={{ from: '/shop' }}>로그인</Link>이 필요해요.
         </Alert>
       )}
-      {/* 10분마다 시세·재고가 바뀐다 */}
+      {/* 시세는 1분마다, 재고는 10분마다 바뀐다 */}
       <div className="flash-banner mb-3">
-        <i className="bi bi-lightning-charge-fill text-danger" /><strong>10분 타임특가</strong>
-        <span>10분마다 시세와 재고가 바뀌어요 · 지금 {PRODUCTS.filter((p) => flashRate(p, slot) > 0).length}개 상품이 더 싸졌어요</span>
-        <span className="ms-auto">다음 변동까지 <SlotTimer /></span>
+        <i className="bi bi-lightning-charge-fill text-danger" /><strong>타임특가</strong>
+        <span>1분마다 시세, 10분마다 재고가 바뀌어요 · 지금 {PRODUCTS.filter((p) => flashRate(p, slot) > 0).length}개 상품이 더 싸졌어요</span>
+        <span className="ms-auto">시세 <SlotTimer /> · 재고 <SlotTimer ms={STOCK_SLOT_MS} /></span>
       </div>
       <div className="d-flex flex-wrap gap-2 align-items-center mb-4">
         {CATEGORIES.map((c) => (

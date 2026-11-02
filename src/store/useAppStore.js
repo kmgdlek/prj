@@ -1,7 +1,7 @@
 import { create } from 'zustand'
 import { supabase } from '../lib/supabase'
 import { askAgent, fetchShopImages, fetchWeather, ping } from '../api/client'
-import { MAX_PER_ITEM, liveStock, productOf, salePrice, slotOf } from '../../server/products'
+import { MAX_PER_ITEM, liveStock, productOf, salePrice, slotOf, stockSlotOf } from '../../server/products'
 import { levelOf, totalSpent } from '../lib/level'
 import { STATUS } from '../lib/order'
 import { DAY, PROMO_CODES, gradeCouponsFor } from '../lib/coupon'
@@ -188,14 +188,17 @@ export const useAppStore = create((set, get) => ({
     if (!error && data) set({ stock: Object.fromEntries(data.map((r) => [r.product_id, r.qty])) })
   },
   rawStockOf: (id) => get().stock[id] ?? productOf(id)?.stock ?? 0,                  // DB(또는 기본) 재고
-  stockOf: (id) => liveStock(get().rawStockOf(id), id, get().slot),                   // 화면에 보이는 재고 (10분마다 변동)
-  // 10분 시세·재고 변동: 슬롯 번호가 바뀌면 값을 갱신해 화면을 다시 그린다 (RootLayout 이 2초마다 확인)
+  stockOf: (id) => liveStock(get().rawStockOf(id), id, get().stockSlot),              // 화면에 보이는 재고 (10분마다 변동)
+  // 시세는 1분마다, 재고는 10분마다 바뀐다: 슬롯 번호가 바뀌면 값을 갱신해 화면을 다시 그린다 (RootLayout 이 2초마다 확인)
   slot: slotOf(),
+  stockSlot: stockSlotOf(),
   tickSlot: () => {
-    const next = slotOf()
-    if (next === get().slot) return
-    set({ slot: next })
-    get().toast('⚡ 10분이 지나 시세와 재고가 바뀌었어요', 'info')
+    const price = slotOf(), stock = stockSlotOf()
+    if (price !== get().slot) set({ slot: price })
+    if (stock !== get().stockSlot) {
+      set({ stockSlot: stock })
+      get().toast('📦 10분이 지나 재고가 바뀌었어요', 'info')     // 시세는 1분마다라 알림 없이 조용히 바뀐다
+    }
   },
 
   // ⑦ 장바구니 — 내 계정의 cart_items. 담는 순간 화면에 먼저 반영하고 DB 에는 "이 수량"으로 덮어쓴다(upsert)

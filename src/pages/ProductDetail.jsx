@@ -5,7 +5,7 @@ import { fetchImages } from '../api/client'
 import { won } from '../lib/format'
 import { useAppStore } from '../store/useAppStore'
 import { MYTHS } from '../../server/myths'
-import { MAX_PER_ITEM, PRODUCTS, basePrice, discountPct, flashRate, liveStock, productOf, salePrice, trendOf } from '../../server/products'
+import { MAX_PER_ITEM, PRODUCTS, STOCK_SLOT_MS, basePrice, discountPct, flashRate, liveStock, productOf, salePrice, trendOf } from '../../server/products'
 import SlotTimer from '../components/SlotTimer'
 import { Empty } from '../components/Status'
 import { FavButton } from '../components/ItemCard'
@@ -22,9 +22,10 @@ export default function ProductDetail() {
   const selectMyth = useAppStore((s) => s.selectMyth)
   const reviews = useAppStore((s) => s.reviews)
   const deleteReview = useAppStore((s) => s.deleteReview)
-  const slot = useAppStore((s) => s.slot)               // 10분마다 바뀌는 시세·재고 번호
+  const slot = useAppStore((s) => s.slot)               // 1분마다 바뀌는 시세 번호
+  const stockSlot = useAppStore((s) => s.stockSlot)     // 10분마다 바뀌는 재고 번호
   const rawStock = useAppStore((s) => s.stock[id] ?? p?.stock ?? 0)
-  const stock = liveStock(rawStock, id, slot)
+  const stock = liveStock(rawStock, id, stockSlot)
   const inCart = useAppStore((s) => s.cart.find((c) => c.product_id === id)?.qty ?? 0)
   const [images, setImages] = useState([])
   const [shown, setShown] = useState(0)
@@ -103,11 +104,11 @@ export default function ProductDetail() {
             <dt className="price-now-label">현재가</dt>
             <dd className="price-now">
               {won(salePrice(p, slot))}
-              {trendOf(p, slot) < 0 && <span className="trend-down ms-2">▼ 10분 전보다 {won(-trendOf(p, slot))} 내림</span>}
-              {trendOf(p, slot) > 0 && <span className="trend-up ms-2">▲ 10분 전보다 {won(trendOf(p, slot))} 오름</span>}
+              {trendOf(p, slot) < 0 && <span className="trend-down ms-2">▼ 1분 전보다 {won(-trendOf(p, slot))} 내림</span>}
+              {trendOf(p, slot) > 0 && <span className="trend-up ms-2">▲ 1분 전보다 {won(trendOf(p, slot))} 오름</span>}
             </dd>
           </dl>
-          <div className="small text-body-secondary mb-3"><i className="bi bi-lightning-charge-fill text-danger me-1" />10분마다 시세와 재고가 바뀌어요 · 다음 변동까지 <SlotTimer /></div>
+          <div className="small text-body-secondary mb-3"><i className="bi bi-lightning-charge-fill text-danger me-1" />1분마다 시세가 바뀌어요 · 다음 변동까지 <SlotTimer /> <span className="ms-2">재고는 10분마다 (<SlotTimer ms={STOCK_SLOT_MS} />)</span></div>
 
           <Card className="mb-3"><Card.Body className="small">
             <div className="d-flex gap-2"><i className="bi bi-truck" /> 과제용 샘플 상품이라 실제 배송은 이루어지지 않아요</div>

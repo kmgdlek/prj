@@ -53,11 +53,13 @@ export const CATEGORIES = ['전체', ...new Set(PRODUCTS.map((p) => p.category))
 
 export const productOf = (id) => PRODUCTS.find((p) => p.id === id);
 
-// ── 시세 · 재고 변동 (10분마다) ─────────────────────────────
-// 시간을 10분 단위 '슬롯 번호'로 나누고, 상품·슬롯 번호로 값을 정한다. 서버 없이도 누가 언제 보든 같은 시세·재고가 나온다.
-export const SLOT_MS = 10 * 60 * 1000;
-export const slotOf = (now = Date.now()) => Math.floor(now / SLOT_MS);
-export const secondsToNextSlot = (now = Date.now()) => Math.ceil((SLOT_MS - (now % SLOT_MS)) / 1000);
+// ── 시세(1분마다) · 재고(10분마다) 변동 ─────────────────────
+// 시간을 일정한 '슬롯 번호'로 나누고, 상품·슬롯 번호로 값을 정한다. 서버 없이도 누가 언제 보든 같은 시세·재고가 나온다.
+export const PRICE_SLOT_MS = 60 * 1000;          // 시세는 1분마다
+export const STOCK_SLOT_MS = 10 * 60 * 1000;     // 재고는 10분마다
+export const slotOf = (now = Date.now()) => Math.floor(now / PRICE_SLOT_MS);          // 시세 슬롯 번호
+export const stockSlotOf = (now = Date.now()) => Math.floor(now / STOCK_SLOT_MS);     // 재고 슬롯 번호
+export const secondsToNextSlot = (now = Date.now(), ms = PRICE_SLOT_MS) => Math.ceil((ms - (now % ms)) / 1000);
 
 // 문자열 → 0 이상 1 미만의 고정된 수 (FNV 해시). 같은 입력이면 항상 같은 값
 const unit = (str) => {
@@ -69,7 +71,7 @@ const unit = (str) => {
 // 평소 판매가 = 정가에서 고정 할인율만큼 뺀 값 (10원 단위 내림)
 export const basePrice = (p) => (p.discount ? Math.floor((p.price * (100 - p.discount)) / 100 / 10) * 10 : p.price);
 
-// 타임특가: 슬롯마다 상품의 절반쯤이 1~20% 더 내려간다 (오르지는 않는다)
+// 타임특가: 1분마다 상품의 절반쯤이 1~20% 더 내려간다 (평소 가격보다 오르지는 않는다)
 export const flashRate = (p, slot = slotOf()) => {
   if (unit(`${p.id}:a:${slot}`) < 0.5) return 0;
   return Math.max(1, Math.round(unit(`${p.id}:b:${slot}`) * 20));
@@ -81,12 +83,12 @@ export const salePrice = (p, slot = slotOf()) => {
   return r ? Math.floor((base * (100 - r)) / 100 / 10) * 10 : base;
 };
 
-// 정가 대비 지금 가격이 몇 % 싼지, 직전 10분보다 얼마나 변했는지(음수 = 내려감)
+// 정가 대비 지금 가격이 몇 % 싼지, 직전 1분보다 얼마나 변했는지(음수 = 내려감)
 export const discountPct = (p, slot = slotOf()) => Math.round((1 - salePrice(p, slot) / p.price) * 100);
 export const trendOf = (p, slot = slotOf()) => salePrice(p, slot) - salePrice(p, slot - 1);
 
-// 재고: 화면에 보이는 재고는 슬롯마다 실제(또는 기본) 재고의 40~100% (재고가 있으면 최소 3개). 실제보다 많이 보이지는 않는다
-export const liveStock = (raw, id, slot = slotOf()) =>
+// 재고: 화면에 보이는 재고는 10분마다 실제(또는 기본) 재고의 40~100% (재고가 있으면 최소 3개). 실제보다 많이 보이지는 않는다
+export const liveStock = (raw, id, slot = stockSlotOf()) =>
   raw <= 0 ? 0 : Math.max(Math.min(raw, 3), Math.floor(raw * (0.4 + unit(`${id}:s:${slot}`) * 0.6)));
 
 // 에이전트 도구: 키워드·분류·최대 가격으로 상품을 찾는다 (가격은 지금 시세)

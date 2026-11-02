@@ -11,7 +11,7 @@ import HomeExtras from '../components/HomeExtras'
 const SHORTCUTS = [
   { to: '/shop', icon: 'bag-heart', label: '제주 장터', desc: '한라봉·오메기떡·기념품 최대 5% 할인', badge: 'SALE' },
   { to: '/myths', icon: 'book', label: '신화 도감', desc: '탐라 신화 8편의 이야기' },
-  { to: '/places', icon: 'geo-alt', label: '신화 속 장소', desc: '관광공사 데이터로 찾는 가 볼 만한 곳' },
+  { to: '/places', icon: 'compass', label: '신화 속 장소', desc: '관광공사 데이터로 찾는 가 볼 만한 곳' },
   { to: '/heritage', icon: 'bank', label: '국가유산', desc: '신화와 이어진 제주의 문화유산' },
 ]
 

@@ -24,12 +24,12 @@ export const NAV_ITEMS = [
   { to: '/', label: '신화의 섬', icon: 'moon-stars' },
   { to: '/map', label: '탐라 지도', icon: 'map' },
   { to: '/myths', label: '신화 도감', icon: 'book' },
-  { to: '/places', label: '신화 속 장소', icon: 'geo-alt' },
+  { to: '/places', label: '신화 속 장소', icon: 'compass' },
   { to: '/heritage', label: '국가유산', icon: 'bank' },
   { to: '/shop', label: '제주 장터', icon: 'bag-heart' },
   { to: '/agent', label: '이야기꾼 AI', icon: 'robot' },
   { to: '/mypage', label: '마이페이지', icon: 'person-circle', auth: true },
-  { to: '/my', label: '내 별자리', icon: 'star', auth: true },
+  { to: '/my', label: '내 별자리', icon: 'stars', auth: true },
   { to: '/orders', label: '주문 내역', icon: 'receipt', auth: true },
 ]
 

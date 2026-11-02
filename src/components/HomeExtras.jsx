@@ -12,7 +12,7 @@ export default function HomeExtras() {
   const navigate = useNavigate()
   const selectMyth = useAppStore((s) => s.selectMyth)
   const images = useAppStore((s) => s.productImages)
-  const slot = useAppStore((s) => s.slot)               // 10분마다 특가 상품이 바뀐다
+  const slot = useAppStore((s) => s.slot)               // 1분마다 특가 상품이 바뀐다
   const loadProductImages = useAppStore((s) => s.loadProductImages)
   useEffect(() => { loadProductImages() }, [loadProductImages])
   const day = Math.floor(Date.now() / 86400000)
