@@ -205,23 +205,30 @@ export const useAppStore = create((set, get) => ({
   loadOverrides: async () => {
     if (!supabase) return
     lastOverrideLoad = Date.now()
-    const { data, error } = await supabase.from('shop_price_override').select('*')
+    // 차트(최근 30분)가 과거 가격을 그대로 보여 주도록, 끝난 지 오래되지 않은 기록까지 불러온다
+    const since = new Date(Date.now() - 3 * 3600000).toISOString()
+    const { data, error } = await supabase.from('shop_price_override').select('*').gt('until', since).order('starts_at', { ascending: true })
     if (error) return                                           // 테이블이 아직 없으면 조용히 건너뜀
     const now = Date.now()
-    const rows = data.filter((r) => new Date(r.until).getTime() > now)
-    setPriceOverrides(Object.fromEntries(rows.map((r) => [r.product_id, { price: r.price, from: new Date(r.starts_at).getTime(), until: new Date(r.until).getTime() }])))
-    set({ overrideRows: rows, priceVer: get().priceVer + 1 })
+    const rows = data.map((r) => ({ ...r, price: r.price, from: new Date(r.starts_at).getTime(), to: new Date(r.until).getTime() }))
+    const map = {}
+    for (const r of rows) (map[r.product_id] ??= []).push({ price: r.price, from: r.from, until: r.to })
+    setPriceOverrides(map)
+    set({ overrideRows: rows.filter((r) => r.from <= now && now < r.to), priceVer: get().priceVer + 1 })
   },
   setPriceOverride: async (productId, price, minutes) => {
     if (!get().isAdmin) throw new Error('관리자만 바꿀 수 있어요')
-    const row = { product_id: productId, price, starts_at: new Date().toISOString(), until: new Date(Date.now() + minutes * 60000).toISOString() }
-    const { error } = await supabase.from('shop_price_override').upsert(row)
+    const now = Date.now()
+    const closeOld = await supabase.from('shop_price_override').update({ until: new Date(now).toISOString() }).eq('product_id', productId).gt('until', new Date(now).toISOString())
+    if (closeOld.error) throw closeOld.error                    // 이전에 정한 가격이 있으면 지금 끝낸다 (기록은 남김)
+    const { error } = await supabase.from('shop_price_override').insert({ product_id: productId, price, starts_at: new Date(now).toISOString(), until: new Date(now + minutes * 60000).toISOString() })
     if (error) throw error
     await get().loadOverrides()
   },
   clearPriceOverride: async (productId) => {
     if (!get().isAdmin) throw new Error('관리자만 바꿀 수 있어요')
-    const { error } = await supabase.from('shop_price_override').delete().eq('product_id', productId)
+    const nowIso = new Date().toISOString()
+    const { error } = await supabase.from('shop_price_override').update({ until: nowIso }).eq('product_id', productId).gt('until', nowIso)   // 지우지 않고 지금 끝낸다
     if (error) throw error
     await get().loadOverrides()
   },

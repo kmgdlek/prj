@@ -192,13 +192,23 @@ create or replace function is_shop_admin() returns boolean
 language sql security definer stable set search_path = public as
 $$ select exists (select 1 from shop_admins where user_id = auth.uid()) $$;
 
+-- 기록으로 남긴다: 되돌리기·새로 정하기는 행을 지우지 않고 until 을 '지금'으로 줄인다 (그래야 지나간 시간의 차트가 그대로 남는다)
 create table if not exists shop_price_override (
-  product_id text primary key,
+  id bigint generated always as identity primary key,
+  product_id text not null,
   price int not null check (price > 0),
   starts_at timestamptz not null default now(),
   until timestamptz not null,
   set_by uuid default auth.uid()
 );
+-- 예전(상품당 한 행) 형태로 만들어 둔 경우 기록형으로 바꾼다
+do $$ begin
+  if not exists (select 1 from information_schema.columns where table_name = 'shop_price_override' and column_name = 'id') then
+    alter table shop_price_override drop constraint if exists shop_price_override_pkey;
+    alter table shop_price_override add column id bigint generated always as identity primary key;
+  end if;
+end $$;
+create index if not exists shop_price_override_lookup on shop_price_override (product_id, starts_at);
 alter table shop_price_override enable row level security;
 drop policy if exists "price_override read" on shop_price_override;
 drop policy if exists "price_override admin insert" on shop_price_override;

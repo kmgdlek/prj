@@ -94,13 +94,16 @@ export const surgeFactor = (p, slot = slotOf()) => {
 // 급등락으로 평소보다 몇 % 달라졌는지 (+면 급등, -면 급락, 0이면 평소)
 export const surgePct = (p, slot = slotOf()) => Math.round((surgeFactor(p, slot) - 1) * 100)
 
-// 관리자가 정한 가격(shop_price_override): { [상품 id]: { price, from, until(ms) } }. 앱이 DB 에서 불러와 넣는다.
-// 정한 시각(from)부터 until 전까지의 분에만 적용되고, 그 이전 분의 가격(차트 과거)은 원래대로 둔다
+// 관리자가 정한 가격 기록(shop_price_override): { [상품 id]: [{ price, from, until(ms) }, ...] } (from 이 이른 순). 앱이 DB 에서 불러와 넣는다.
+// 어떤 분의 가격이 정해진 가격인지는 그 분의 '기준 시각'으로 본다: 지나간 분은 그 분이 끝나는 때, 지금 분은 바로 지금.
+// 그래서 되돌리면 지금 가격은 바로 원래대로 돌아오고, 이미 지나간 분의 가격(차트 과거)은 정한 가격 그대로 남는다
 let overrides = {}
 export const setPriceOverrides = (map) => { overrides = map ?? {} }
 export const overrideOf = (p, slot = slotOf()) => {
-  const o = overrides[p.id], t = slot * PRICE_SLOT_MS
-  return o && t + PRICE_SLOT_MS > o.from && t < o.until ? o : null
+  const rows = overrides[p.id]
+  if (!rows) return null
+  const at = Math.min(Date.now(), slot * PRICE_SLOT_MS + PRICE_SLOT_MS - 1)
+  return rows.findLast((o) => o.from <= at && at < o.until) ?? null
 }
 
 // 지금 팔리는 가격 (장바구니·주문·화면 모두 이 값을 쓴다)

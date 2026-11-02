@@ -111,7 +111,7 @@ flowchart LR
 insert into shop_admins (user_id) select id from auth.users where email = '관리자 이메일';
 ```
 
-로그인하면 메뉴 '내 정보'에 시세 관리가 나타납니다. (해제: `delete from shop_admins where user_id = ...`)
+로그인하면 메뉴 '내 정보'에 시세 관리가 나타납니다. 가격을 되돌려도 기록은 남아서(`until` 을 지금으로 줄임), 이미 지나간 시간의 차트는 정한 가격 그대로 보입니다. (해제: `delete from shop_admins where user_id = ...`)
 
 ### 에이전트 루프
 
