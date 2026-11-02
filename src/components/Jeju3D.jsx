@@ -98,7 +98,7 @@ function Halo() {
   )
 }
 
-function Marker({ m, selected, onSelect }) {
+function Marker({ m, index, selected, onSelect }) {
   const [x, z] = toXZ(Number(m.lat), Number(m.lng))
   const y = heightAt(x, z)
   const orb = useRef(), ring = useRef()
@@ -127,7 +127,8 @@ function Marker({ m, selected, onSelect }) {
         <meshBasicMaterial color={m.color} transparent side={THREE.DoubleSide} />
       </mesh>
       {(m.label !== false || selected) && (
-        <Html position={[0, 0.95, 0]} center distanceFactor={9} zIndexRange={[10, 0]} style={{ pointerEvents: 'none' }}>
+        <Html position={[0, 0.95 + (index % 3) * 0.5 + (selected ? 0.2 : 0), 0]} center distanceFactor={9}
+          zIndexRange={selected ? [40, 30] : [10, 0]} style={{ pointerEvents: 'none' }}>
           <div className={`marker-label ${selected ? 'on' : ''}`}>{m.name}</div>
         </Html>
       )}
@@ -155,7 +156,10 @@ function CameraRig({ focus }) {
       const [x, z] = toXZ(Number(focus.lat), Number(focus.lng))
       const target = new THREE.Vector3(x, heightAt(x, z), z)
       controls.target.lerp(target, k)
-      camera.position.lerp(target.clone().add(new THREE.Vector3(0, 3.2, 5.2)), k)
+      // 섬 중심 → 마커 방향(바깥쪽)에서 다가간다. 그래야 한라산이 마커 뒤에 놓여 가리지 않는다
+      const out = new THREE.Vector3(x, 0, z)
+      if (out.length() < 1) out.set(0, 0, 1); else out.normalize()
+      camera.position.lerp(target.clone().add(out.multiplyScalar(4.6)).add(new THREE.Vector3(0, 2.6, 0)), k)
     } else {
       controls.target.lerp(CENTER, k)                      // 복귀: 섬 한가운데 + 처음 거리
       camera.position.lerp(HOME_CAM, k)
@@ -185,7 +189,7 @@ export default function Jeju3D({ items = [], selectedId, onSelect, height = 460,
       <Island />
       <Oreums />
       <Halo />
-      {pins.map((m) => <Marker key={m.id} m={m} selected={m.id === selectedId} onSelect={onSelect} />)}
+      {pins.map((m, i) => <Marker key={m.id} m={m} index={i} selected={m.id === selectedId} onSelect={onSelect} />)}
       <OrbitControls makeDefault enablePan={false} target={[0, 0.3, 0]} minDistance={3} maxDistance={20} maxPolarAngle={Math.PI / 2.15}
         autoRotate={autoRotate && !selectedId} autoRotateSpeed={0.6} />
       <CameraRig focus={focus} />
