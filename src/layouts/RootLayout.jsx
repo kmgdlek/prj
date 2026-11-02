@@ -1,9 +1,9 @@
 import { useEffect, useState } from 'react'
-import { NavLink, Outlet, useLocation } from 'react-router-dom'
-import { Button, Container, Form, Nav, Navbar, Offcanvas, Toast, ToastContainer } from 'react-bootstrap'
+import { Link, NavLink, Outlet, useLocation, useNavigate } from 'react-router-dom'
+import { Badge, Button, Container, Nav, Navbar, Offcanvas, Toast, ToastContainer } from 'react-bootstrap'
 import ChatPanel from '../components/ChatPanel'
 import { NAV_ITEMS } from '../router'
-import { useAppStore } from '../store/useAppStore'
+import { displayName, useAppStore } from '../store/useAppStore'
 
 // 이야기꾼 AI: 오른쪽 아래 둥근 버튼을 누르면 채팅창이 부드럽게 열리고, 다시 누르면 부드럽게 닫힌다.
 // 창은 계속 렌더해 두고 클래스(open)만 바꿔서 CSS transition 으로 여닫는다 (대화도 그대로 유지).
@@ -42,14 +42,16 @@ function AgentWindow() {
 
 export default function RootLayout() {
   const toasts = useAppStore((s) => s.toasts)
-  const nickname = useAppStore((s) => s.nickname)
-  const setNickname = useAppStore((s) => s.setNickname)
-  const loadFavorites = useAppStore((s) => s.loadFavorites)
+  const user = useAppStore((s) => s.user)
+  const cartCount = useAppStore((s) => s.cart.reduce((n, c) => n + c.qty, 0))
+  const initAuth = useAppStore((s) => s.initAuth)
+  const signOut = useAppStore((s) => s.signOut)
+  const navigate = useNavigate()
   const [menuOpen, setMenuOpen] = useState(false)
   const close = () => setMenuOpen(false)
 
-  // 별 버튼이 어느 페이지에서든 저장 여부를 보여 주도록, 닉네임이 정해지면 즐겨찾기를 미리 불러온다
-  useEffect(() => { loadFavorites({ quiet: true }) }, [nickname, loadFavorites])
+  // 앱이 켜질 때 한 번: 로그인 상태를 확인하고, 로그인돼 있으면 별·장바구니·주문을 미리 불러온다
+  useEffect(() => { initAuth() }, [initAuth])
 
   return (
     <div className="d-flex flex-column min-vh-100">
@@ -59,9 +61,15 @@ export default function RootLayout() {
             <i className="bi bi-moon-stars-fill me-2 text-warning" />탐라신화 3D
           </Navbar.Brand>
           {/* 모든 화면에서 오른쪽 세 줄 버튼 하나로 메뉴를 연다 */}
-          <Button variant="outline-light" className="border-0 fs-3 py-0 px-2" aria-label="메뉴 열기" onClick={() => setMenuOpen(true)}>
-            <i className="bi bi-list" />
-          </Button>
+          <div className="d-flex align-items-center gap-1">
+            <Button as={Link} to="/cart" variant="outline-light" className="border-0 fs-4 py-0 px-2 position-relative" aria-label={`장바구니 ${cartCount}개`}>
+              <i className="bi bi-cart3" />
+              {cartCount > 0 && <Badge bg="warning" text="dark" pill className="position-absolute top-0 start-100 translate-middle fs-6">{cartCount}</Badge>}
+            </Button>
+            <Button variant="outline-light" className="border-0 fs-3 py-0 px-2" aria-label="메뉴 열기" onClick={() => setMenuOpen(true)}>
+              <i className="bi bi-list" />
+            </Button>
+          </div>
         </Container>
       </Navbar>
 
@@ -70,13 +78,23 @@ export default function RootLayout() {
           <Offcanvas.Title className="fw-bold">메뉴</Offcanvas.Title>
         </Offcanvas.Header>
         <Offcanvas.Body className="d-flex flex-column">
-          {/* 프로필: 닉네임이 메뉴 안에 있다 (즐겨찾기를 구분하는 이름) */}
+          {/* 프로필: 로그인 상태면 내 정보와 로그아웃, 아니면 로그인 안내 */}
           <div className="d-flex align-items-center gap-3 p-3 mb-3 rounded-3 bg-body-secondary">
             <i className="bi bi-person-circle fs-1 text-primary" />
-            <div className="flex-grow-1">
-              <div className="small text-body-secondary">{nickname ? '내 닉네임' : '닉네임을 정해 주세요'}</div>
-              <Form.Control size="sm" placeholder="닉네임" value={nickname} onChange={(e) => setNickname(e.target.value)} />
-            </div>
+            {user ? (
+              <>
+                <div className="flex-grow-1 text-truncate">
+                  <div className="fw-bold text-truncate">{displayName(user)}</div>
+                  <div className="small text-body-secondary text-truncate">{user.email}</div>
+                </div>
+                <Button size="sm" variant="outline-secondary" onClick={() => { close(); signOut(); navigate('/') }}>로그아웃</Button>
+              </>
+            ) : (
+              <>
+                <div className="flex-grow-1 small text-body-secondary">로그인하면 별자리·장바구니가 저장돼요</div>
+                <Button as={Link} to="/login" size="sm" onClick={close}>로그인</Button>
+              </>
+            )}
           </div>
           <Nav className="flex-column">
             {NAV_ITEMS.filter((item) => item.to !== '/agent').map((item) => (
@@ -84,6 +102,9 @@ export default function RootLayout() {
                 <i className={`bi bi-${item.icon} me-2`} />{item.label}
               </Nav.Link>
             ))}
+            <Nav.Link as={NavLink} to="/cart" onClick={close} className="fs-5 py-2">
+              <i className="bi bi-cart3 me-2" />장바구니{cartCount > 0 && <Badge bg="warning" text="dark" pill className="ms-2">{cartCount}</Badge>}
+            </Nav.Link>
           </Nav>
         </Offcanvas.Body>
       </Offcanvas>

@@ -3,6 +3,7 @@ import { searchTour } from '../server/tour.js';
 import { getWeather } from '../server/weather.js';
 import { searchHeritage } from '../server/heritage.js';
 import { getMythStory } from '../server/myths.js';
+import { searchProducts } from '../server/products.js';
 
 const client = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
 const MODEL = 'claude-sonnet-5-5';
@@ -29,6 +30,18 @@ const tools = [
     },
   },
   {
+    name: 'search_products',
+    description: '제주 장터에서 파는 특산품·기념품을 찾는다 (한라봉, 오메기떡, 돌하르방, 에코백 등). 선물·기념품·살 거리 질문에 쓴다',
+    input_schema: {
+      type: 'object',
+      properties: {
+        keyword: { type: 'string', description: '상품 검색어 (예: 돌하르방, 차)' },
+        category: { type: 'string', description: '과일, 간식, 기념품, 차, 공예, 굿즈 중 하나' },
+        maxPrice: { type: 'number', description: '이 가격(원) 이하만' },
+      },
+    },
+  },
+  {
     name: 'get_weather',
     description: '기상청 단기예보로 제주시/서귀포시의 앞으로 몇 시간 기온·하늘·강수를 조회한다',
     input_schema: {
@@ -48,12 +61,13 @@ const tools = [
 const runTool = {
   get_myth_story: async (input) => getMythStory(input),
   search_tour_places: searchTour,
+  search_products: async (input) => searchProducts(input),
   get_weather: getWeather,
   search_heritage: searchHeritage,
 };
 
 const SYSTEM = `너는 '탐라 신화 여행' 서비스의 이야기꾼 가이드 에이전트다.
-- 신화 이야기는 get_myth_story, 실제 장소는 search_tour_places, 국가유산은 search_heritage, 날씨는 get_weather 도구로 확인한 뒤 답한다.
+- 신화 이야기는 get_myth_story, 실제 장소는 search_tour_places, 국가유산은 search_heritage, 날씨는 get_weather, 살 만한 특산품은 search_products 도구로 확인한 뒤 답한다.
 - 도구 결과에 없는 장소나 신화는 지어내지 않는다.
 - 비가 오거나 강수확률이 높으면 실내 대안(박물관·전시관)을 함께 제안한다.
 - 신화 한 줄 + 갈 만한 장소 + 날씨 팁 순서로, 한국어 5문장 이내로 짧게 답한다.`;

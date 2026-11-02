@@ -6,6 +6,10 @@ import Places from './pages/Places'
 import Heritage from './pages/Heritage'
 import Agent from './pages/Agent'
 import My from './pages/My'
+import Login from './pages/Login'
+import Shop from './pages/Shop'
+import Cart from './pages/Cart'
+import RequireAuth from './components/RequireAuth'
 import NotFound from './pages/NotFound'
 
 // ── 메뉴 목록 ────────────────────────────────────────────
@@ -16,8 +20,9 @@ export const NAV_ITEMS = [
   { to: '/myths', label: '신화 도감', icon: 'book' },
   { to: '/places', label: '신화 속 장소', icon: 'geo-alt' },
   { to: '/heritage', label: '국가유산', icon: 'bank' },
+  { to: '/shop', label: '제주 장터', icon: 'bag-heart' },
   { to: '/agent', label: '이야기꾼 AI', icon: 'robot' },
-  { to: '/my', label: '내 별자리', icon: 'star' },
+  { to: '/my', label: '내 별자리', icon: 'star', auth: true },
 ]
 
 export const router = createBrowserRouter([
@@ -31,7 +36,10 @@ export const router = createBrowserRouter([
       { path: 'places', element: <Places /> },
       { path: 'heritage', element: <Heritage /> },
       { path: 'agent', element: <Agent /> },
-      { path: 'my', element: <My /> },
+      { path: 'shop', element: <Shop /> },
+      { path: 'cart', element: <RequireAuth><Cart /></RequireAuth> },
+      { path: 'login', element: <Login /> },
+      { path: 'my', element: <RequireAuth><My /></RequireAuth> },
     ],
   },
 ])

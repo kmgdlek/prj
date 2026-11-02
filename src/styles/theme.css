@@ -88,3 +88,6 @@ body { font-family: 'Pretendard', system-ui, sans-serif; }
 .agent-fab.is-open .fab-icon-robot { opacity: 0; transform: rotate(90deg) scale(.5); }
 .agent-fab.is-open .fab-icon-close { opacity: 1; transform: none; }
 @media (prefers-reduced-motion: reduce) { .chat-window, .chat-window.open { transition-duration: .01s; } }
+
+/* 쇼핑 상품 카드의 이모지 타일 */
+.product-tile { height: 140px; display: flex; align-items: center; justify-content: center; font-size: 4rem; }

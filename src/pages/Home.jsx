@@ -1,9 +1,9 @@
 import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
-import { Badge, Button, Card, Col, Form, Row } from 'react-bootstrap'
+import { Badge, Button, Card, Col, Row } from 'react-bootstrap'
 import { ping } from '../api/client'
 import { isSupabaseReady, supabase } from '../lib/supabase'
-import { useAppStore } from '../store/useAppStore'
+import { displayName, useAppStore } from '../store/useAppStore'
 import { MYTHS } from '../../server/myths'
 import Scene from '../components/Scene'
 import WeatherBadge from '../components/WeatherBadge'
@@ -12,7 +12,7 @@ const MARKERS = MYTHS.map((m) => ({ id: m.id, name: m.title, lat: m.lat, lng: m.
 
 // 홈 = 3D 신화 지도 + "동작 체크" 대시보드
 export default function Home() {
-  const { nickname, setNickname, selectedMythId, selectMyth } = useAppStore()
+  const { user, selectedMythId, selectMyth } = useAppStore()
   const myth = MYTHS.find((m) => m.id === selectedMythId)
   const [db, setDb] = useState(isSupabaseReady
     ? { state: 'wait', msg: '확인 중...' }
@@ -66,11 +66,13 @@ export default function Home() {
       </Row>
 
       <Card className="mt-4">
-        <Card.Body>
-          <Card.Title className="fs-6 fw-bold"><i className="bi bi-database me-2" />Store(Zustand) 확인</Card.Title>
-          <Form.Control placeholder="닉네임을 입력하세요" value={nickname}
-            onChange={(e) => setNickname(e.target.value)} style={{ maxWidth: 320 }} />
-          <Form.Text>입력하면 오른쪽 위 메뉴에도 바로 보이고, 새로고침해도 남아 있습니다.</Form.Text>
+        <Card.Body className="d-flex align-items-center gap-3 flex-wrap">
+          <i className="bi bi-person-circle fs-2 text-primary" />
+          <div className="flex-grow-1">
+            <Card.Title className="fs-6 fw-bold mb-0">{user ? `${displayName(user)}님, 환영해요` : '로그인하고 별자리와 장바구니를 만들어 보세요'}</Card.Title>
+            <small className="text-body-secondary">{user ? user.email : 'Supabase Auth · 이메일로 가입'}</small>
+          </div>
+          {!user && <Button as={Link} to="/login" size="sm">로그인 · 회원가입</Button>}
         </Card.Body>
       </Card>
     </>

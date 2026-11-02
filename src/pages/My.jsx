@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { Button, Col, Form, Row } from 'react-bootstrap'
+import { Button, Col, Row } from 'react-bootstrap'
 import PageHeader from '../components/PageHeader'
 import ItemCard from '../components/ItemCard'
 import FavDetail from '../components/FavDetail'
@@ -10,16 +10,14 @@ const SOURCE = { myth: '신화', tour: '장소', heritage: '유산' }
 
 // 내 별자리 — 즐겨찾기를 Supabase 에서 불러와 보여주고, 별을 누르면 상세(사진·이야기)가 열립니다
 export default function My() {
-  const { nickname, setNickname, favorites, favLoading, loadFavorites, toggleFavorite } = useAppStore()
+  const { favorites, favLoading, loadFavorites, toggleFavorite } = useAppStore()
   const [open, setOpen] = useState(null)
 
-  useEffect(() => { loadFavorites() }, [nickname, loadFavorites])
+  useEffect(() => { loadFavorites() }, [loadFavorites])
 
   return (
     <>
       <PageHeader icon="star" title="내 별자리" subtitle="별을 누르면 그 신화·장소·유산의 사진과 이야기가 열립니다" />
-      <Form.Control className="mb-4" style={{ maxWidth: 320 }} placeholder="닉네임"
-        value={nickname} onChange={(e) => setNickname(e.target.value)} />
       {favLoading ? <Loading /> : favorites.length === 0 ? <Empty text="아직 밤하늘에 박은 별이 없어요" /> : (
         <Row xs={1} sm={2} lg={3} className="g-3">
           {favorites.map((f) => (
