@@ -1,11 +1,11 @@
 import { useState } from 'react'
 import { Link } from 'react-router-dom'
-import { Button, ButtonGroup } from 'react-bootstrap'
+import { Badge, Button, ButtonGroup } from 'react-bootstrap'
 import PageHeader from '../components/PageHeader'
 import Scene from '../components/Scene'
 import { FavButton } from '../components/ItemCard'
 import { useAppStore } from '../store/useAppStore'
-import { MYTHS } from '../../server/myths'
+import { KINDS, MYTHS } from '../../server/myths'
 import { MODES, modeAt } from '../lib/timeOfDay'
 import { WEATHER_ICON, WEATHER_LABEL, weatherKind } from '../lib/weather'
 
@@ -17,6 +17,8 @@ const MARKERS = MYTHS.map((m) => ({ id: m.id, name: m.title, lat: m.lat, lng: m.
 export default function MapPage() {
   const { selectedMythId, selectMyth } = useAppStore()
   const myth = MYTHS.find((m) => m.id === selectedMythId)
+  const [kind, setKind] = useState('전체')               // 지도 아래 이름 버튼을 분류로 걸러 본다 (마커는 모두 지도에 보인다)
+  const shownMyths = MYTHS.filter((m) => kind === '전체' || m.kind === kind)
   const [sel, setSel] = useState('auto')                 // 'auto' = 지금 시각, 아니면 새벽·아침·밤을 직접 골라 보기
   const now = modeAt()
   const [wsel, setWsel] = useState('auto')               // 'auto' = 지금 제주시의 실제 예보, 아니면 맑음·흐림·비·눈을 직접 골라 보기
@@ -58,7 +60,7 @@ export default function MapPage() {
               <h5 className="fw-bold mb-1 flex-grow-1"><span className="myth-dot me-2" style={{ background: myth.color, color: myth.color }} />{myth.title}</h5>
               <Button size="sm" variant="link" className="p-0 text-white-50" aria-label="닫기 · 전체 보기" onClick={() => selectMyth(null)}><i className="bi bi-x-lg" /></Button>
             </div>
-            <div className="small text-warning mb-2"><i className="bi bi-geo-alt me-1" />{myth.place}</div>
+            <div className="small text-warning mb-2"><i className="bi bi-geo-alt me-1" />{myth.place} <Badge bg="light" text="dark" className="ms-1">{myth.kind}</Badge></div>
             <p className="small mb-2 map-card-story">{myth.story}</p>
             <div className="d-flex gap-2 flex-wrap">
               <FavButton fav={{ source: 'myth', id: myth.id, title: myth.title }} dark />
@@ -70,8 +72,15 @@ export default function MapPage() {
         )}
       </div>
 
+      <div className="d-flex flex-wrap align-items-center gap-2 mt-3">
+        {['전체', ...KINDS].map((k) => (
+          <Button key={k} size="sm" variant={k === kind ? 'dark' : 'outline-dark'} onClick={() => setKind(k)}>
+            {k} <span className="opacity-75">{k === '전체' ? MYTHS.length : MYTHS.filter((m) => m.kind === k).length}</span>
+          </Button>
+        ))}
+      </div>
       <div className="d-flex flex-wrap gap-2 my-3">
-        {MYTHS.map((m) => (
+        {shownMyths.map((m) => (
           <Button key={m.id} size="sm" variant={m.id === selectedMythId ? 'primary' : 'outline-secondary'} onClick={() => selectMyth(m.id)}>
             <span className="myth-dot me-2" style={{ background: m.color, color: m.color }} />{m.title}
           </Button>

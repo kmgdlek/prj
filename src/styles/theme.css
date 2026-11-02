@@ -336,3 +336,6 @@ body { font-family: 'Pretendard', system-ui, sans-serif; }
 
 /* 상단바 대표 이미지 (돌하르방, 투명 배경) */
 .brand-logo { height: 46px; width: auto; margin: -4px .65rem -4px 0; filter: drop-shadow(0 1px 3px rgba(0, 0, 0, .45)); }
+
+/* 신화 도감 목록: 장소가 많아져서 목록만 스크롤 */
+.myth-list { max-height: 640px; overflow-y: auto; }

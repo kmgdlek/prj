@@ -1,8 +1,12 @@
 // 탐라 신화 데이터 — 화면(3D 지도·신화 페이지)과 AI 에이전트의 도구가 함께 쓴다.
 // 이 프로젝트의 "IP 원천 콘텐츠". 좌표는 실제 장소 기준(위도·경도).
+// kind: 지도·도감에서 걸러 볼 때 쓰는 분류 (신화 · 전설 · 문화·자연)
+export const KINDS = ['신화', '전설', '문화·자연'];
+
 export const MYTHS = [
   {
     id: 'seolmundae',
+    kind: '신화',
     title: '설문대할망',
     place: '한라산 백록담',
     keyword: '한라산',
@@ -13,6 +17,7 @@ export const MYTHS = [
   },
   {
     id: 'ohbaek',
+    kind: '신화',
     title: '오백장군',
     place: '영실기암',
     keyword: '영실',
@@ -23,6 +28,7 @@ export const MYTHS = [
   },
   {
     id: 'samseonghyeol',
+    kind: '신화',
     title: '삼성혈',
     place: '제주시 이도동',
     keyword: '삼성혈',
@@ -33,6 +39,7 @@ export const MYTHS = [
   },
   {
     id: 'yongduam',
+    kind: '전설',
     title: '용두암의 용',
     place: '용두암',
     keyword: '용두암',
@@ -43,6 +50,7 @@ export const MYTHS = [
   },
   {
     id: 'sanbang',
+    kind: '전설',
     title: '산방산 전설',
     place: '산방산',
     keyword: '산방산',
@@ -53,6 +61,7 @@ export const MYTHS = [
   },
   {
     id: 'seongsan',
+    kind: '신화',
     title: '일출봉 등잔걸이',
     place: '성산일출봉',
     keyword: '성산일출봉',
@@ -63,6 +72,7 @@ export const MYTHS = [
   },
   {
     id: 'yeongdeung',
+    kind: '신화',
     title: '영등할망',
     place: '한림읍 귀덕리 복덕개',
     keyword: '귀덕',
@@ -73,6 +83,7 @@ export const MYTHS = [
   },
   {
     id: 'songdang',
+    kind: '신화',
     title: '송당 본향당',
     place: '구좌읍 송당리',
     keyword: '송당',
@@ -83,6 +94,7 @@ export const MYTHS = [
   },
   {
     id: 'honinji',
+    kind: '신화',
     title: '혼인지',
     place: '성산읍 온평리',
     keyword: '혼인지',
@@ -93,6 +105,7 @@ export const MYTHS = [
   },
   {
     id: 'stonepark',
+    kind: '신화',
     title: '돌문화공원',
     place: '조천읍 교래리',
     keyword: '돌문화공원',
@@ -103,6 +116,7 @@ export const MYTHS = [
   },
   {
     id: 'jeongbang',
+    kind: '전설',
     title: '정방폭포의 서불과차',
     place: '서귀포시 동홍동',
     keyword: '정방폭포',
@@ -113,6 +127,7 @@ export const MYTHS = [
   },
   {
     id: 'oedolgae',
+    kind: '전설',
     title: '외돌개 할망바위',
     place: '서귀포시 서홍동',
     keyword: '외돌개',
@@ -123,6 +138,7 @@ export const MYTHS = [
   },
   {
     id: 'biyang',
+    kind: '전설',
     title: '비양도',
     place: '한림읍 협재 앞바다',
     keyword: '비양도',
@@ -133,6 +149,7 @@ export const MYTHS = [
   },
   {
     id: 'udo',
+    kind: '신화',
     title: '우도, 소가 누운 섬',
     place: '성산 앞바다 우도',
     keyword: '우도',
@@ -143,6 +160,7 @@ export const MYTHS = [
   },
   {
     id: 'chagwi',
+    kind: '전설',
     title: '차귀도의 호종단',
     place: '한경면 고산리 앞바다',
     keyword: '차귀도',
@@ -153,6 +171,7 @@ export const MYTHS = [
   },
   {
     id: 'mara',
+    kind: '전설',
     title: '마라도 처녀당',
     place: '대정읍 마라리',
     keyword: '마라도',
@@ -163,6 +182,7 @@ export const MYTHS = [
   },
   {
     id: 'saryeoni',
+    kind: '문화·자연',
     title: '사려니숲',
     place: '제주시 조천읍·서귀포시 표선면',
     keyword: '사려니',
@@ -170,6 +190,105 @@ export const MYTHS = [
     color: '#2d6a4f',
     summary: '‘사려니’는 신성한 곳이라는 뜻 — 신령스러운 숲길.',
     story: '‘사려니’는 신령스러운 곳, 신성한 곳이라는 뜻으로 전해진다. 삼나무가 높이 솟은 숲길 곳곳에 한라산 신들이 머문다고 여겨, 예로부터 사람들이 조심스레 드나들었다.',
+  },
+  {
+    id: 'cheonjeyeon',
+    kind: '전설',
+    title: '천제연폭포의 칠선녀',
+    place: '서귀포시 중문동',
+    keyword: '천제연',
+    lat: 33.2536, lng: 126.4146,
+    color: '#a0c4ff',
+    summary: '옥황상제를 모시는 일곱 선녀가 밤마다 내려와 놀다 갔다는 폭포.',
+    story: '옥황상제를 모시던 일곱 선녀가 달 밝은 밤이면 이 맑은 못으로 내려와 목욕하며 놀다 하늘로 올랐다는 이야기가 전해진다. 폭포는 세 단으로 떨어지고, 위쪽 선임교에는 일곱 선녀의 모습이 새겨져 있다.',
+  },
+  {
+    id: 'manjanggul',
+    kind: '전설',
+    title: '김녕사굴의 이무기',
+    place: '구좌읍 김녕리 · 만장굴',
+    keyword: '만장굴',
+    lat: 33.5286, lng: 126.7714,
+    color: '#6a4c93',
+    summary: '제물을 받던 큰 뱀을 판관이 물리쳤다는 용암동굴의 전설.',
+    story: '김녕굴(김녕사굴)에 사는 큰 뱀에게 해마다 처녀를 제물로 바쳐야 했는데, 서련 판관이 뱀을 물리쳐 마을을 구했다는 이야기가 전해진다. 이 굴은 만장굴로 이어지는 거대한 용암동굴 계통의 일부다.',
+  },
+  {
+    id: 'seopjikoji',
+    kind: '전설',
+    title: '섭지코지의 선돌',
+    place: '성산읍 신양리',
+    keyword: '섭지코지',
+    lat: 33.4244, lng: 126.9306,
+    color: '#ff8fab',
+    summary: '선녀와 용왕의 아들의 애틋한 사랑이 얽힌 바닷가 곶.',
+    story: '섭지코지 바닷가의 선돌에는 선녀와 용왕의 아들의 애틋한 사랑 이야기가 전해진다. ‘섭지’는 좁은 땅, ‘코지’는 바다로 뻗은 땅(곶)을 뜻하는 제주말이다.',
+  },
+  {
+    id: 'chilmeoridang',
+    kind: '문화·자연',
+    title: '칠머리당 영등굿',
+    place: '제주시 건입동',
+    keyword: '칠머리당',
+    lat: 33.5215, lng: 126.5460,
+    color: '#00b4d8',
+    summary: '영등할망을 맞아 해녀와 어부의 안녕을 비는 굿. 유네스코 인류무형문화유산.',
+    story: '음력 2월 영등할망을 맞이해 바다의 풍요와 해녀·어부의 안녕을 비는 굿이 칠머리당에서 열린다. 제주 칠머리당 영등굿은 2009년 유네스코 인류무형문화유산으로 등재되었다.',
+  },
+  {
+    id: 'haenyeo',
+    kind: '문화·자연',
+    title: '해녀의 바다',
+    place: '구좌읍 하도리 · 제주해녀박물관',
+    keyword: '해녀박물관',
+    lat: 33.5240, lng: 126.8830,
+    color: '#0077b6',
+    summary: '숨을 참고 바다에서 물질하는 제주 해녀 — 유네스코 인류무형문화유산.',
+    story: '제주 해녀는 산소 장비 없이 숨을 참고 바다에 들어가 전복·소라 등을 따는 여성 잠수부들이다. 해녀 문화는 2016년 유네스코 인류무형문화유산에 올랐고, 하도리의 해녀박물관에서 그 삶을 만날 수 있다.',
+  },
+  {
+    id: 'sancheondan',
+    kind: '문화·자연',
+    title: '산천단, 한라산 산신제',
+    place: '제주시 아라동',
+    keyword: '산천단',
+    lat: 33.4620, lng: 126.5830,
+    color: '#386641',
+    summary: '한라산 산신에게 제사를 올리던 제단과 오래된 곰솔 숲.',
+    story: '예로부터 한라산 산신에게 제사를 올리던 제단이 있는 곳으로, 제단 둘레에는 오래된 곰솔들이 서 있다. 산을 신으로 모시던 탐라 사람들의 마음을 느낄 수 있는 곳이다.',
+  },
+  {
+    id: 'dolhareubang',
+    kind: '문화·자연',
+    title: '돌하르방, 성문을 지키는 수호신',
+    place: '제주시 일도동 · 제주목 관아 일대',
+    keyword: '제주목 관아',
+    lat: 33.5135, lng: 126.5214,
+    color: '#6c757d',
+    summary: '제주 성문 앞에 서서 마을을 지켰다는 석상.',
+    story: '돌하르방은 현무암을 깎아 만든 석상으로, 성문 앞에 세워 잡귀를 막고 경계를 알리는 수호신 역할을 했다고 전해진다. 큰 눈과 벙거지 모자, 배 위에 올린 두 손이 특징이다.',
+  },
+  {
+    id: 'wolryeong',
+    kind: '문화·자연',
+    title: '월령리 선인장 자생지',
+    place: '한림읍 월령리',
+    keyword: '월령',
+    lat: 33.3640, lng: 126.1900,
+    color: '#e63946',
+    summary: '해안 현무암 틈에서 자라는 손바닥선인장(백년초) 군락.',
+    story: '월령리 해안에는 현무암 돌담 사이로 손바닥선인장(백년초)이 군락을 이룬다. 선인장이 바닷물에 실려 먼 곳에서 건너왔다는 이야기도 전해지며, 열매로는 분홍빛 백년초 청을 만든다.',
+  },
+  {
+    id: 'cheonjiyeon',
+    kind: '문화·자연',
+    title: '천지연폭포',
+    place: '서귀포시 서홍동',
+    keyword: '천지연',
+    lat: 33.2469, lng: 126.5547,
+    color: '#00f5d4',
+    summary: '‘하늘과 땅이 만나서 이룬 연못’이라는 이름의 폭포, 무태장어의 서식지.',
+    story: '천지연(天地淵)은 하늘과 땅이 만나 이룬 연못이라는 뜻이다. 절벽에서 쏟아지는 물줄기 아래 못에는 천연기념물 무태장어가 사는 것으로 알려져 있다.',
   },
 ];
 

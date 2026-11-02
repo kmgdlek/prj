@@ -37,11 +37,12 @@ export default function Myths() {
       <PageHeader icon="book" title="신화 도감" subtitle={`탐라 신화 ${MYTHS.length}편 — 이야기를 고르면 3D 섬이 그 장소로 날아갑니다`} />
       <Row className="g-4">
         <Col lg={6}>
-          <ListGroup>
+          <ListGroup className="myth-list">
             {MYTHS.map((m) => (
               <ListGroup.Item key={m.id} action active={m.id === myth.id} onClick={() => selectMyth(m.id)}>
                 <span className="myth-dot me-2" style={{ background: m.color, color: m.color }} />
                 <strong>{m.title}</strong>
+                <span className="badge text-bg-light border ms-2 fw-normal">{m.kind}</span>
                 <div className="small opacity-75">{m.place}</div>
               </ListGroup.Item>
             ))}
