@@ -1,7 +1,8 @@
 /* 테마 위에 덧입히는 우리 앱 스타일 — 색은 Bootstrap 변수(--bs-*)를 써서 테마를 바꿔도 어울리게 */
 body { font-family: 'Pretendard', system-ui, sans-serif; }
 
-.scene { border: 1px solid var(--bs-border-color); box-shadow: 0 0 40px rgba(131, 56, 236, .25); position: relative; background: #0b0620; }
+/* isolation: 3D 라벨(Html)의 z-index 가 이 영역 밖으로 새어 나가 sticky 메뉴·모달 위에 뜨는 것을 막는다 */
+.scene { border: 1px solid var(--bs-border-color); box-shadow: 0 0 40px rgba(131, 56, 236, .25); position: relative; z-index: 0; isolation: isolate; background: #0b0620; }
 
 .hero-title {
   background: linear-gradient(90deg, #ffd166, #ff7eb6 50%, #8ecae6);

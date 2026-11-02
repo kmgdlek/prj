@@ -127,7 +127,7 @@ function Marker({ m, selected, onSelect }) {
         <meshBasicMaterial color={m.color} transparent side={THREE.DoubleSide} />
       </mesh>
       {(m.label !== false || selected) && (
-        <Html position={[0, 0.95, 0]} center distanceFactor={9} style={{ pointerEvents: 'none' }}>
+        <Html position={[0, 0.95, 0]} center distanceFactor={9} zIndexRange={[10, 0]} style={{ pointerEvents: 'none' }}>
           <div className={`marker-label ${selected ? 'on' : ''}`}>{m.name}</div>
         </Html>
       )}
