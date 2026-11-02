@@ -86,14 +86,17 @@ export default function RootLayout() {
                 <div className="d-flex align-items-center gap-3">
                   <i className="bi bi-person-circle fs-1 text-primary" />
                   <div className="flex-grow-1 min-w-0">
-                    <div className="fw-bold text-truncate">{displayName(user)}</div>
+                    <div className="d-flex align-items-center gap-2 min-w-0">
+                      <span className="flex-shrink-0"><LevelBadge part="lv" /></span>
+                      <span className="fw-bold text-truncate">{displayName(user)}</span>
+                    </div>
                     <div className="small text-body-secondary text-truncate">{user.email}</div>
                   </div>
                   <Button size="sm" variant="outline-secondary" className="text-nowrap flex-shrink-0"
                     onClick={() => { close(); signOut(); navigate('/') }}>로그아웃</Button>
                 </div>
                 {/* 등급은 카드 전체 폭을 써서 설명이 잘리지 않게 */}
-                <div className="mt-3"><LevelBadge withProgress /></div>
+                <div className="mt-3"><LevelBadge part="name" withProgress /></div>
               </>
             ) : (
               <div className="d-flex align-items-center gap-3">

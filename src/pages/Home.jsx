@@ -79,9 +79,12 @@ export default function Home() {
         <Card.Body className="d-flex align-items-center gap-3 flex-wrap">
           <i className="bi bi-person-circle fs-2 text-primary" />
           <div className="flex-grow-1">
-            <Card.Title className="fs-6 fw-bold mb-0">{user ? `${displayName(user)}님, 환영해요` : '로그인하고 별자리와 장바구니를 만들어 보세요'}</Card.Title>
+            <Card.Title className="fs-6 fw-bold mb-0 d-flex align-items-center gap-2">
+              {user && <LevelBadge part="lv" />}
+              {user ? `${displayName(user)}님, 환영해요` : '로그인하고 별자리와 장바구니를 만들어 보세요'}
+            </Card.Title>
             <small className="text-body-secondary">{user ? user.email : 'Supabase Auth · 이메일로 가입'}</small>
-            {user && <div className="mt-1"><LevelBadge /></div>}
+            {user && <div className="mt-1"><LevelBadge part="name" /></div>}
           </div>
           {!user && <Button as={Link} to="/login" size="sm">로그인 · 회원가입</Button>}
         </Card.Body>

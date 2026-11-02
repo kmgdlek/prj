@@ -52,9 +52,12 @@ export default function SideCard() {
               <div className="d-flex gap-2">
                 <i className="bi bi-person-circle fs-2 text-primary" />
                 <div className="min-w-0">
-                  <div className="fw-bold text-truncate">{displayName(user)}</div>
+                  <div className="d-flex align-items-center gap-2 min-w-0">
+                    <span className="flex-shrink-0"><LevelBadge part="lv" /></span>
+                    <span className="fw-bold text-truncate">{displayName(user)}</span>
+                  </div>
                   <div className="small text-body-secondary text-truncate mb-1">{user.email}</div>
-                  <LevelBadge withProgress />
+                  <LevelBadge part="name" withProgress />
                 </div>
               </div>
             ) : (
