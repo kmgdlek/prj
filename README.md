@@ -167,7 +167,8 @@ vercel dev                     # 화면 + /api 서버 함수 → http://localhos
 
 1. 프로젝트 생성 후 SQL Editor 에서 [`supabase/schema.sql`](supabase/schema.sql) 실행 (favorites · cart_items · orders · shop_stock · shop_coupons · shop_reviews · shop_chat_messages · shop_admins · shop_price_override 테이블, 재고 함수, 프로필 사진 저장소, RLS. 여러 번 실행해도 안전)
 2. Authentication → Providers → Email 에서 Confirm email 을 끄면 가입 즉시 로그인됩니다(수업용). 켜 두면 메일 인증 후 로그인
-3. 첫 화면의 동작 체크 카드가 모두 초록색이면 연결 성공
+3. Authentication → URL Configuration 에서 **Site URL** 을 배포 주소(`https://prj-kappa-nine.vercel.app`)로 바꾸고, Redirect URLs 에 같은 주소를 추가 (안 하면 가입 인증 메일의 링크가 다른 사이트로 돌아간다)
+4. 첫 화면의 동작 체크 카드가 모두 초록색이면 연결 성공
 
 ### 단계별 확인 (홈 화면 "동작 체크")
 
