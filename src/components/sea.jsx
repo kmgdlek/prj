@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef } from 'react'
-import { useFrame } from '@react-three/fiber'
+import { useFrame, useThree } from '@react-three/fiber'
 import { Html } from '@react-three/drei'
 import * as THREE from 'three'
 import { toXZ } from './terrain'
@@ -54,25 +54,39 @@ const dolphinGeo = () => merge([
   part(ball(0.035, 1), '#587791', { x: -0.1, y: -0.045, z: 0.1, sx: 1.8, sy: 0.35, sz: 1.2 }),
 ])
 
-// 바다 위를 큰 원을 그리며 헤엄치다가, 몇 초마다 한 번 물 밖으로 솟구쳐 포물선을 그리며 뛰어오른다 (고정된 시간 식이라 누구에게나 같은 움직임)
+// 바다 위를 큰 원을 그리며 헤엄치다가(등과 지느러미만 수면 위로), 몇 초마다 한 번 물 밖으로 솟구쳐 포물선을 그리며 뛰어오른다 (고정된 시간 식이라 누구에게나 같은 움직임)
+// 누르면 깜짝 놀라 살짝 튀어 오르며 옆으로 쓰러졌다가(약 2초) 다시 헤엄친다
+const ease = (t) => t * t * (3 - 2 * t)
 function Dolphin({ cx, cz, r, speed, phase, period, jump = 0.55 }) {
   const root = useRef(), pitch = useRef(), ring = useRef()
   const geometry = useMemo(dolphinGeo, [])
+  const clock = useThree((st) => st.clock)
+  const hit = useRef({ at: -99, sign: 1 })                 // 눌린 시각과 쓰러지는 쪽(좌·우)
   useFrame(({ clock }) => {
     const t = clock.elapsedTime
     const a = t * speed + phase
-    const x = cx + Math.cos(a) * r, z = cz + Math.sin(a) * r
-    const u = ((t + phase * 3) % period) / period, air = 0.28               // 한 주기 중 앞 28% 가 공중
+    const hx = -Math.sin(a) * r * speed, hz = Math.cos(a) * r * speed           // 원의 접선 = 진행 방향
+    const len = Math.hypot(hx, hz) || 1
+    const u = ((t + phase * 3) % period) / period, air = 0.28                    // 한 주기 중 앞 28% 가 공중
     const jumping = u < air
     const j = jumping ? u / air : 0
-    const y = jumping ? Math.sin(j * Math.PI) * jump - 0.02 : -0.5           // 물속에서는 안 보인다
-    root.current.visible = jumping
+    let x = cx + Math.cos(a) * r, z = cz + Math.sin(a) * r
+    let y = jumping ? Math.sin(j * Math.PI) * jump - 0.02 : -0.075 + Math.sin(t * 2 + phase) * 0.012   // 헤엄칠 땐 등만 수면 위
+    let roll = 0, wobble = 0
+    const h = t - hit.current.at                                                // 눌린 뒤 지난 시간
+    if (h >= 0 && h < 2.2) {
+      const out = ease(Math.min(h / 0.7, 1)) * (1 - ease(Math.min(Math.max((h - 1.2) / 1.0, 0), 1)))   // 0.7초에 옆으로 밀려나고, 1.2초부터 돌아온다
+      x += (hz / len) * hit.current.sign * 0.8 * out; z += (-hx / len) * hit.current.sign * 0.8 * out    // 진행 방향의 옆으로 날아간다
+      y += Math.sin(Math.min(h / 0.8, 1) * Math.PI) * 0.28                      // 깜짝 놀라 살짝 튀어 오른다
+      roll = hit.current.sign * 1.35 * out                                       // 옆으로 쓰러진다
+      wobble = 0.5 * Math.sin(h * 9) * Math.exp(-h * 2.2)                        // 쓰러지며 휘청
+    }
     root.current.position.set(x, y, z)
-    const hx = -Math.sin(a) * r * speed, hz = Math.cos(a) * r * speed          // 원의 접선 = 진행 방향
-    root.current.rotation.y = Math.atan2(hx, hz)
-    pitch.current.rotation.x = jumping ? -Math.cos(j * Math.PI) * 0.9 : 0       // 올라갈 땐 코를 들고, 내려갈 땐 숙인다
-    // 뛰어오를 때와 착수할 때 물보라 고리
-    const splash = u < 0.06 ? u / 0.06 : u > air && u < air + 0.08 ? (u - air) / 0.08 : -1
+    root.current.rotation.y = Math.atan2(hx, hz) + wobble
+    pitch.current.rotation.set(jumping ? -Math.cos(j * Math.PI) * 0.9 : 0, 0, roll)   // 올라갈 땐 코를 들고, 내려갈 땐 숙인다
+    // 뛰어오를 때·착수할 때·눌렸을 때 물보라 고리
+    let splash = u < 0.06 ? u / 0.06 : u > air && u < air + 0.08 ? (u - air) / 0.08 : -1
+    if (h >= 0 && h < 0.8) splash = h / 0.8
     ring.current.visible = splash >= 0
     if (splash >= 0) {
       const k = 0.6 + splash * 2.4
@@ -81,12 +95,18 @@ function Dolphin({ cx, cz, r, speed, phase, period, jump = 0.55 }) {
       ring.current.material.opacity = 0.7 * (1 - splash)
     }
   })
+  const onPush = (e) => { e.stopPropagation(); hit.current = { at: clock.elapsedTime, sign: Math.random() < 0.5 ? -1 : 1 } }
   return (
     <>
-      <group ref={root} raycast={noRay}>
+      <group ref={root}>
         <group ref={pitch}>
           <mesh geometry={geometry} castShadow raycast={noRay}><meshStandardMaterial vertexColors roughness={0.45} /></mesh>
         </group>
+        {/* 누르기 쉽도록 몸보다 큰 투명한 판정 영역 */}
+        <mesh scale={[1.6, 1.4, 4]} position={[0, 0.02, 0]} onClick={onPush} onPointerOver={() => { document.body.style.cursor = 'pointer' }} onPointerOut={() => { document.body.style.cursor = '' }}>
+          <sphereGeometry args={[0.16, 10, 8]} />
+          <meshBasicMaterial transparent opacity={0} depthWrite={false} />
+        </mesh>
       </group>
       <mesh ref={ring} rotation={[-Math.PI / 2, 0, 0]} raycast={noRay}>
         <ringGeometry args={[0.12, 0.17, 32]} />
