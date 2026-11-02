@@ -45,6 +45,13 @@ function AgentWindow() {
   )
 }
 
+// 사이트 대표 이미지(돌하르방, 배경을 투명하게 만든 PNG). 파일을 못 불러오면 예전의 달 아이콘이 대신 보인다
+function BrandLogo() {
+  const [failed, setFailed] = useState(false)
+  if (failed) return <i className="bi bi-moon-stars-fill me-2 text-warning" />
+  return <img src="/logo.png" alt="" className="brand-logo" onError={() => setFailed(true)} />
+}
+
 export default function RootLayout() {
   const toasts = useAppStore((s) => s.toasts)
   const user = useAppStore((s) => s.user)
@@ -77,8 +84,8 @@ export default function RootLayout() {
     <div className="d-flex flex-column min-vh-100">
       <Navbar bg="primary" data-bs-theme="dark" sticky="top">
         <Container>
-          <Navbar.Brand as={NavLink} to="/" className="fw-bold">
-            <i className="bi bi-moon-stars-fill me-2 text-warning" />탐라신화 3D
+          <Navbar.Brand as={NavLink} to="/" className="fw-bold d-flex align-items-center">
+            <BrandLogo />탐라신화 3D
           </Navbar.Brand>
           <div className="d-flex align-items-center gap-1">
             <Button as={Link} to="/cart" variant="outline-light" className="border-0 fs-4 py-0 px-2 position-relative" aria-label={`장바구니 ${cartCount}개`}>
@@ -166,6 +173,7 @@ export default function RootLayout() {
       <footer className="py-3 border-top">
         <Container className="small text-body-secondary">
           제주대 청년도약 부트캠프 1기 · 탐라신화 3D · 데이터 출처: 한국관광공사 · 기상청 · 국가유산청 (공공데이터포털)
+          · 로고 사진: <a href="https://pixabay.com/photos/figurine-souvenir-jeju-sculpture-6334639/" target="_blank" rel="noreferrer">Pixabay · jonleong64</a>
         </Container>
       </footer>
 

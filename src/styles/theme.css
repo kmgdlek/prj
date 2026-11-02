@@ -333,3 +333,6 @@ body { font-family: 'Pretendard', system-ui, sans-serif; }
 .photo-track { display: flex; transition: transform .55s cubic-bezier(.4, 0, .2, 1); will-change: transform; }
 .photo-slide { flex: 0 0 100%; display: block; }
 @media (prefers-reduced-motion: reduce) { .photo-track { transition: none; } }
+
+/* 상단바 대표 이미지 (돌하르방, 투명 배경) */
+.brand-logo { height: 46px; width: auto; margin: -4px .65rem -4px 0; filter: drop-shadow(0 1px 3px rgba(0, 0, 0, .45)); }
