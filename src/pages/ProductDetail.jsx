@@ -5,8 +5,7 @@ import { fetchImages } from '../api/client'
 import { won } from '../lib/format'
 import { useAppStore } from '../store/useAppStore'
 import { MYTHS } from '../../server/myths'
-import { MAX_PER_ITEM, PRODUCTS, STOCK_SLOT_MS, basePrice, discountPct, flashRate, liveStock, productOf, salePrice, trendOf } from '../../server/products'
-import SlotTimer from '../components/SlotTimer'
+import { MAX_PER_ITEM, PRODUCTS, basePrice, discountPct, flashRate, liveStock, productOf, salePrice, trendOf } from '../../server/products'
 import PriceChart from '../components/PriceChart'
 import { Empty } from '../components/Status'
 import { FavButton } from '../components/ItemCard'
@@ -113,7 +112,7 @@ export default function ProductDetail() {
           {/* 가격 오른쪽 빈칸: 주식 1분봉 같은 가격 차트 (좁으면 아래로 내려간다) */}
           <PriceChart p={p} slot={slot} />
           </div>
-          <div className="small text-body-secondary mb-3"><i className="bi bi-lightning-charge-fill text-danger me-1" />1분마다 시세가 바뀌어요 · 다음 변동까지 <SlotTimer /> <span className="ms-2">재고는 10분마다 (<SlotTimer ms={STOCK_SLOT_MS} />)</span></div>
+
 
           <Card className="mb-3"><Card.Body className="small">
             <div className="d-flex gap-2"><i className="bi bi-truck" /> 과제용 샘플 상품이라 실제 배송은 이루어지지 않아요</div>

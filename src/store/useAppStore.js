@@ -195,10 +195,7 @@ export const useAppStore = create((set, get) => ({
   tickSlot: () => {
     const price = slotOf(), stock = stockSlotOf()
     if (price !== get().slot) set({ slot: price })
-    if (stock !== get().stockSlot) {
-      set({ stockSlot: stock })
-      get().toast('📦 10분이 지나 재고가 바뀌었어요', 'info')     // 시세는 1분마다라 알림 없이 조용히 바뀐다
-    }
+    if (stock !== get().stockSlot) set({ stockSlot: stock })        // 알림 없이 조용히 갱신
   },
 
   // ⑦ 장바구니 — 내 계정의 cart_items. 담는 순간 화면에 먼저 반영하고 DB 에는 "이 수량"으로 덮어쓴다(upsert)

@@ -7,8 +7,7 @@ import { FavButton } from '../components/ItemCard'
 import { Stars, ratingOf } from '../components/StarRating'
 import { useAppStore } from '../store/useAppStore'
 import { won } from '../lib/format'
-import { CATEGORIES, MAX_PER_ITEM, PRODUCTS, STOCK_SLOT_MS, TAGS, discountPct, flashRate, liveStock, salePrice, trendOf } from '../../server/products'
-import SlotTimer from '../components/SlotTimer'
+import { CATEGORIES, MAX_PER_ITEM, PRODUCTS, TAGS, discountPct, flashRate, liveStock, salePrice, trendOf } from '../../server/products'
 
 // 제주 특산품·기념품 — 담기 버튼은 store 의 장바구니에 연결
 export default function Shop() {
@@ -54,8 +53,7 @@ export default function Shop() {
       {/* 시세는 1분마다, 재고는 10분마다 바뀐다 */}
       <div className="flash-banner mb-3">
         <i className="bi bi-lightning-charge-fill text-danger" /><strong>타임특가</strong>
-        <span>1분마다 시세, 10분마다 재고가 바뀌어요 · 지금 {PRODUCTS.filter((p) => flashRate(p, slot) > 0).length}개 상품이 더 싸졌어요</span>
-        <span className="ms-auto">시세 <SlotTimer /> · 재고 <SlotTimer ms={STOCK_SLOT_MS} /></span>
+        <span>지금 {PRODUCTS.filter((p) => flashRate(p, slot) > 0).length}개 상품이 더 싸졌어요</span>
       </div>
       <div className="d-flex flex-wrap gap-2 align-items-center mb-4">
         {CATEGORIES.map((c) => (

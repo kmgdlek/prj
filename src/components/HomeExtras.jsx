@@ -3,7 +3,6 @@ import { Link, useNavigate } from 'react-router-dom'
 import { Badge, Button, Card, Col, Row } from 'react-bootstrap'
 import { MYTHS } from '../../server/myths'
 import { PRODUCTS, discountPct, salePrice } from '../../server/products'
-import SlotTimer from './SlotTimer'
 import { useAppStore } from '../store/useAppStore'
 import { won } from '../lib/format'
 
@@ -35,7 +34,7 @@ export default function HomeExtras() {
       <Col lg={7}>
         <Card className="h-100"><Card.Body>
           <div className="d-flex align-items-center mb-2">
-            <div className="small text-body-secondary"><i className="bi bi-lightning-charge-fill text-danger me-1" />지금의 특가 · 다음 변동 <SlotTimer /></div>
+            <div className="small text-body-secondary"><i className="bi bi-lightning-charge-fill text-danger me-1" />지금의 특가</div>
             <Link to="/shop" className="ms-auto small">전체 보기</Link>
           </div>
           <Row xs={2} md={4} className="g-2">
