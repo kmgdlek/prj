@@ -73,8 +73,11 @@ export default function ProductDetail() {
           <p className="text-body-secondary">{p.desc}</p>
           {p.discount > 0 ? (
             <div className="mb-3">
-              <div className="text-body-secondary text-decoration-line-through fs-5">{won(p.price)}</div>
-              <div className="text-danger small fw-bold">-{won(p.price - salePrice(p))} ({p.discount}%)</div>
+              {/* 왼쪽에 항목 이름을 붙인 가격 표 */}
+              <dl className="price-rows mb-2">
+                <dt>일반판매가</dt><dd className="text-body-secondary text-decoration-line-through">{won(p.price)}</dd>
+                <dt>할인가</dt><dd className="text-danger fw-bold">-{won(p.price - salePrice(p))} ({p.discount}%)</dd>
+              </dl>
               <div className="display-6 fw-bold">{won(salePrice(p))}</div>
             </div>
           ) : (
