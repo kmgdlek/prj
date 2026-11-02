@@ -46,6 +46,9 @@ export const PRODUCTS = [
 // 태그: 상품에 붙은 모든 태그 (많이 쓰인 순)
 export const TAGS = Object.entries(PRODUCTS.flatMap((p) => p.tags ?? []).reduce((m, t) => ((m[t] = (m[t] ?? 0) + 1), m), {})).sort((a, b) => b[1] - a[1]).map(([t]) => t);
 
+// 한 상품은 한 번에 최대 이만큼까지 (재고가 더 많아도)
+export const MAX_PER_ITEM = 20;
+
 export const CATEGORIES = ['전체', ...new Set(PRODUCTS.map((p) => p.category))];
 
 export const productOf = (id) => PRODUCTS.find((p) => p.id === id);

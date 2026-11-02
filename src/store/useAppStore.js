@@ -1,7 +1,7 @@
 import { create } from 'zustand'
 import { supabase } from '../lib/supabase'
 import { askAgent, fetchShopImages, fetchWeather, ping } from '../api/client'
-import { productOf, salePrice } from '../../server/products'
+import { MAX_PER_ITEM, productOf, salePrice } from '../../server/products'
 import { levelOf, totalSpent } from '../lib/level'
 import { STATUS } from '../lib/order'
 import { DAY, PROMO_CODES, gradeCouponsFor } from '../lib/coupon'
@@ -200,11 +200,17 @@ export const useAppStore = create((set, get) => ({
     set({ cartLoading: false })
     if (!error) set({ cart: data })
   },
+  // 한 상품을 담을 수 있는 최대 개수: 재고와 1인 한도(20개) 중 작은 쪽
+  maxQty: (id) => Math.min(get().stockOf(id), MAX_PER_ITEM),
+  limitMessage: (id) => {
+    const stock = get().stockOf(id)
+    return stock <= 0 ? '품절된 상품이에요' : stock < MAX_PER_ITEM ? `재고가 ${stock}개뿐이에요` : `한 상품은 최대 ${MAX_PER_ITEM}개까지 담을 수 있어요`
+  },
   setCartQty: async (productId, wanted) => {
     const { user } = get()
     if (!user) return get().toast('로그인하면 장바구니를 쓸 수 있어요', 'warning')
-    const max = get().stockOf(productId)
-    if (wanted > max) get().toast(max > 0 ? `재고가 ${max}개뿐이에요` : '품절된 상품이에요', 'warning')
+    const max = get().maxQty(productId)
+    if (wanted > max) get().toast(get().limitMessage(productId), 'warning')
     const qty = Math.min(wanted, max)
     const before = get().cart
     const rest = before.filter((c) => c.product_id !== productId)
@@ -221,10 +227,13 @@ export const useAppStore = create((set, get) => ({
   addToCart: async (productId, n = 1) => {
     const { user, cart } = get()
     if (!user) { get().toast('로그인하면 장바구니에 담을 수 있어요', 'warning'); return false }
-    if (get().stockOf(productId) <= 0) { get().toast('품절된 상품이에요', 'warning'); return false }
-    const qty = (cart.find((c) => c.product_id === productId)?.qty ?? 0) + n
+    const current = cart.find((c) => c.product_id === productId)?.qty ?? 0
+    const max = get().maxQty(productId)
+    if (current >= max) { get().toast(get().limitMessage(productId), 'warning'); return false }   // 이미 한도까지 담았다
+    const qty = Math.min(current + n, max)
     await get().setCartQty(productId, qty)
-    get().toast(`${productOf(productId)?.name ?? '상품'}을(를) 담았어요`)
+    if (current + n > max) get().toast(`${get().limitMessage(productId)} (${qty}개로 담았어요)`, 'warning')
+    else get().toast(`${productOf(productId)?.name ?? '상품'}을(를) 담았어요`)
     return true
   },
 
@@ -344,8 +353,8 @@ export const useAppStore = create((set, get) => ({
     if (!user || cart.length === 0) return false
     await get().loadStock()
     const lines = cart.map((c) => ({ p: productOf(c.product_id), qty: c.qty })).filter((l) => l.p)
-    const short = lines.find((l) => l.qty > get().stockOf(l.p.id))
-    if (short) { get().toast(`${short.p.name} 재고가 ${get().stockOf(short.p.id)}개뿐이에요`, 'warning'); return false }
+    const short = lines.find((l) => l.qty > get().maxQty(l.p.id))
+    if (short) { get().toast(`${short.p.name}: ${get().limitMessage(short.p.id)}`, 'warning'); return false }
 
     const coupon = get().coupons.find((c) => c.id === couponId) ?? null
     const calc = calcCheckout({ lines, spent: totalSpent(orders), coupon, pointsWanted: pointsUse, pointsBalance: pointsSummary(orders).balance })

@@ -5,7 +5,7 @@ import { fetchImages } from '../api/client'
 import { won } from '../lib/format'
 import { useAppStore } from '../store/useAppStore'
 import { MYTHS } from '../../server/myths'
-import { PRODUCTS, productOf, salePrice } from '../../server/products'
+import { MAX_PER_ITEM, PRODUCTS, productOf, salePrice } from '../../server/products'
 import { Empty } from '../components/Status'
 import { FavButton } from '../components/ItemCard'
 import { Stars, ratingOf } from '../components/StarRating'
@@ -22,6 +22,7 @@ export default function ProductDetail() {
   const reviews = useAppStore((s) => s.reviews)
   const deleteReview = useAppStore((s) => s.deleteReview)
   const stock = useAppStore((s) => s.stock[id] ?? p?.stock ?? 0)
+  const inCart = useAppStore((s) => s.cart.find((c) => c.product_id === id)?.qty ?? 0)
   const [images, setImages] = useState([])
   const [shown, setShown] = useState(0)
   const [qty, setQty] = useState(1)
@@ -47,7 +48,7 @@ export default function ProductDetail() {
   const related = PRODUCTS.filter((x) => x.category === p.category && x.id !== p.id)
   const big = images[shown]
   const rating = ratingOf(reviews, p.id)
-  const maxQty = Math.min(stock, 20)
+  const maxQty = Math.max(0, Math.min(stock, MAX_PER_ITEM) - inCart)       // 이미 담은 개수를 뺀, 더 담을 수 있는 개수
 
   async function buyNow() {
     if (!user) return navigate('/login', { state: { from: `/shop/${p.id}` } })
@@ -119,8 +120,8 @@ export default function ProductDetail() {
           {!user && <Alert variant="info" className="py-2 small"><Link to="/login" state={{ from: `/shop/${p.id}` }}>로그인</Link>하면 장바구니에 담을 수 있어요.</Alert>}
           <div className="d-flex gap-2">
             <FavButton fav={{ source: 'product', id: p.id, title: p.name }} icon="heart" size="md" label={false} />
-            <Button variant="outline-primary" className="flex-fill" disabled={stock <= 0} onClick={() => addToCart(p.id, qty)}><i className="bi bi-cart-plus me-1" />장바구니 담기</Button>
-            <Button className="flex-fill" disabled={stock <= 0} onClick={buyNow}><i className="bi bi-lightning-charge me-1" />{stock <= 0 ? '품절' : '바로 구매'}</Button>
+            <Button variant="outline-primary" className="flex-fill" disabled={stock <= 0 || maxQty <= 0} onClick={() => addToCart(p.id, qty)}><i className="bi bi-cart-plus me-1" />장바구니 담기</Button>
+            <Button className="flex-fill" disabled={stock <= 0 || maxQty <= 0} onClick={buyNow}><i className="bi bi-lightning-charge me-1" />{stock <= 0 ? '품절' : maxQty <= 0 ? '최대 수량' : '바로 구매'}</Button>
           </div>
         </Col>
       </Row>

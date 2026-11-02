@@ -7,7 +7,7 @@ import { FavButton } from '../components/ItemCard'
 import { Stars, ratingOf } from '../components/StarRating'
 import { useAppStore } from '../store/useAppStore'
 import { won } from '../lib/format'
-import { CATEGORIES, PRODUCTS, TAGS, salePrice } from '../../server/products'
+import { CATEGORIES, MAX_PER_ITEM, PRODUCTS, TAGS, salePrice } from '../../server/products'
 
 // 제주 특산품·기념품 — 담기 버튼은 store 의 장바구니에 연결
 export default function Shop() {
@@ -74,6 +74,7 @@ export default function Shop() {
           {list.map((p) => {
             const qty = cart.find((c) => c.product_id === p.id)?.qty ?? 0
             const left = stockOf(p)
+            const full = left > 0 && qty >= Math.min(left, MAX_PER_ITEM)     // 담을 수 있는 한도까지 담음
             const rate = ratingOf(reviews, p.id)
             return (
               <Col key={p.id}>
@@ -103,8 +104,8 @@ export default function Shop() {
                         {p.discount > 0 && <div className="small"><s className="text-body-secondary me-1">{won(p.price)}</s><span className="text-danger fw-bold">{p.discount}%</span></div>}
                         <strong>{won(salePrice(p))}</strong>
                       </div>
-                      <Button size="sm" variant={qty ? 'success' : 'primary'} disabled={left <= 0} onClick={() => addToCart(p.id)}>
-                        <i className={`bi bi-${qty ? 'cart-check' : 'cart-plus'} me-1`} />{left <= 0 ? '품절' : qty ? `담김 ${qty}` : '담기'}
+                      <Button size="sm" variant={qty ? 'success' : 'primary'} disabled={left <= 0 || full} onClick={() => addToCart(p.id)}>
+                        <i className={`bi bi-${qty ? 'cart-check' : 'cart-plus'} me-1`} />{left <= 0 ? '품절' : full ? `최대 ${qty}개` : qty ? `담김 ${qty}` : '담기'}
                       </Button>
                     </div>
                   </Card.Body>
@@ -114,7 +115,7 @@ export default function Shop() {
           })}
         </Row>
       )}
-      <p className="small text-body-secondary mt-4 mb-0">※ 과제용 샘플 상품이며 실제 결제·배송은 이루어지지 않습니다. 사진 출처: Pixabay · 상품을 누르면 상세 정보가 열려요</p>
+      <p className="small text-body-secondary mt-4 mb-0">※ 한 상품은 최대 20개까지 담을 수 있어요. 과제용 샘플 상품이며 실제 결제·배송은 이루어지지 않습니다. 사진 출처: Pixabay · 상품을 누르면 상세 정보가 열려요</p>
     </>
   )
 }

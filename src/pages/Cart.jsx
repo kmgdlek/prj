@@ -12,7 +12,7 @@ import { won } from '../lib/format'
 
 // 장바구니 + 결제 요약 (쿠폰 · 적립금 · 등급 혜택 · 배송비). 로그인 필요 — router 의 RequireAuth 가 막아 준다
 export default function Cart() {
-  const { cart, cartLoading, orders, coupons, setCartQty, checkout, productImages, loadProductImages, stockOf } = useAppStore()
+  const { cart, cartLoading, orders, coupons, setCartQty, checkout, productImages, loadProductImages, stockOf, maxQty } = useAppStore()
   const [couponId, setCouponId] = useState('')
   const [pointsInput, setPointsInput] = useState('')
   const [busy, setBusy] = useState(false)
@@ -47,7 +47,7 @@ export default function Cart() {
             <Card>
               <ListGroup variant="flush">
                 {lines.map(({ p, qty }) => {
-                  const max = stockOf(p.id)
+                  const max = maxQty(p.id)                 // 재고와 1인 한도(20개) 중 작은 쪽
                   return (
                     <ListGroup.Item key={p.id} className="d-flex align-items-center gap-3 flex-wrap">
                       {productImages[p.id]
@@ -58,7 +58,7 @@ export default function Cart() {
                         <div className="small text-body-secondary">
                           {p.discount > 0 && <><s className="me-1">{won(p.price)}</s><span className="text-danger fw-bold me-1">{p.discount}%</span></>}{won(salePrice(p))}
                         </div>
-                        {max <= 5 && <div className="small text-danger">남은 수량 {max}개</div>}
+                        {stockOf(p.id) <= 5 && <div className="small text-danger">남은 수량 {stockOf(p.id)}개</div>}{qty >= max && stockOf(p.id) > 5 && <div className="small text-body-secondary">최대 {max}개까지 담을 수 있어요</div>}
                       </div>
                       <div className="d-flex align-items-center gap-2">
                         <Button size="sm" variant="outline-secondary" aria-label="하나 빼기" onClick={() => setCartQty(p.id, qty - 1)}><i className="bi bi-dash" /></Button>
