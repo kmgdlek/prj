@@ -9,7 +9,7 @@ import { won } from '../lib/format'
 
 // 장바구니 + 주문 내역 (로그인 필요 — router 의 RequireAuth 가 막아 준다)
 export default function Cart() {
-  const { cart, cartLoading, orders, setCartQty, checkout } = useAppStore()
+  const { cart, cartLoading, setCartQty, checkout } = useAppStore()
   const [busy, setBusy] = useState(false)
   const [done, setDone] = useState(false)
 
@@ -25,7 +25,7 @@ export default function Cart() {
   return (
     <>
       <PageHeader icon="cart3" title="장바구니" subtitle="담은 상품은 내 계정에 저장돼요" />
-      {done && <Alert variant="success" dismissible onClose={() => setDone(false)}><i className="bi bi-check-circle me-2" />주문이 접수됐어요. 아래 주문 내역에서 확인하세요.</Alert>}
+      {done && <Alert variant="success" dismissible onClose={() => setDone(false)}><i className="bi bi-check-circle me-2" />주문이 접수됐어요. <Link to="/orders">주문 내역</Link>에서 확인하세요.</Alert>}
 
       {cartLoading ? <Loading /> : lines.length === 0 ? (
         <Empty text="장바구니가 비어 있어요" />
@@ -56,22 +56,11 @@ export default function Cart() {
         </Card>
       )}
       <p className="small text-body-secondary">※ 실제 결제는 연동하지 않아요. 주문하면 주문 내역만 저장됩니다.</p>
-      <Link to="/shop" className="btn btn-outline-primary btn-sm mb-4"><i className="bi bi-bag-heart me-1" />쇼핑 계속하기</Link>
+      <div className="d-flex gap-2">
+        <Link to="/shop" className="btn btn-outline-primary btn-sm"><i className="bi bi-bag-heart me-1" />쇼핑 계속하기</Link>
+        <Link to="/orders" className="btn btn-outline-secondary btn-sm"><i className="bi bi-receipt me-1" />주문 내역 보기</Link>
+      </div>
 
-      <h5 className="fw-bold mb-3"><i className="bi bi-receipt me-2" />주문 내역</h5>
-      {orders.length === 0 ? <Empty text="아직 주문이 없어요" /> : (
-        <ListGroup>
-          {orders.map((o) => (
-            <ListGroup.Item key={o.id}>
-              <div className="d-flex justify-content-between">
-                <strong>{new Date(o.created_at).toLocaleString('ko-KR')}</strong>
-                <strong>{won(o.total)}</strong>
-              </div>
-              <div className="small text-body-secondary">{o.items.map((i) => `${i.name} × ${i.qty}`).join(' · ')}</div>
-            </ListGroup.Item>
-          ))}
-        </ListGroup>
-      )}
     </>
   )
 }

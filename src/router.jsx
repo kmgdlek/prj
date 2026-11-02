@@ -9,6 +9,7 @@ import My from './pages/My'
 import Login from './pages/Login'
 import Shop from './pages/Shop'
 import Cart from './pages/Cart'
+import Orders from './pages/Orders'
 import RequireAuth from './components/RequireAuth'
 import NotFound from './pages/NotFound'
 
@@ -23,6 +24,7 @@ export const NAV_ITEMS = [
   { to: '/shop', label: '제주 장터', icon: 'bag-heart' },
   { to: '/agent', label: '이야기꾼 AI', icon: 'robot' },
   { to: '/my', label: '내 별자리', icon: 'star', auth: true },
+  { to: '/orders', label: '주문 내역', icon: 'receipt', auth: true },
 ]
 
 export const router = createBrowserRouter([
@@ -38,6 +40,7 @@ export const router = createBrowserRouter([
       { path: 'agent', element: <Agent /> },
       { path: 'shop', element: <Shop /> },
       { path: 'cart', element: <RequireAuth><Cart /></RequireAuth> },
+      { path: 'orders', element: <RequireAuth><Orders /></RequireAuth> },
       { path: 'login', element: <Login /> },
       { path: 'my', element: <RequireAuth><My /></RequireAuth> },
     ],

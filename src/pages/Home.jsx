@@ -7,6 +7,7 @@ import { displayName, useAppStore } from '../store/useAppStore'
 import { MYTHS } from '../../server/myths'
 import Scene from '../components/Scene'
 import WeatherBadge from '../components/WeatherBadge'
+import LevelBadge from '../components/LevelBadge'
 
 const MARKERS = MYTHS.map((m) => ({ id: m.id, name: m.title, lat: m.lat, lng: m.lng, color: m.color }))
 
@@ -41,20 +42,20 @@ export default function Home() {
         <WeatherBadge place="서귀포시" /> <WeatherBadge place="제주시" />
       </section>
 
-      <div className="position-relative mb-4">
-        <Scene height={520} items={MARKERS} selectedId={selectedMythId} onSelect={(m) => selectMyth(m.id)} autoRotate />
+      <Scene height={260} items={MARKERS} selectedId={selectedMythId} onSelect={(m) => selectMyth(m.id)} autoRotate />
+      <div className="scene-info rounded-4 mt-2 mb-4 p-3">
         {myth ? (
-          <div className="scene-overlay">
+          <>
             <div className="d-flex justify-content-between align-items-start">
               <h5 className="fw-bold mb-1"><span className="myth-dot me-2" style={{ background: myth.color, color: myth.color }} />{myth.title}</h5>
-              <Button size="sm" variant="link" className="p-0 text-body-secondary" onClick={() => selectMyth(null)}><i className="bi bi-x-lg" /></Button>
+              <Button size="sm" variant="link" className="p-0 text-body-secondary" aria-label="선택 해제 · 전체 보기" onClick={() => selectMyth(null)}><i className="bi bi-x-lg" /></Button>
             </div>
-            <div className="small text-warning mb-1"><i className="bi bi-geo-alt me-1" />{myth.place}</div>
+            <div className="small text-primary mb-1"><i className="bi bi-geo-alt me-1" />{myth.place}</div>
             <p className="small mb-2">{myth.summary}</p>
-            <Button as={Link} to="/myths" size="sm" variant="outline-warning">이야기 전체 보기 <i className="bi bi-arrow-right" /></Button>
-          </div>
+            <Button as={Link} to="/myths" size="sm" variant="outline-primary">이야기 전체 보기 <i className="bi bi-arrow-right" /></Button>
+          </>
         ) : (
-          <div className="scene-overlay small"><i className="bi bi-hand-index me-2" />빛나는 구슬을 눌러 신화를 열어 보세요 · 드래그로 회전 · 휠로 확대</div>
+          <div className="small"><i className="bi bi-hand-index me-2" />빛나는 구슬을 눌러 신화를 열어 보세요 · 드래그로 회전 · 지도를 클릭한 뒤 휠로 확대</div>
         )}
       </div>
 
@@ -71,6 +72,7 @@ export default function Home() {
           <div className="flex-grow-1">
             <Card.Title className="fs-6 fw-bold mb-0">{user ? `${displayName(user)}님, 환영해요` : '로그인하고 별자리와 장바구니를 만들어 보세요'}</Card.Title>
             <small className="text-body-secondary">{user ? user.email : 'Supabase Auth · 이메일로 가입'}</small>
+            {user && <div className="mt-1"><LevelBadge /></div>}
           </div>
           {!user && <Button as={Link} to="/login" size="sm">로그인 · 회원가입</Button>}
         </Card.Body>

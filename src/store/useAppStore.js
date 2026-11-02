@@ -2,6 +2,7 @@ import { create } from 'zustand'
 import { supabase } from '../lib/supabase'
 import { askAgent } from '../api/client'
 import { productOf } from '../../server/products'
+import { levelOf, totalSpent } from '../lib/level'
 
 const pendingFav = new Set()   // 저장·삭제가 진행 중인 항목 키 (연타 방지)
 let authStarted = false        // StrictMode 에서 구독이 두 번 걸리지 않게
@@ -148,7 +149,7 @@ export const useAppStore = create((set, get) => ({
     const { user } = get()
     if (!supabase || !user) return
     const { data, error } = await supabase.from('orders').select('*').eq('user_id', user.id)
-      .order('created_at', { ascending: false }).limit(10)
+      .order('created_at', { ascending: false }).limit(200)
     if (!error) set({ orders: data })
   },
   checkout: async () => {
@@ -162,8 +163,10 @@ export const useAppStore = create((set, get) => ({
     const { data, error } = await supabase.from('orders').insert({ user_id: user.id, total, items }).select().single()
     if (error) { get().toast(error.message, 'danger'); return false }
     await supabase.from('cart_items').delete().eq('user_id', user.id)
+    const before = levelOf(totalSpent(get().orders)).lv
     set({ cart: [], orders: [data, ...get().orders] })
-    get().toast('주문이 접수됐어요')
+    const after = levelOf(totalSpent(get().orders))
+    get().toast(after.lv > before ? `주문 완료! LV.${after.lv} ${after.name} 달성 🎉` : '주문이 접수됐어요')
     return true
   },
 

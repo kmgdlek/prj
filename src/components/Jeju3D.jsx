@@ -1,4 +1,4 @@
-import { useLayoutEffect, useMemo, useRef } from 'react'
+import { useLayoutEffect, useMemo, useRef, useState } from 'react'
 import { Canvas, useFrame, useThree } from '@react-three/fiber'
 import { Html, OrbitControls, Stars } from '@react-three/drei'
 import * as THREE from 'three'
@@ -140,7 +140,7 @@ function Marker({ m, index, selected, onSelect }) {
 // 마커를 누르면 그 장소로 다가가 확대하고, 선택을 풀면(X) 처음의 섬 전체 화면(가운데 중심)으로 돌아온다.
 // 이동이 끝난 뒤에는 다시 마우스로 자유롭게 돌려 볼 수 있다.
 const CENTER = new THREE.Vector3(0, 0.3, 0)
-const HOME_CAM = new THREE.Vector3(0, 9, 11)
+const HOME_CAM = new THREE.Vector3(0, 10, 13)
 
 function CameraRig({ focus }) {
   const controls = useThree((s) => s.controls)
@@ -174,8 +174,11 @@ function CameraRig({ focus }) {
 export default function Jeju3D({ items = [], selectedId, onSelect, height = 460, autoRotate = false }) {
   const pins = items.filter((m) => Number(m.lat) > 0 && Number(m.lng) > 0)
   const focus = pins.find((m) => m.id === selectedId)
+  // 휠 확대는 지도를 클릭한 뒤에만: 그냥 지나가며 스크롤할 때 지도가 휠을 가로채지 않게
+  const [zoomOn, setZoomOn] = useState(false)
   return (
-    <Canvas camera={{ position: [0, 9, 11], fov: 45 }} style={{ height }} dpr={[1, 2]}>
+    <div style={{ height }} onPointerDown={() => setZoomOn(true)} onPointerLeave={() => setZoomOn(false)}>
+    <Canvas camera={{ position: [0, 10, 13], fov: 45 }} style={{ height: '100%' }} dpr={[1, 2]}>
       <color attach="background" args={['#0b0620']} />
       <fog attach="fog" args={['#0b0620', 18, 42]} />
       <ambientLight intensity={0.55} />
@@ -191,9 +194,10 @@ export default function Jeju3D({ items = [], selectedId, onSelect, height = 460,
       <Oreums />
       <Halo />
       {pins.map((m, i) => <Marker key={m.id} m={m} index={i} selected={m.id === selectedId} onSelect={onSelect} />)}
-      <OrbitControls makeDefault enablePan={false} target={[0, 0.3, 0]} minDistance={3} maxDistance={20} maxPolarAngle={Math.PI / 2.15}
+      <OrbitControls makeDefault enablePan={false} enableZoom={zoomOn} target={[0, 0.3, 0]} minDistance={3} maxDistance={20} maxPolarAngle={Math.PI / 2.15}
         autoRotate={autoRotate && !selectedId} autoRotateSpeed={0.6} />
       <CameraRig focus={focus} />
     </Canvas>
+    </div>
   )
 }

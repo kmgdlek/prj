@@ -3,6 +3,7 @@ import { Link, NavLink, Outlet, useLocation, useNavigate } from 'react-router-do
 import { Badge, Button, Container, Nav, Navbar, Offcanvas, Toast, ToastContainer } from 'react-bootstrap'
 import ChatPanel from '../components/ChatPanel'
 import { NAV_ITEMS } from '../router'
+import LevelBadge from '../components/LevelBadge'
 import { displayName, useAppStore } from '../store/useAppStore'
 
 // 이야기꾼 AI: 오른쪽 아래 둥근 버튼을 누르면 채팅창이 부드럽게 열리고, 다시 누르면 부드럽게 닫힌다.
@@ -79,13 +80,14 @@ export default function RootLayout() {
         </Offcanvas.Header>
         <Offcanvas.Body className="d-flex flex-column">
           {/* 프로필: 로그인 상태면 내 정보와 로그아웃, 아니면 로그인 안내 */}
-          <div className="d-flex align-items-center gap-3 p-3 mb-3 rounded-3 bg-body-secondary">
+          <div className="d-flex align-items-start gap-3 p-3 mb-3 rounded-3 bg-body-secondary">
             <i className="bi bi-person-circle fs-1 text-primary" />
             {user ? (
               <>
                 <div className="flex-grow-1 text-truncate">
                   <div className="fw-bold text-truncate">{displayName(user)}</div>
-                  <div className="small text-body-secondary text-truncate">{user.email}</div>
+                  <div className="small text-body-secondary text-truncate mb-1">{user.email}</div>
+                  <LevelBadge withProgress />
                 </div>
                 <Button size="sm" variant="outline-secondary" onClick={() => { close(); signOut(); navigate('/') }}>로그아웃</Button>
               </>

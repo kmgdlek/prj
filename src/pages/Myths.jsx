@@ -47,7 +47,7 @@ export default function Myths() {
           </ListGroup>
         </Col>
         <Col lg={8}>
-          <Scene height={380} items={MARKERS} selectedId={myth.id} onSelect={(m) => selectMyth(m.id)} />
+          <Scene height={240} items={MARKERS} selectedId={myth.id} onSelect={(m) => selectMyth(m.id)} />
           <div className="mt-3">
             <div className="d-flex align-items-center gap-2 mb-2">
               <h3 className="fw-bold mb-0">{myth.title}</h3>
