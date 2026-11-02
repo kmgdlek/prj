@@ -84,7 +84,8 @@ export default function RootLayout() {
     <div className="d-flex flex-column min-vh-100">
       <Navbar bg="primary" data-bs-theme="dark" sticky="top">
         <Container>
-          <Navbar.Brand as={NavLink} to="/" className="fw-bold d-flex align-items-center">
+          {/* 일반 링크(href)라서 누르면 메인으로 가면서 페이지 전체를 새로 불러온다 (앱 상태도 처음으로) */}
+          <Navbar.Brand href="/" className="fw-bold d-flex align-items-center">
             <BrandLogo />탐라신화 3D
           </Navbar.Brand>
           <div className="d-flex align-items-center gap-1">

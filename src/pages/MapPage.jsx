@@ -9,7 +9,9 @@ import { MYTHS } from '../../server/myths'
 import { MODES, modeAt } from '../lib/timeOfDay'
 import { WEATHER_ICON, WEATHER_LABEL, weatherKind } from '../lib/weather'
 
-const MARKERS = MYTHS.map((m) => ({ id: m.id, name: m.title, lat: m.lat, lng: m.lng, color: m.color }))
+// 처음 8곳은 이름표를 늘 보여 주고, 나머지는 마우스를 올리거나 골랐을 때만 (제주시 쪽에 장소가 몰려 이름표가 겹치므로)
+const ALWAYS_LABELED = new Set(['seolmundae', 'ohbaek', 'samseonghyeol', 'yongduam', 'sanbang', 'seongsan', 'yeongdeung', 'songdang'])
+const MARKERS = MYTHS.map((m) => ({ id: m.id, name: m.title, lat: m.lat, lng: m.lng, color: m.color, label: ALWAYS_LABELED.has(m.id) ? undefined : false }))
 
 // 탐라 지도 — 큰 3D 지도. 마커(또는 아래 칩)를 누르면 그 장소로 다가가고, X 로 전체 보기로 돌아온다
 export default function MapPage() {
@@ -22,7 +24,7 @@ export default function MapPage() {
 
   return (
     <>
-      <PageHeader icon="map" title="탐라 지도" subtitle="실제 제주 해안선 위에 올린 신화 8곳 · 드래그로 회전 · 지도를 클릭한 뒤 휠로 확대" />
+      <PageHeader icon="map" title="탐라 지도" subtitle={`실제 제주 해안선 위에 올린 신화 ${MYTHS.length}곳 · 드래그로 회전 · 지도를 클릭한 뒤 휠로 확대`} />
       <div className="d-flex align-items-center gap-2 mb-2 flex-wrap">
         <ButtonGroup size="sm">
           <Button variant={sel === 'auto' ? 'primary' : 'outline-primary'} onClick={() => setSel('auto')}>

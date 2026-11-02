@@ -134,7 +134,8 @@ function Halo({ sparkles = true }) {
 
 function Marker({ m, index, selected, onSelect }) {
   const [x, z] = toXZ(Number(m.lat), Number(m.lng))
-  const y = heightAt(x, z)
+  const y = Math.max(heightAt(x, z), 0)         // 바다 위 마커(비양도·마라도 등)는 수면에 떠 있게
+  const [hover, setHover] = useState(false)          // 이름표가 숨겨진 마커는 마우스를 올리면 이름이 뜬다
   const orb = useRef(), ring = useRef()
   const size = (m.size ?? 0.16) * (selected ? 1.6 : 1)
   useFrame(({ clock }) => {
@@ -146,8 +147,8 @@ function Marker({ m, index, selected, onSelect }) {
   })
   return (
     <group position={[x, y, z]} onClick={(e) => { e.stopPropagation(); onSelect?.(m) }}
-      onPointerOver={() => (document.body.style.cursor = 'pointer')}
-      onPointerOut={() => (document.body.style.cursor = '')}>
+      onPointerOver={() => { document.body.style.cursor = 'pointer'; setHover(true) }}
+      onPointerOut={() => { document.body.style.cursor = ''; setHover(false) }}>
       <mesh position={[0, 0.3, 0]}>
         <cylinderGeometry args={[0.012, 0.012, 0.6, 6]} />
         <meshBasicMaterial color={m.color} transparent opacity={0.6} />
@@ -160,7 +161,7 @@ function Marker({ m, index, selected, onSelect }) {
         <ringGeometry args={[0.16, 0.2, 40]} />
         <meshBasicMaterial color={m.color} transparent side={THREE.DoubleSide} />
       </mesh>
-      {(m.label !== false || selected) && (
+      {(m.label !== false || selected || hover) && (
         <Html position={[0, 0.8 + (index % 2) * 0.4, 0]} center distanceFactor={9}
           zIndexRange={selected ? [40, 30] : [10, 0]}>
           <div className={`marker-label ${selected ? 'on' : ''}`} role="button"

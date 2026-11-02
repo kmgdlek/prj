@@ -8,7 +8,8 @@ import { fetchPlaces } from '../api/client'
 import { useAppStore } from '../store/useAppStore'
 import { MYTHS } from '../../server/myths'
 
-const MARKERS = MYTHS.map((m) => ({ id: m.id, name: m.title, lat: m.lat, lng: m.lng, color: m.color }))
+// 작은 지도에서는 이름표를 숨긴다 (마커가 많아 겹침). 선택한 마커의 이름표는 항상 보인다
+const MARKERS = MYTHS.map((m) => ({ id: m.id, name: m.title, lat: m.lat, lng: m.lng, color: m.color, label: false }))
 
 // 신화 도감 — 목록(왼쪽)과 3D 지도(오른쪽)가 store 의 selectedMythId 를 공유
 export default function Myths() {
@@ -33,7 +34,7 @@ export default function Myths() {
 
   return (
     <>
-      <PageHeader icon="book" title="신화 도감" subtitle="탐라 신화 8편 — 이야기를 고르면 3D 섬이 그 장소로 날아갑니다" />
+      <PageHeader icon="book" title="신화 도감" subtitle={`탐라 신화 ${MYTHS.length}편 — 이야기를 고르면 3D 섬이 그 장소로 날아갑니다`} />
       <Row className="g-4">
         <Col lg={6}>
           <ListGroup>
