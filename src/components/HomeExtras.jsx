@@ -2,7 +2,7 @@ import { useEffect } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { Badge, Button, Card, Col, Row } from 'react-bootstrap'
 import { MYTHS } from '../../server/myths'
-import { PRODUCTS, discountPct, salePrice } from '../../server/products'
+import { PRODUCTS, dropPct, salePrice } from '../../server/products'
 import { useAppStore } from '../store/useAppStore'
 import { won } from '../lib/format'
 
@@ -17,7 +17,7 @@ export default function HomeExtras() {
   useEffect(() => { loadProductImages() }, [loadProductImages])
   const day = Math.floor(Date.now() / 86400000)
   const myth = MYTHS[day % MYTHS.length]
-  const deals = [...PRODUCTS].sort((a, b) => discountPct(b, slot) - discountPct(a, slot)).slice(0, 4)
+  const deals = [...PRODUCTS].sort((a, b) => dropPct(b, slot) - dropPct(a, slot)).slice(0, 4)
 
   return (
     <Row className="g-3 mt-2">
@@ -46,7 +46,7 @@ export default function HomeExtras() {
                     ? <img src={images[p.id].url} alt={p.name} loading="lazy" className="deal-img" />
                     : <div className="deal-img d-flex align-items-center justify-content-center fs-2" style={{ background: `linear-gradient(135deg, ${p.color}, #1a0b3d)` }}>{p.emoji}</div>}
                   <div className="small fw-bold mt-1 text-truncate">{p.name}</div>
-                  <div className="small"><Badge bg="danger" className="me-1">{discountPct(p, slot)}%</Badge>{won(salePrice(p, slot))}</div>
+                  <div className="small">{dropPct(p, slot) > 0 && <Badge bg="danger" className="me-1">{dropPct(p, slot)}%↓</Badge>}{won(salePrice(p, slot))}</div>
                 </Link>
               </Col>
             ))}

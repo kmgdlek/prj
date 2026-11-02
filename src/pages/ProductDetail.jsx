@@ -121,17 +121,15 @@ export default function ProductDetail() {
             <span className="small text-body-secondary">{rating.count > 0 ? `${rating.avg.toFixed(1)} · 후기 ${rating.count}개` : '아직 후기가 없어요'}</span>
           </a>
           <p className="text-body-secondary">{p.desc}</p>
-          {/* 왼쪽에 항목 이름을 붙인 가격 표: 일반판매가 → 할인가(깎인 금액) → 현재가(최종) */}
+          {/* 왼쪽에 항목 이름을 붙인 가격 표: 일반판매가(정가) → 시세(정가 대비·큰 변동) → 타임특가 → 현재가(최종) */}
           <div className="price-wrap">
           <dl className="price-rows mb-3">
-            <dt>일반판매가</dt><dd className={discountPct(p, slot) > 0 ? 'text-body-secondary text-decoration-line-through' : 'text-body-secondary'}>{won(p.price)}</dd>
-            {surgePct(p, slot) !== 0 && <><dt>시세</dt><dd className={surgePct(p, slot) > 0 ? 'text-danger fw-bold' : 'text-primary fw-bold'}>{surgeLabel(p, slot)}</dd></>}
-            {discountPct(p, slot) > 0 && (
-              <>
-                {p.discount > 0 && <><dt>할인가</dt><dd className="text-danger fw-bold">-{won(p.price - basePrice(p))} ({p.discount}%)</dd></>}
-                {flashRate(p, slot) > 0 && <><dt>타임특가</dt><dd className="text-danger fw-bold">-{won(basePrice(p) - salePrice(p, slot))} (⚡ {flashRate(p, slot)}% 추가)</dd></>}
-              </>
-            )}
+            <dt>일반판매가</dt><dd className="text-body-secondary">{won(p.price)}</dd>
+            <dt>시세</dt>
+            <dd className={surgePct(p, slot) !== 0 ? (surgePct(p, slot) > 0 ? 'text-danger fw-bold' : 'text-primary fw-bold') : (discountPct(p, slot) < 0 ? 'text-danger fw-bold' : discountPct(p, slot) > 0 ? 'text-primary fw-bold' : 'text-body-secondary')}>
+              {surgePct(p, slot) !== 0 ? surgeLabel(p, slot) : discountPct(p, slot) === 0 ? '정가와 같아요' : `정가보다 ${Math.abs(discountPct(p, slot))}% ${discountPct(p, slot) < 0 ? '높아요' : '낮아요'}`}
+            </dd>
+            {surgePct(p, slot) === 0 && flashRate(p, slot) > 0 && <><dt>타임특가</dt><dd className="text-danger fw-bold">-{won(basePrice(p) - salePrice(p, slot))} (⚡ {flashRate(p, slot)}% 할인)</dd></>}
             <dt className="price-now-label">현재가</dt>
             <dd className="price-now">
               <RollingNumber text={won(salePrice(p, slot))} />
@@ -176,7 +174,7 @@ export default function ProductDetail() {
         <tbody>
           <tr><th style={{ width: 120 }} className="bg-body-tertiary">상품명</th><td>{p.name}</td></tr>
           <tr><th className="bg-body-tertiary">분류</th><td>{p.category}</td></tr>
-          <tr><th className="bg-body-tertiary">판매가</th><td>{discountPct(p, slot) > 0 ? <><s className="text-body-secondary me-2">{won(p.price)}</s>{won(salePrice(p, slot))} <span className="text-danger small">-{won(p.price - salePrice(p, slot))} ({discountPct(p, slot)}%)</span></> : won(p.price)}</td></tr>
+          <tr><th className="bg-body-tertiary">일반판매가</th><td>{won(p.price)}</td></tr>
           <tr><th className="bg-body-tertiary">설명</th><td>{p.desc}</td></tr>
         </tbody>
       </Table>

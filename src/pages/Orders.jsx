@@ -112,6 +112,10 @@ export default function Orders() {
                   {o.original > 0 && (
                     <dl className="sum-rows mb-3" style={{ maxWidth: 360 }}>
                       <dt>원가</dt><dd>{won(o.original)}</dd>
+                      {(() => {
+                        const gap = o.total - (o.shipping_fee ?? 0) + (o.points_used ?? 0) + (o.coupon_discount ?? 0) + (o.grade_discount ?? 0) - o.original     // 주문 때의 시세가 원가(정가 합계)와 얼마나 달랐는지
+                        return gap !== 0 && <><dt>{gap > 0 ? '시세 반영' : '시세 할인'}</dt><dd className={`small ${gap > 0 ? 'text-body' : 'text-danger'}`}>{gap > 0 ? '+' : '-'}{won(Math.abs(gap))}</dd></>
+                      })()}
                       {o.grade_discount > 0 && <><dt>등급 할인</dt><dd className="small text-danger">-{won(o.grade_discount)}</dd></>}
                       {o.coupon_discount > 0 && <><dt>쿠폰 할인</dt><dd className="small text-danger">-{won(o.coupon_discount)}</dd></>}
                       {o.points_used > 0 && <><dt>적립금 사용</dt><dd className="small text-danger">-{won(o.points_used)}</dd></>}

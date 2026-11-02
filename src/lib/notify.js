@@ -1,5 +1,5 @@
 import { MYTHS } from '../../server/myths'
-import { PRODUCTS, basePrice, discountPct, flashRate, isSudden, salePrice, surgePct } from '../../server/products'
+import { PRODUCTS, basePrice, dropPct, flashRate, isSudden, salePrice, surgePct } from '../../server/products'
 import { weatherKind, WEATHER_LABEL } from './weather'
 import { won } from './format'
 import { stageOf } from './order'
@@ -71,11 +71,11 @@ export function buildNotifications({ now, slot, stockSlot, favorites, weather, p
     if (!lastDeal || now - lastDeal.at >= prefs.gap * 60000) {
       const best = PRODUCTS
         .filter((p) => flashRate(p, slot) >= 10 || surgePct(p, slot) <= -30)
-        .sort((a, b) => discountPct(b, slot) - discountPct(a, slot))[0]
+        .sort((a, b) => dropPct(b, slot) - dropPct(a, slot))[0]
       if (best) {
-        const pct = discountPct(best, slot)
+        const pct = dropPct(best, slot)
         add({ id: `deal:${best.id}:${Math.floor(slot / 30)}`, topic: 'deal', tag: '추천 물건', emoji: best.emoji,
-          title: `${best.name}, 지금 ${pct}% 싸요`, body: `정가 ${won(best.price)} → ${won(salePrice(best, slot))}`, to: `/shop/${best.id}` })
+          title: `${best.name}, 평소보다 ${pct}% 싸요`, body: `평소 ${won(basePrice(best))} → 지금 ${won(salePrice(best, slot))}`, to: `/shop/${best.id}` })
       }
     }
   }

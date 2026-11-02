@@ -9,7 +9,7 @@ import { FavButton } from '../components/ItemCard'
 import { Stars, ratingOf } from '../components/StarRating'
 import { useAppStore } from '../store/useAppStore'
 import { won } from '../lib/format'
-import { CATEGORIES, MAX_PER_ITEM, PRODUCTS, TAGS, discountPct, flashRate, liveStock, salePrice, surgeLabel, surgePct, trendOf } from '../../server/products'
+import { CATEGORIES, MAX_PER_ITEM, PRODUCTS, TAGS, discountPct, dropPct, flashRate, liveStock, salePrice, surgeLabel, surgePct, trendOf } from '../../server/products'
 
 // 제주 특산품·기념품 — 담기 버튼은 store 의 장바구니에 연결
 export default function Shop() {
@@ -36,7 +36,7 @@ export default function Shop() {
     basic: () => 0,
     low: (a, b) => salePrice(a, slot) - salePrice(b, slot),
     high: (a, b) => salePrice(b, slot) - salePrice(a, slot),
-    discount: (a, b) => discountPct(b, slot) - discountPct(a, slot),
+    discount: (a, b) => dropPct(b, slot) - dropPct(a, slot),                 // 특가순: 평소 시세보다 많이 싸진 순
     rating: (a, b) => ratingOf(reviews, b.id).avg - ratingOf(reviews, a.id).avg,
   }
   const list = PRODUCTS
@@ -64,7 +64,7 @@ export default function Shop() {
         ))}
         <Form.Select size="sm" className="ms-auto" style={{ maxWidth: 140 }} value={sort} onChange={(e) => setSort(e.target.value)} aria-label="정렬">
           <option value="basic">기본순</option><option value="low">낮은 가격순</option><option value="high">높은 가격순</option>
-          <option value="discount">할인율순</option><option value="rating">별점순</option>
+          <option value="discount">특가순</option><option value="rating">별점순</option>
         </Form.Select>
         <Form.Control size="sm" style={{ maxWidth: 200 }} placeholder="상품·태그 검색" value={keyword} onChange={(e) => setKeyword(e.target.value)} />
       </div>
@@ -111,12 +111,13 @@ export default function Shop() {
                     </div>
                     <div className="d-flex align-items-center justify-content-between mt-auto">
                       <div className="lh-sm">
-                        {discountPct(p, slot) > 0 && (
+                        {(discountPct(p, slot) > 0 || flashRate(p, slot) > 0) && (
                           <div className="small">
-                            <s className="text-body-secondary me-1">{won(p.price)}</s><span className="text-danger fw-bold">{discountPct(p, slot)}%</span>
-                            {flashRate(p, slot) > 0 && <span className="flash-badge ms-1">⚡ {flashRate(p, slot)}%↓</span>}
+                            {discountPct(p, slot) > 0 && <><s className="text-body-secondary me-1">{won(p.price)}</s><span className="text-danger fw-bold">{discountPct(p, slot)}%</span></>}
+                            {surgePct(p, slot) === 0 && flashRate(p, slot) > 0 && <span className="flash-badge ms-1">⚡ {flashRate(p, slot)}%↓</span>}
                           </div>
                         )}
+                        {discountPct(p, slot) <= 0 && surgePct(p, slot) === 0 && <div className="small text-body-secondary">정가 {won(p.price)}{discountPct(p, slot) < 0 && <span className="text-danger fw-bold ms-1">+{-discountPct(p, slot)}%</span>}</div>}
                         {surgePct(p, slot) !== 0 && <div className={`small fw-bold ${surgePct(p, slot) > 0 ? 'text-danger' : 'text-primary'}`}>{surgeLabel(p, slot)}</div>}
                         <strong><RollingNumber text={won(salePrice(p, slot))} /></strong>
                         {trendOf(p, slot) < 0 && <span className="trend-down ms-1">▼{won(-trendOf(p, slot))}</span>}

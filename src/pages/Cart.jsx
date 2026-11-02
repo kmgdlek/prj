@@ -98,7 +98,8 @@ export default function Cart() {
                 <hr />
                 <dl className="sum-rows mb-0">
                   <dt>원가</dt><dd>{won(calc.original)}</dd>
-                  <dt>할인가</dt><dd className="small text-danger">{calc.productDiscount > 0 ? `-${won(calc.productDiscount)}` : '-'}</dd>
+                  <dt>{calc.productDiscount < 0 ? '시세 반영' : '할인가'}</dt>
+                  <dd className={`small ${calc.productDiscount < 0 ? 'text-body' : 'text-danger'}`}>{calc.productDiscount > 0 ? `-${won(calc.productDiscount)}` : calc.productDiscount < 0 ? `+${won(-calc.productDiscount)}` : '-'}</dd>
                   <dt><Badge bg={L.color} text={L.color === 'warning' || L.color === 'info' ? 'dark' : undefined}>LV.{L.lv} {L.name}</Badge> 등급 할인 {L.extra}%</dt>
                   <dd className="small text-danger">{calc.gradeDiscount > 0 ? `-${won(calc.gradeDiscount)}` : '-'}</dd>
                   <dt>쿠폰 할인</dt><dd className="small text-danger">{calc.couponOff > 0 ? `-${won(calc.couponOff)}` : '-'}</dd>

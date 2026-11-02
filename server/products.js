@@ -68,19 +68,26 @@ const unit = (str) => {
   return ((h >>> 0) % 10000) / 10000;
 };
 
-// 평소 판매가 = 정가에서 고정 할인율만큼 뺀 값 (10원 단위 내림)
-export const basePrice = (p) => (p.discount ? Math.floor((p.price * (100 - p.discount)) / 100 / 10) * 10 : p.price);
+// 평소 시세 = 정가(일반판매가)보다 5~15% 높은 값 (상품마다 정해진 고정 비율, 10원 단위 내림). 시세는 항상 정가 위에서 시작한다
+const premiumPct = (p) => 5 + Math.floor(unit(`${p.id}:prem`) * 11)
+export const basePrice = (p) => Math.floor((p.price * (100 + premiumPct(p))) / 100 / 10) * 10;
 
-// 타임특가: 1분마다 상품의 절반쯤이 1~20% 더 내려간다 (평소 가격보다 오르지는 않는다)
+// 타임특가: 1분마다 상품의 절반쯤에서 평소 시세의 '정가 위 부분(5~15%)'을 20~100% 덜어 낸다. 정가 밑으로는 내려가지 않는다
+const flashPrice = (p, slot) => {
+  if (unit(`${p.id}:a:${slot}`) < 0.5) return basePrice(p)
+  const keep = 1 - (0.2 + unit(`${p.id}:b:${slot}`) * 0.8)              // 정가 위 부분 중 남기는 비율 (0 ~ 0.8)
+  return Math.max(p.price, Math.floor((p.price * (100 + premiumPct(p) * keep)) / 100 / 10) * 10)
+}
+// 평소 시세보다 몇 % 싸졌는지 (타임특가로 깎인 폭, 0 이면 평소 그대로)
 export const flashRate = (p, slot = slotOf()) => {
-  if (unit(`${p.id}:a:${slot}`) < 0.5) return 0;
-  return Math.max(1, Math.round(unit(`${p.id}:b:${slot}`) * 20));
-};
+  const b = basePrice(p), f = flashPrice(p, slot)
+  return f < b ? Math.max(1, Math.round((1 - f / b) * 100)) : 0
+}
 
 // 큰 시세 변동은 두 종류이고, 2시간을 한 구간으로 보고 상품·구간마다 확률로 일어난다 (둘 다 상품·시각으로 정해지는 고정된 값)
 //  ① 서서히 오름/내림 (SURGE_CHANCE 1.2%): 20~40분에 걸쳐 천천히(폭이 클수록 더 천천히) 변하고 → 10분 유지 → 같은 시간에 걸쳐 천천히 돌아온다
 //  ② 급등/급락 (SUDDEN_CHANCE 0.2%, ①의 1/6 — 가장 드물다): 2분 만에 확 변하고 → 10분 유지 → 10분에 걸쳐 돌아온다
-//  ③ 약한 오름 (MILD_CHANCE 8%): 정가를 +3~15% 만 넘는 작은 오름. 15~25분에 걸쳐 천천히 오르고 → 10~20분 유지 → 천천히 돌아온다 (정가 위로 올라가는 모습이 자주 보이게)
+//  ③ 약한 오름 (MILD_CHANCE 8%): 평소 시세에서 +5~20% 만 더 오르는 작은 오름. 15~25분에 걸쳐 천천히 오르고 → 10~20분 유지 → 천천히 돌아온다
 // 폭은 오르면 +50~+300%(일반판매가를 훌쩍 넘길 수 있다), 내리면 -50~-95%. 방향은 반반
 export const SURGE_CHANCE = 0.012, SUDDEN_CHANCE = 0.002, MILD_CHANCE = 0.08
 const SURGE_EPOCH = 120, SURGE_HOLD = 10, SURGE_MIN = 0.5, SURGE_UP_MAX = 3, SURGE_DOWN_MAX = 0.95
@@ -96,11 +103,11 @@ const surgeEvent = (p, slot, sudden) => {
   const shape = t < 0 ? 0 : t < ramp ? ease(t / ramp) : t < ramp + SURGE_HOLD ? 1 : t < ramp + SURGE_HOLD + fall ? ease((ramp + SURGE_HOLD + fall - t) / fall) : 0
   return 1 + (up ? 1 : -1) * mag * shape
 }
-// ③ 약한 오름: 정점의 가격이 '정가의 1.03~1.15배'가 되도록 평소 가격(basePrice)에 곱할 비율을 정한다
+// ③ 약한 오름: 정점에서 평소 시세(basePrice)의 1.05~1.20배
 const mildEvent = (p, slot) => {
   const epoch = Math.floor(slot / SURGE_EPOCH)
   if (unit(`${p.id}:em:${epoch}`) >= MILD_CHANCE) return 1
-  const peak = (p.price * (1.03 + unit(`${p.id}:mm:${epoch}`) * 0.12)) / basePrice(p)     // 정점에서 평소 가격의 몇 배인지
+  const peak = 1.05 + unit(`${p.id}:mm:${epoch}`) * 0.15                                   // 정점에서 평소 시세의 몇 배인지
   const ramp = 15 + Math.round(unit(`${p.id}:rm:${epoch}`) * 10), hold = 10 + Math.round(unit(`${p.id}:hm:${epoch}`) * 10)
   const t = (slot % SURGE_EPOCH) - Math.floor(unit(`${p.id}:sm:${epoch}`) * 21)
   const shape = t < 0 ? 0 : t < ramp ? ease(t / ramp) : t < ramp + hold ? 1 : t < 2 * ramp + hold ? ease((2 * ramp + hold - t) / ramp) : 0
@@ -140,14 +147,16 @@ export const overrideOf = (p, slot = slotOf()) => {
 export const salePrice = (p, slot = slotOf()) => {
   const o = overrideOf(p, slot)
   if (o) return o.price
-  const base = basePrice(p), r = flashRate(p, slot), f = surgeFactor(p, slot)
-  const flash = r ? (base * (100 - r)) / 100 : base
+  const base = basePrice(p), f = surgeFactor(p, slot)
+  const flash = flashPrice(p, slot)
   const w = Math.min(1, Math.abs(f - 1) / 0.1)                                // 큰 변동이 진행될수록 타임특가 잡음을 서서히 끈다 (10% 벗어나면 완전히 끔. 가격이 튀지 않게)
   return Math.max(10, Math.floor((flash * (1 - w) + base * f * w) / 10) * 10)
 };
 
 // 정가 대비 지금 가격이 몇 % 싼지(비싸면 음수), 직전 1분보다 얼마나 변했는지(음수 = 내려감)
 export const discountPct = (p, slot = slotOf()) => Math.round((1 - salePrice(p, slot) / p.price) * 100);
+// 평소 시세 대비 지금 얼마나 싼지(%) — '지금의 특가' 순위·알림에 쓴다. 정가 대비는 discountPct
+export const dropPct = (p, slot = slotOf()) => Math.round((1 - salePrice(p, slot) / basePrice(p)) * 100);
 export const trendOf = (p, slot = slotOf()) => salePrice(p, slot) - salePrice(p, slot - 1);
 
 // 1분봉(캔들): 한 칸 = 1분. 시가 = 직전 분의 가격, 종가 = 그 분의 가격, 고가·저가 = 그 분 안에서 오르내린 폭(꼬리, 가격의 최대 1.2%).
@@ -171,4 +180,4 @@ export const searchProducts = ({ keyword = '', category = '', maxPrice = 0 } = {
     .filter((p) => !keyword || [p.name, p.desc, p.category].some((t) => t.includes(keyword)))
     .filter((p) => !category || p.category === category)
     .filter((p) => !maxPrice || salePrice(p) <= maxPrice)
-    .map((p) => ({ id: p.id, name: p.name, category: p.category, price: p.price, discountPercent: discountPct(p), flashPercent: flashRate(p), salePrice: salePrice(p), stock: liveStock(p.stock, p.id), desc: p.desc }));
+    .map((p) => ({ id: p.id, name: p.name, category: p.category, price: p.price, salePrice: salePrice(p), vsListPercent: -discountPct(p), flashPercent: flashRate(p), stock: liveStock(p.stock, p.id), desc: p.desc }));
