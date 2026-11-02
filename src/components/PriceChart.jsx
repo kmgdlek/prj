@@ -3,7 +3,6 @@ import { candlesOf } from '../../server/products'
 
 const W = 360, H = 170, PAD = { t: 26, r: 58, b: 26, l: 4 }
 const UP = '#e03131', DOWN = '#1c7ed6', FLAT = '#868e96'      // 한국 주식 관례: 상승 빨강 · 하락 파랑
-const JUMP = 0.1                                              // 1분 만에 이만큼(10%) 이상 움직이면 '확 움직임'으로 보고 실선으로 잇는다
 const won = (n) => n.toLocaleString('ko-KR')
 
 // 1분봉 가격 차트: 최근 N분의 캔들 + 현재가(점선·태그) + 일반판매가(회색 선) + 최고가(빨간 화살표) + 최저가(파란 화살표)
@@ -49,13 +48,6 @@ export default function PriceChart({ p, slot, count = 30 }) {
             <rect x={x(i) - bw / 2} y={Math.min(y(k.open), y(k.close))} width={bw} height={Math.max(Math.abs(y(k.open) - y(k.close)), 1.4)} fill={color(k)} />
           </g>
         ))}
-
-        {/* 확 오르거나 내린 구간: 직전 종가에서 이번 종가로 이어지는 굵은 실선 (주식 차트처럼) */}
-        {candles.map((k, i) => {
-          const prev = candles[i - 1]
-          if (!prev || Math.abs(k.close / prev.close - 1) < JUMP) return null
-          return <line key={`j${k.slot}`} x1={x(i - 1)} y1={y(prev.close)} x2={x(i)} y2={y(k.close)} stroke={k.close > prev.close ? UP : DOWN} strokeWidth="2.2" strokeLinecap="round" />
-        })}
 
         {/* 현재가: 점선 + 오른쪽 태그 */}
         <line x1={PAD.l} x2={W - PAD.r} y1={y(last.close)} y2={y(last.close)} stroke={color(last)} strokeDasharray="3 3" opacity="0.8" />
