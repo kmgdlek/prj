@@ -15,7 +15,9 @@ export default function Cart() {
   const [done, setDone] = useState(false)
 
   const lines = cart.map((c) => ({ ...c, p: productOf(c.product_id) })).filter((l) => l.p)
-  const total = lines.reduce((sum, l) => sum + salePrice(l.p) * l.qty, 0)
+  const original = lines.reduce((sum, l) => sum + l.p.price * l.qty, 0)        // 원가 합계 (할인 전)
+  const total = lines.reduce((sum, l) => sum + salePrice(l.p) * l.qty, 0)      // 결제 금액 (할인 적용)
+  const discount = original - total
 
   async function order() {
     setBusy(true)
@@ -54,8 +56,13 @@ export default function Cart() {
               </ListGroup.Item>
             ))}
           </ListGroup>
-          <Card.Footer className="d-flex align-items-center justify-content-between">
-            <span>합계 <strong className="fs-5 ms-2">{won(total)}</strong></span>
+          <Card.Footer className="d-flex align-items-end justify-content-between gap-3 flex-wrap">
+            {/* 원가 → 할인가(깎인 금액) → 합계(결제 금액) */}
+            <dl className="price-rows mb-0">
+              <dt>원가</dt><dd>{won(original)}</dd>
+              <dt>할인가</dt><dd className={discount > 0 ? 'text-danger fw-bold' : 'text-body-secondary'}>{discount > 0 ? `-${won(discount)} (${Math.round((discount / original) * 100)}%)` : '-'}</dd>
+              <dt className="price-now-label">합계</dt><dd className="price-now-sm">{won(total)}</dd>
+            </dl>
             <Button onClick={order} disabled={busy}>{busy ? '주문 중...' : '주문하기'}</Button>
           </Card.Footer>
         </Card>

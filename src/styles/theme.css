@@ -227,3 +227,5 @@ body { font-family: 'Pretendard', system-ui, sans-serif; }
 .map-card-story { max-height: 26vh; overflow-y: auto; line-height: 1.55; }
 @keyframes card-in { from { opacity: 0; transform: translateY(10px); } }
 @media (max-width: 575px) { .map-card { max-width: none; } }
+
+.price-now-sm { font-size: 1.5rem; font-weight: 800; }
