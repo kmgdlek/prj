@@ -16,6 +16,10 @@
 
 ### 🔗 [라이브 데모 → prj-kappa-nine.vercel.app](https://prj-kappa-nine.vercel.app/)
 
+<img src="public/images/qr.png" alt="배포 사이트 QR 코드" width="140" />
+
+> 휴대폰 카메라로 QR을 스캔하면 배포 사이트로 연결됩니다.
+
 </div>
 
 ---
