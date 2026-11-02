@@ -28,7 +28,8 @@ export default function ProductDetail() {
   const stock = liveStock(rawStock, id, stockSlot)
   const inCart = useAppStore((s) => s.cart.find((c) => c.product_id === id)?.qty ?? 0)
   const [images, setImages] = useState([])
-  const [shown, setShown] = useState(0)
+  const [pos, setPos] = useState(0)                  // 슬라이드 트랙 위치 (0..사진 수; 마지막 칸은 첫 사진의 복제)
+  const [snap, setSnap] = useState(false)             // true 인 동안은 애니메이션 없이 위치만 바꾼다
   const [paused, setPaused] = useState(false)          // 사진 위에 마우스가 있으면 자동 넘김을 잠시 멈춘다
   const [qty, setQty] = useState(1)
 
@@ -37,17 +38,25 @@ export default function ProductDetail() {
     if (!p) return
     let alive = true
     pushRecent(p.id)                                 // 마이페이지 '최근 본 상품'에 기록
-    setImages([]); setShown(0); setQty(1)
+    setImages([]); setPos(0); setQty(1)
     fetchImages(p.photo, { lang: 'en', fallback: false, rows: 5 }).then((r) => alive && setImages(r)).catch(() => {})
     return () => { alive = false }
   }, [p])
 
-  // 사진을 2초마다 다음 장으로 (마지막 다음은 처음으로). 직접 넘기면 shown 이 바뀌어 타이머가 새로 시작된다
+  // 사진을 2초마다 옆으로 밀어 다음 장으로. 직접 넘기면 pos 가 바뀌어 타이머가 새로 시작된다
   useEffect(() => {
     if (images.length < 2 || paused) return
-    const t = setTimeout(() => setShown((i) => (i + 1) % images.length), 2000)
+    const t = setTimeout(() => setPos((i) => i + 1), 2000)
     return () => clearTimeout(t)
-  }, [images.length, paused, shown])
+  }, [images.length, paused, pos])
+
+  // 복제된 마지막 칸(= 첫 사진)까지 밀려 들어오면, 애니메이션이 끝난 뒤 눈치채지 못하게 진짜 첫 칸으로 되돌린다 (같은 방향으로 계속 이어지는 것처럼 보임)
+  useEffect(() => {
+    if (images.length < 2 || pos !== images.length) return
+    // setSnap(false) 는 rAF 대신 타이머로 (탭이 가려져 있으면 rAF 가 멈춰 애니메이션이 영영 꺼진 채 남는다)
+    const t = setTimeout(() => { setSnap(true); setPos(0); setTimeout(() => setSnap(false), 80) }, 600)
+    return () => clearTimeout(t)
+  }, [images.length, pos])
 
   if (!p) return (
     <>
@@ -58,7 +67,8 @@ export default function ProductDetail() {
 
   const myth = MYTHS.find((m) => m.id === p.myth)
   const related = PRODUCTS.filter((x) => x.category === p.category && x.id !== p.id)
-  const big = images[shown]
+  const shown = images.length ? pos % images.length : 0           // 지금 보이는 사진 번호 (썸네일 표시용)
+  const slides = images.length > 1 ? [...images, images[0]] : images
   const rating = ratingOf(reviews, p.id)
   const maxQty = Math.max(0, Math.min(stock, MAX_PER_ITEM) - inCart)       // 이미 담은 개수를 뺀, 더 담을 수 있는 개수
 
@@ -73,16 +83,24 @@ export default function ProductDetail() {
 
       <Row className="g-4">
         <Col md={6} onMouseEnter={() => setPaused(true)} onMouseLeave={() => setPaused(false)}>
-          {big
-            ? <a href={big.page} target="_blank" rel="noreferrer" title={`Pixabay · ${big.user}`}>
-                <img key={big.id} src={big.large || big.thumb} alt={p.name} className="detail-photo photo-swap" />
-              </a>
+          {images.length > 0
+            ? (
+              <div className="photo-slider">
+                <div className="photo-track" style={{ transform: `translateX(-${pos * 100}%)`, transition: snap ? 'none' : undefined }}>
+                  {slides.map((img, i) => (
+                    <a key={i} href={img.page} target="_blank" rel="noreferrer" title={`Pixabay · ${img.user}`} className="photo-slide" tabIndex={i === shown ? 0 : -1}>
+                      <img src={img.large || img.thumb} alt={i === shown ? p.name : ''} className="detail-photo" />
+                    </a>
+                  ))}
+                </div>
+              </div>
+            )
             : <div className="detail-photo d-flex align-items-center justify-content-center display-1"
                 style={{ background: `linear-gradient(135deg, ${p.color}, #1a0b3d)` }}>{p.emoji}</div>}
           {images.length > 1 && (
             <div className="d-flex gap-2 mt-2">
               {images.map((img, i) => (
-                <img key={img.id} src={img.thumb} alt="" className={`detail-thumb ${i === shown ? 'on' : ''}`} onClick={() => setShown(i)} />
+                <img key={img.id} src={img.thumb} alt="" className={`detail-thumb ${i === shown ? 'on' : ''}`} onClick={() => setPos(i)} />
               ))}
             </div>
           )}

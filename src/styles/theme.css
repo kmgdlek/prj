@@ -323,10 +323,13 @@ body { font-family: 'Pretendard', system-ui, sans-serif; }
 .menu-group-title .ko { font-size: .8rem; color: var(--bs-secondary-color); }
 .menu-group > .menu-row:first-of-type { border-top: 1px solid var(--bs-border-color); }
 
-/* 상품 사진이 넘어갈 때 부드럽게 나타남 */
-.photo-swap { animation: photo-fade .5s ease; }
-@keyframes photo-fade { from { opacity: .25; } }
 .detail-thumb { transition: opacity .15s, border-color .15s; }
 
 /* Bootstrap 의 부드러운 스크롤을 끈다: 새 화면으로 가면 맨 아래에서 위로 천천히 올라가지 않고 곧바로 맨 위에서 시작 */
 :root { scroll-behavior: auto; }
+
+/* 상품 사진: 옆으로 밀려 넘어가는 슬라이드 */
+.photo-slider { overflow: hidden; border-radius: 1rem; }
+.photo-track { display: flex; transition: transform .55s cubic-bezier(.4, 0, .2, 1); will-change: transform; }
+.photo-slide { flex: 0 0 100%; display: block; }
+@media (prefers-reduced-motion: reduce) { .photo-track { transition: none; } }
