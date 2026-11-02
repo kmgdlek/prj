@@ -1,100 +1,104 @@
 import { useLayoutEffect, useMemo, useRef, useState } from 'react'
 import { Canvas, useFrame, useThree } from '@react-three/fiber'
-import { Html, OrbitControls, Stars } from '@react-three/drei'
+import { Html, OrbitControls, Sparkles, Stars } from '@react-three/drei'
 import * as THREE from 'three'
+import { GRID, HALLA, colorAt, heightAt, heightMap, toXZ } from './terrain'
 
-// ── 좌표 변환 ────────────────────────────────────────────
-// 위도·경도 → 3D (x: 동서, z: 남북). 제주 중심 북위 33.38, 동경 126.56, 1° = 20 유닛
-const SCALE = 20
-export const toXZ = (lat, lng) => [(lng - 126.56) * SCALE, (33.38 - lat) * SCALE]
-
-// 섬은 동서로 긴 타원, 한라산은 가우시안 봉우리로 솟는다
-const SEMI_X = 8.4, SEMI_Z = 4.7
-const HALLA = toXZ(33.3617, 126.5292)
-export function heightAt(x, z) {
-  const d = Math.hypot(x / SEMI_X, z / SEMI_Z)
-  if (d >= 1) return -0.25
-  const plateau = Math.pow(1 - d, 0.55) * 0.55
-  const peak = 2.3 * Math.exp(-((x - HALLA[0]) ** 2 + (z - HALLA[1]) ** 2) / 2.4)
-  const bumps = 0.07 * Math.sin(x * 3.1) * Math.cos(z * 2.7)
-  return plateau + peak + bumps * (1 - d)
-}
-
-// 높이별 색: 해안 모래 → 초원 → 암갈색 → 정상의 보랏빛 눈
-function colorAt(h) {
-  if (h < 0) return new THREE.Color('#0a1f44')
-  if (h < 0.12) return new THREE.Color('#d9c28f')
-  if (h < 0.7) return new THREE.Color('#3c8d5a').lerp(new THREE.Color('#2b6b45'), h)
-  if (h < 1.7) return new THREE.Color('#7a5c4a')
-  return new THREE.Color('#e6dcff')
-}
-
+// 섬: 실제 해안선·한라산 높이 지도(terrain.js)를 정점마다 입히고, 높이별 색·바다 깊이 그라데이션을 칠한다
 function Island() {
   const geometry = useMemo(() => {
-    const g = new THREE.PlaneGeometry(SEMI_X * 2.2, SEMI_Z * 2.4, 220, 130)
+    const g = new THREE.PlaneGeometry(GRID.w, GRID.d, GRID.nx - 1, GRID.nz - 1)
     g.rotateX(-Math.PI / 2)
-    const pos = g.attributes.position
+    const pos = g.attributes.position, hm = heightMap()
     const colors = new Float32Array(pos.count * 3)
     for (let i = 0; i < pos.count; i++) {
-      const h = heightAt(pos.getX(i), pos.getZ(i))
+      const h = hm[i]
       pos.setY(i, h)
-      const c = colorAt(h)
-      colors.set([c.r, c.g, c.b], i * 3)
+      const c = colorAt(h, pos.getX(i), pos.getZ(i))
+      colors[i * 3] = c[0]; colors[i * 3 + 1] = c[1]; colors[i * 3 + 2] = c[2]
     }
     g.setAttribute('color', new THREE.BufferAttribute(colors, 3))
     g.computeVertexNormals()
     return g
   }, [])
-  return <mesh geometry={geometry}><meshStandardMaterial vertexColors roughness={0.95} /></mesh>
+  return (
+    <mesh geometry={geometry} castShadow receiveShadow>
+      <meshStandardMaterial vertexColors roughness={0.92} metalness={0.02} />
+    </mesh>
+  )
 }
 
-// 설문대할망의 치마에서 샌 흙 = 368개의 오름 (같은 결과가 나오도록 고정 난수)
+// 설문대할망의 치마에서 샌 흙 = 368개의 오름. 섬 안쪽 임의 지점에 크기·색을 달리해 부드러운 봉우리로 (고정 난수)
 function Oreums({ count = 368 }) {
   const ref = useRef()
+  const profile = useMemo(() => {
+    const pts = [[1, 0], [0.86, 0.2], [0.62, 0.5], [0.34, 0.8], [0.12, 0.96], [0, 1]].map(([r, y]) => new THREE.Vector2(r, y))
+    return new THREE.LatheGeometry(pts, 14)
+  }, [])
   useLayoutEffect(() => {
     let seed = 368
     const rnd = () => ((seed = (seed * 16807) % 2147483647) / 2147483647)
-    const m = new THREE.Matrix4(), q = new THREE.Quaternion(), p = new THREE.Vector3(), s = new THREE.Vector3()
-    let placed = 0
-    while (placed < count) {
-      const x = (rnd() * 2 - 1) * SEMI_X, z = (rnd() * 2 - 1) * SEMI_Z
-      const d = Math.hypot(x / SEMI_X, z / SEMI_Z)
-      if (d > 0.93 || Math.hypot(x - HALLA[0], z - HALLA[1]) < 1.1) continue
-      const k = 0.07 + rnd() * 0.09
-      p.set(x, heightAt(x, z) + k * 0.5, z)
-      s.set(k, k * 1.3, k)
-      ref.current.setMatrixAt(placed++, m.compose(p, q, s))
+    const m = new THREE.Matrix4(), q = new THREE.Quaternion(), p = new THREE.Vector3(), s = new THREE.Vector3(), col = new THREE.Color()
+    const up = new THREE.Vector3(0, 1, 0)
+    let placed = 0, guard = 0
+    while (placed < count && guard++ < 20000) {
+      const x = GRID.x0 + rnd() * GRID.w, z = GRID.z0 + rnd() * GRID.d
+      const h = heightAt(x, z)
+      if (h < 0.2 || h > 1.0 || Math.hypot(x - HALLA[0], z - HALLA[1]) < 1.0) continue   // 해안·한라산 중심은 비움
+      const k = 0.06 + rnd() * rnd() * 0.15
+      p.set(x, h - 0.01, z)
+      s.set(k * (0.9 + rnd() * 0.3), k * (0.7 + rnd() * 0.7), k * (0.9 + rnd() * 0.3))
+      q.setFromAxisAngle(up, rnd() * Math.PI * 2)
+      ref.current.setMatrixAt(placed, m.compose(p, q, s))
+      col.setHSL(0.26 + rnd() * 0.07, 0.4 + rnd() * 0.15, 0.36 + rnd() * 0.14)
+      ref.current.setColorAt(placed, col)
+      placed++
     }
+    ref.current.count = placed
     ref.current.instanceMatrix.needsUpdate = true
+    if (ref.current.instanceColor) ref.current.instanceColor.needsUpdate = true
   }, [count])
   return (
-    <instancedMesh ref={ref} args={[null, null, count]}>
-      <coneGeometry args={[1, 1, 7]} />
-      <meshStandardMaterial color="#9ad97a" roughness={0.9} />
+    <instancedMesh ref={ref} args={[profile, undefined, count]} castShadow receiveShadow>
+      <meshStandardMaterial roughness={0.9} />
     </instancedMesh>
   )
 }
 
-function Sea() {
-  const ref = useRef()
-  useFrame(({ clock }) => { ref.current.position.y = 0.03 + Math.sin(clock.elapsedTime * 0.8) * 0.012 })
+// 지형 메쉬 바깥의 깊은 바다 바닥 — 지형 가장자리(깊이 -0.75)와 같은 색으로 이어져 사각형 경계가 안 보인다
+function Abyss() {
   return (
-    <mesh ref={ref} rotation={[-Math.PI / 2, 0, 0]}>
-      <planeGeometry args={[60, 40]} />
-      <meshStandardMaterial color="#143a8f" transparent opacity={0.82} metalness={0.4} roughness={0.25} />
+    <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, -0.76, 0]} receiveShadow>
+      <planeGeometry args={[140, 90]} />
+      <meshStandardMaterial color="#05153a" roughness={0.95} />
     </mesh>
   )
 }
 
-// 백록담 위에 떠서 도는 신의 고리
+// 바다: 반투명이라 아래 해저 그라데이션(얕은 청록 → 깊은 남색)이 비친다
+function Sea() {
+  const ref = useRef()
+  useFrame(({ clock }) => { ref.current.position.y = Math.sin(clock.elapsedTime * 0.7) * 0.012 })
+  return (
+    <mesh ref={ref} rotation={[-Math.PI / 2, 0, 0]} receiveShadow>
+      <planeGeometry args={[80, 50]} />
+      <meshPhysicalMaterial color="#1a6fb0" transparent opacity={0.62} roughness={0.12} metalness={0.25} clearcoat={0.6} />
+    </mesh>
+  )
+}
+
+// 백록담 위에 떠서 도는 신의 고리 + 반짝이는 빛 알갱이
 function Halo() {
   const ref = useRef()
   useFrame((_, dt) => { ref.current.rotation.z += dt * 0.6 })
   return (
-    <mesh ref={ref} position={[HALLA[0], 2.9, HALLA[1]]} rotation={[Math.PI / 2.4, 0, 0]}>
-      <torusGeometry args={[0.55, 0.025, 12, 64]} />
-      <meshBasicMaterial color="#ffd166" />
-    </mesh>
+    <>
+      <mesh ref={ref} position={[HALLA[0], 3.1, HALLA[1]]} rotation={[Math.PI / 2.4, 0, 0]}>
+        <torusGeometry args={[0.55, 0.025, 12, 64]} />
+        <meshBasicMaterial color="#ffd166" />
+      </mesh>
+      <Sparkles count={50} scale={[2.4, 1.8, 2.4]} position={[HALLA[0], 3, HALLA[1]]} size={3} speed={0.35} color="#ffd166" />
+    </>
   )
 }
 
@@ -119,11 +123,11 @@ function Marker({ m, index, selected, onSelect }) {
         <meshBasicMaterial color={m.color} transparent opacity={0.6} />
       </mesh>
       <mesh ref={orb}>
-        <icosahedronGeometry args={[size, 1]} />
-        <meshStandardMaterial color={m.color} emissive={m.color} emissiveIntensity={selected ? 2.2 : 1.1} />
+        <icosahedronGeometry args={[size, 2]} />
+        <meshStandardMaterial color={m.color} emissive={m.color} emissiveIntensity={selected ? 2.4 : 1.2} />
       </mesh>
       <mesh ref={ring} rotation={[-Math.PI / 2, 0, 0]} position={[0, 0.03, 0]}>
-        <ringGeometry args={[0.16, 0.2, 32]} />
+        <ringGeometry args={[0.16, 0.2, 40]} />
         <meshBasicMaterial color={m.color} transparent side={THREE.DoubleSide} />
       </mesh>
       {(m.label !== false || selected) && (
@@ -178,26 +182,35 @@ export default function Jeju3D({ items = [], selectedId, onSelect, height = 460,
   const [zoomOn, setZoomOn] = useState(false)
   return (
     <div style={{ height }} onPointerDown={() => setZoomOn(true)} onPointerLeave={() => setZoomOn(false)}>
-    <Canvas camera={{ position: [0, 10, 13], fov: 45 }} style={{ height: '100%' }} dpr={[1, 2]}>
-      <color attach="background" args={['#0b0620']} />
-      <fog attach="fog" args={['#0b0620', 18, 42]} />
-      <ambientLight intensity={0.55} />
-      <directionalLight position={[6, 10, 4]} intensity={1.3} color="#ffe9c4" />
-      <pointLight position={[HALLA[0], 4, HALLA[1]]} intensity={8} color="#b388ff" distance={8} />
-      <Stars radius={60} depth={30} count={3000} factor={3} fade speed={1} />
-      <mesh position={[-14, 11, -16]}>
-        <sphereGeometry args={[1.6, 32, 32]} />
-        <meshBasicMaterial color="#fff6d6" />
-      </mesh>
-      <Sea />
-      <Island />
-      <Oreums />
-      <Halo />
-      {pins.map((m, i) => <Marker key={m.id} m={m} index={i} selected={m.id === selectedId} onSelect={onSelect} />)}
-      <OrbitControls makeDefault enablePan={false} enableZoom={zoomOn} target={[0, 0.3, 0]} minDistance={3} maxDistance={20} maxPolarAngle={Math.PI / 2.15}
-        autoRotate={autoRotate && !selectedId} autoRotateSpeed={0.6} />
-      <CameraRig focus={focus} />
-    </Canvas>
+      <Canvas shadows camera={{ position: [0, 10, 13], fov: 45 }} style={{ height: '100%' }} dpr={[1, 2]}>
+        <color attach="background" args={['#070418']} />
+        <fog attach="fog" args={['#070418', 20, 46]} />
+        <hemisphereLight args={['#8ea6ff', '#1b2a1c', 0.55]} />
+        <ambientLight intensity={0.25} />
+        {/* 달빛: 그림자를 드리워 한라산·오름의 입체감을 만든다 */}
+        <directionalLight position={[-9, 13, 7]} intensity={1.7} color="#d7e0ff" castShadow
+          shadow-mapSize={[2048, 2048]} shadow-bias={-0.0004} shadow-normalBias={0.03}
+          shadow-camera-left={-12} shadow-camera-right={12} shadow-camera-top={9} shadow-camera-bottom={-9}
+          shadow-camera-near={1} shadow-camera-far={40} />
+        <directionalLight position={[10, 5, -6]} intensity={0.35} color="#ffb98a" />
+        <pointLight position={[HALLA[0], 4, HALLA[1]]} intensity={9} color="#b388ff" distance={8} />
+        <Stars radius={70} depth={35} count={4500} factor={3.5} fade speed={1} />
+        <mesh position={[-16, 12, -18]}>
+          <sphereGeometry args={[1.7, 40, 40]} />
+          <meshBasicMaterial color="#fff6d6" fog={false} />
+        </mesh>
+        <Abyss />
+        <Sea />
+        <Island />
+        <Oreums />
+        <Halo />
+        {pins.map((m, i) => <Marker key={m.id} m={m} index={i} selected={m.id === selectedId} onSelect={onSelect} />)}
+        <OrbitControls makeDefault enablePan={false} enableZoom={zoomOn} target={[0, 0.3, 0]}
+          minDistance={3} maxDistance={22} maxPolarAngle={Math.PI / 2.15}
+          enableDamping dampingFactor={0.08}
+          autoRotate={autoRotate && !selectedId} autoRotateSpeed={0.6} />
+        <CameraRig focus={focus} />
+      </Canvas>
     </div>
   )
 }

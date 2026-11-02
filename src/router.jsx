@@ -2,6 +2,7 @@ import { createBrowserRouter } from 'react-router-dom'
 import RootLayout from './layouts/RootLayout'
 import Home from './pages/Home'
 import Myths from './pages/Myths'
+import MapPage from './pages/MapPage'
 import Places from './pages/Places'
 import Heritage from './pages/Heritage'
 import Agent from './pages/Agent'
@@ -20,6 +21,7 @@ import NotFound from './pages/NotFound'
 // 아이콘 이름: https://icons.getbootstrap.com
 export const NAV_ITEMS = [
   { to: '/', label: '신화의 섬', icon: 'moon-stars' },
+  { to: '/map', label: '탐라 지도', icon: 'map' },
   { to: '/myths', label: '신화 도감', icon: 'book' },
   { to: '/places', label: '신화 속 장소', icon: 'geo-alt' },
   { to: '/heritage', label: '국가유산', icon: 'bank' },
@@ -36,6 +38,7 @@ export const router = createBrowserRouter([
     errorElement: <NotFound />,
     children: [
       { index: true, element: <Home /> },
+      { path: 'map', element: <MapPage /> },
       { path: 'myths', element: <Myths /> },
       { path: 'places', element: <Places /> },
       { path: 'heritage', element: <Heritage /> },
