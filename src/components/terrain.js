@@ -30,6 +30,7 @@ function chaikin(points, iterations) {
   return pts
 }
 const COAST = chaikin(COAST_LL.map(([la, ln]) => toXZ(la, ln)), 2)
+export const COAST_PTS = COAST          // 해안선 점들 (해안에 밀려오는 물결을 그릴 때 쓴다)
 
 // 해안선까지의 부호 있는 거리 (섬 안쪽이 +)
 function sdf(x, z) {

@@ -49,17 +49,22 @@ export default function MapPage() {
   }, [fx.on, fx.sound, lv.wind, lv.rain, lv.waves])        // eslint-disable-line react-hooks/exhaustive-deps
   useEffect(() => () => fxAudio.stop(), [])               // 페이지를 떠나면 소리를 끈다
 
-  // 번개: 비(폭풍이면 더 자주)가 올 때 무작위 간격으로 → 번쩍 · 우르릉 · 화면 흔들림 · 진동
+  // 번개: 폭풍이면 4D 와 상관없이, 비는 4D 를 켰을 때 무작위 간격으로 친다.
+  //  · 3D 장면이 번쩍이고 번개 줄기가 내리꽂히는 건 항상 (flash 번호가 바뀔 때)
+  //  · 4D 를 켰으면 거기에 천둥소리 · 화면 흔들림 · 진동이 더해진다
   useEffect(() => {
-    if (!fx.on || eff !== 'rain') return
+    if (eff !== 'rain' || !(storm || fx.on)) return
     let timer
     const strike = () => {
-      setFlash((n) => n + 1); setShake(true); setTimeout(() => setShake(false), 700)
-      if (fxRef.current.sound) fxAudio.thunder()
-      if (fxRef.current.vibrate) vibrate([220, 70, 380])
+      setFlash((n) => n + 1)
+      if (fxRef.current.on) {
+        setShake(true); setTimeout(() => setShake(false), 700)
+        if (fxRef.current.sound) fxAudio.thunder()
+        if (fxRef.current.vibrate) vibrate([220, 70, 380])
+      }
       timer = setTimeout(strike, (storm ? 4500 : 11000) + Math.random() * (storm ? 6000 : 13000))
     }
-    timer = setTimeout(strike, 1800)                       // 켜자마자 곧 한 번 쳐서 효과를 바로 느끼게
+    timer = setTimeout(strike, 1800)                       // 고르자마자 곧 한 번 쳐서 효과를 바로 보이게
     return () => clearTimeout(timer)
   }, [fx.on, eff, storm])
 
@@ -122,9 +127,9 @@ export default function MapPage() {
       <div ref={wrap} className={`position-relative map-wrap ${full ? 'full' : ''}`}>
         <div className={shake ? 'fx-shake' : ''}>
           <Scene height={full ? '100dvh' : '64vh'} items={MARKERS} selectedId={selectedMythId} onSelect={(m) => selectMyth(m.id)} autoRotate
-            mode={sel === 'auto' ? undefined : sel} weather={wsel === 'auto' ? undefined : storm ? 'rain' : wsel} fx={fx.on} storm={storm} />
+            mode={sel === 'auto' ? undefined : sel} weather={wsel === 'auto' ? undefined : storm ? 'rain' : wsel} fx={fx.on} storm={storm} flash={flash} />
         </div>
-        {flash > 0 && <div key={flash} className="fx-flash" aria-hidden="true" />}
+        {fx.on && flash > 0 && <div key={flash} className="fx-flash" aria-hidden="true" />}
         {full && <div className="map-full-controls">{controls}</div>}
         <Button variant="dark" size="sm" className="map-full-btn" onClick={toggleFull} aria-label={full ? '전체화면 끝내기' : '전체화면'} title={full ? '전체화면 끝내기 (Esc)' : '전체화면'}>
           <i className={`bi bi-${full ? 'fullscreen-exit' : 'arrows-fullscreen'}`} />{full && <span className="ms-1">나가기</span>}

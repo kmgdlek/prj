@@ -2,7 +2,7 @@ import { useEffect, useMemo, useRef } from 'react'
 import { useFrame, useThree } from '@react-three/fiber'
 import { Html } from '@react-three/drei'
 import * as THREE from 'three'
-import { toXZ } from './terrain'
+import { COAST_PTS, heightAt, toXZ } from './terrain'
 import { MYTHS } from '../../server/myths'
 import { ball, cone, merge, part } from './landscape'
 
@@ -32,9 +32,16 @@ export function WavySea({ color, opacity, amp = 1 }) {
       shader.uniforms.uTime = uniforms.current.uTime
       shader.uniforms.uAmp = uniforms.current.uAmp
       shader.vertexShader = shader.vertexShader
-        .replace('#include <common>', `#include <common>\n${WAVE_GLSL}`)
+        .replace('#include <common>', `#include <common>\nvarying float vH;\n${WAVE_GLSL}`)
         .replace('#include <beginnormal_vertex>', '#include <beginnormal_vertex>\n  vec2 wg = waveGrad(position.xz);\n  objectNormal = normalize(vec3(-wg.x, 1.0, -wg.y));')
-        .replace('#include <begin_vertex>', '#include <begin_vertex>\n  transformed.y += wave(position.xz);')
+        .replace('#include <begin_vertex>', '#include <begin_vertex>\n  float wh = wave(position.xz);\n  vH = wh;\n  transformed.y += wh;')
+      shader.fragmentShader = shader.fragmentShader
+        .replace('#include <common>', '#include <common>\nvarying float vH;\nuniform float uAmp;')
+        .replace('#include <color_fragment>', `#include <color_fragment>
+  float crest = clamp(vH / (0.104 * uAmp), 0.0, 1.0);
+  float foam = smoothstep(0.6, 0.95, crest) * clamp((uAmp - 1.2) / 1.6, 0.0, 1.0);   // 파도가 거칠수록(비·폭풍) 마루에 흰 거품
+  diffuseColor.rgb = mix(diffuseColor.rgb, vec3(0.93, 0.97, 1.0), foam);
+  diffuseColor.a = mix(diffuseColor.a, 0.96, foam);`)
     }
     return m
   }, [])                                                                  // eslint-disable-line react-hooks/exhaustive-deps
@@ -209,4 +216,52 @@ export function Mainland() {
       </Html>
     </group>
   )
+}
+
+// ── 해안에 밀려오는 물결 ───────────────────────────────────
+// 실제 해안선(지형의 높이가 0 이 되는 곳)을 따라 흰 띠를 두르고, 띠가 바다 쪽으로 밀려갔다 돌아오며 옅어졌다 짙어진다.
+// 파도가 거칠수록 더 멀리 밀려오고 더 진해진다
+export function Surf({ amp = 1 }) {
+  const ref = useRef()
+  const geometry = useMemo(() => {
+    const P = COAST_PTS, n = P.length, pos = [], nor = [], side = [], ph = [], idx = []
+    for (let i = 0; i < n; i++) {
+      const a = P[(i + n - 1) % n], b = P[(i + 1) % n], p = P[i]
+      let tx = b[0] - a[0], tz = b[1] - a[1]
+      const l = Math.hypot(tx, tz) || 1; tx /= l; tz /= l
+      let nx = tz, nz = -tx                                                      // 해안선의 옆 방향
+      if (heightAt(p[0] + nx * 0.15, p[1] + nz * 0.15) > heightAt(p[0] - nx * 0.15, p[1] - nz * 0.15)) { nx = -nx; nz = -nz }   // 바다 쪽(낮은 쪽)을 향하게
+      let t0 = 0
+      for (let t = -0.5; t <= 0.5; t += 0.02) { if (heightAt(p[0] + nx * t, p[1] + nz * t) < 0.01) { t0 = t; break } }       // 노이즈로 일렁이는 실제 물가까지 옮긴다
+      const bx = p[0] + nx * t0, bz = p[1] + nz * t0
+      for (const s of [0, 1]) { pos.push(bx, 0, bz); nor.push(nx, 0, nz); side.push(s); ph.push(i * 0.37) }
+    }
+    for (let i = 0; i < n; i++) { const j = (i + 1) % n, a = i * 2, b = j * 2; idx.push(a, a + 1, b, b, a + 1, b + 1) }
+    const g = new THREE.BufferGeometry()
+    g.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3))
+    g.setAttribute('aN', new THREE.Float32BufferAttribute(nor, 3))
+    g.setAttribute('aSide', new THREE.Float32BufferAttribute(side, 1))
+    g.setAttribute('aPh', new THREE.Float32BufferAttribute(ph, 1))
+    g.setIndex(idx)
+    return g
+  }, [])
+  const material = useMemo(() => new THREE.ShaderMaterial({
+    transparent: true, depthWrite: false, side: THREE.DoubleSide, fog: false,
+    uniforms: { uTime: { value: 0 }, uAmp: { value: 1 } },
+    vertexShader: `attribute vec3 aN; attribute float aSide; attribute float aPh; uniform float uTime; uniform float uAmp; varying float vA;
+      void main() {
+        float cyc = 0.5 + 0.5 * sin(uTime * (0.7 + 0.18 * uAmp) + aPh);
+        vec3 p = position + aN * (0.03 + (0.09 + 0.06 * uAmp) * cyc) * aSide;
+        p.y += 0.016;
+        vA = (1.0 - aSide * 0.55) * (0.2 + 0.5 * (1.0 - cyc)) * min(1.0, 0.55 + 0.3 * uAmp);
+        gl_Position = projectionMatrix * modelViewMatrix * vec4(p, 1.0);
+      }`,
+    fragmentShader: 'varying float vA; void main() { gl_FragColor = vec4(1.0, 1.0, 1.0, vA); }',
+  }), [])
+  useFrame(({ clock }, dt) => {
+    const u = material.uniforms
+    u.uTime.value = clock.elapsedTime
+    u.uAmp.value += (amp - u.uAmp.value) * Math.min(1, dt * 1.5)
+  })
+  return <mesh ref={ref} geometry={geometry} material={material} frustumCulled={false} raycast={noRay} />
 }

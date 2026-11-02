@@ -133,28 +133,33 @@ export function Clouds({ color = '#ffffff', n = 9, low = 0, opacity = 0.92 }) {
 }
 
 // 비(빗줄기) · 눈(눈송이): 섬 위에서 떨어진다
-export function Precip({ kind }) {
+export function Precip({ kind, storm = false }) {
   const ref = useRef()
   const rain = kind === 'rain'
-  const N = rain ? 1600 : 900
+  // 폭풍이면 비가 훨씬 굵고 많고 빠르고, 바람에 비스듬히 날린다 (일반 비는 곱게 내리는 세로줄)
+  const N = rain ? (storm ? 4200 : 1600) : 900
+  const LEN = storm ? 0.55 : 0.28
   const data = useMemo(() => {
     const rnd = makeRnd(rain ? 5 : 6)
     const pos = new Float32Array(N * (rain ? 6 : 3)), spd = new Float32Array(N), base = []
     for (let i = 0; i < N; i++) {
       const x = (rnd() - 0.5) * 30, y = rnd() * 10, z = (rnd() - 0.5) * 20
-      spd[i] = rain ? 9 + rnd() * 4 : 0.6 + rnd() * 0.7
+      spd[i] = rain ? (storm ? 17 + rnd() * 6 : 9 + rnd() * 4) : 0.6 + rnd() * 0.7
       base.push([x, y, z, rnd() * 6.28])
-      if (rain) pos.set([x, y, z, x, y + 0.28, z], i * 6); else pos.set([x, y, z], i * 3)
+      if (rain) pos.set([x, y, z, x, y + LEN, z], i * 6); else pos.set([x, y, z], i * 3)
     }
     return { pos, spd, base }
-  }, [rain, N])
+  }, [rain, N, storm, LEN])
   useFrame(({ clock }, dt) => {
     const a = ref.current.geometry.attributes.position, t = clock.elapsedTime
+    const slant = storm ? 0.42 + Math.sin(t * 0.9) * 0.14 : 0.02                // 돌풍처럼 기울기가 출렁인다
     for (let i = 0; i < N; i++) {
       const b = data.base[i]
       b[1] -= data.spd[i] * dt
-      if (b[1] < 0) b[1] += 10
-      if (rain) { a.setXYZ(i * 2, b[0], b[1], b[2]); a.setXYZ(i * 2 + 1, b[0] - 0.02, b[1] + 0.28, b[2]) }
+      if (rain) b[0] += slant * data.spd[i] * dt * 0.9                             // 바람에 옆으로 밀린다
+      if (b[1] < 0) { b[1] += 10; if (rain && b[0] > 15) b[0] -= 30 }
+      if (b[0] > 16) b[0] -= 32
+      if (rain) { a.setXYZ(i * 2, b[0], b[1], b[2]); a.setXYZ(i * 2 + 1, b[0] - slant * LEN, b[1] + LEN, b[2]) }
       else a.setXYZ(i, b[0] + Math.sin(t * 0.8 + b[3]) * 0.3, b[1], b[2] + Math.cos(t * 0.6 + b[3]) * 0.2)
     }
     a.needsUpdate = true
@@ -162,7 +167,7 @@ export function Precip({ kind }) {
   return rain ? (
     <lineSegments ref={ref} frustumCulled={false}>
       <bufferGeometry><bufferAttribute attach="attributes-position" args={[data.pos, 3]} /></bufferGeometry>
-      <lineBasicMaterial color="#a8c6ff" transparent opacity={0.55} />
+      <lineBasicMaterial color={storm ? '#c9d8f2' : '#a8c6ff'} transparent opacity={storm ? 0.6 : 0.5} />
     </lineSegments>
   ) : (
     <points ref={ref} frustumCulled={false}>
