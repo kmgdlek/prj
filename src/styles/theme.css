@@ -198,3 +198,26 @@ body { font-family: 'Pretendard', system-ui, sans-serif; }
 .health-dot { width: 7px; height: 7px; border-radius: 50%; background: #adb5bd; display: inline-block; }
 .health-dot.ok { background: #198754; }
 .health-dot.fail { background: #dc3545; }
+
+/* 입력 중 표시 */
+.typing-label { margin-left: .5rem; font-size: 12px; color: var(--bs-secondary-color); }
+.chat-bubble:has(.typing-dots) { display: inline-flex; align-items: center; }
+.agent-status.typing .agent-dot { animation: dot-blink .8s infinite; }
+@keyframes dot-blink { 50% { opacity: .25; } }
+
+/* 등급: 배지 아래 '다음 등급까지' 문구와 그 밑줄 진행 막대 */
+.level-progress { margin-top: .35rem; }
+.level-next { display: inline-flex; align-items: center; gap: .15rem; padding: 0; border: 0; background: none; font-size: .8rem; color: var(--bs-secondary-color); cursor: pointer; }
+.level-next:hover { color: var(--bs-primary); text-decoration: underline; }
+.level-line.progress { height: 4px; margin-top: .25rem; border-radius: 4px; }
+
+/* 등급 안내 창 */
+.level-modal .level-hero { display: flex; align-items: center; gap: .9rem; padding: .9rem 1rem; border-radius: 1rem; background: var(--bs-tertiary-bg); }
+.level-dot { flex: none; width: 32px; height: 32px; border-radius: 50%; display: inline-flex; align-items: center; justify-content: center; font-weight: 700; font-size: .85rem; }
+.level-dot.lg { width: 48px; height: 48px; font-size: 1.2rem; }
+.level-list { list-style: none; margin: 0; padding: 0; position: relative; }
+.level-item { display: flex; align-items: center; gap: .8rem; padding: .6rem .5rem; border-radius: .75rem; position: relative; }
+.level-item:not(:last-child)::after { content: ''; position: absolute; left: calc(.5rem + 15px); top: calc(.6rem + 32px); bottom: -.6rem; width: 2px; background: var(--bs-border-color); }
+.level-item.done:not(:last-child)::after { background: var(--bs-primary); }
+.level-item:not(.mine):not(.done) .level-dot { opacity: .75; }
+.level-item.mine { background: rgba(var(--bs-primary-rgb), .08); outline: 1px solid rgba(var(--bs-primary-rgb), .35); }

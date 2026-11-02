@@ -70,7 +70,7 @@ export default function ChatPanel() {
         ))}
         {loading && (
           <Bubble role="assistant" at={null}>
-            <span className="typing-dots"><i /><i /><i /></span>
+            <span className="typing-dots"><i /><i /><i /></span><span className="typing-label">이야기꾼이 입력 중…</span>
           </Bubble>
         )}
         <div ref={bottom} />
