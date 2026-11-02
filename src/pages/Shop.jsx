@@ -8,7 +8,7 @@ import { FavButton } from '../components/ItemCard'
 import { Stars, ratingOf } from '../components/StarRating'
 import { useAppStore } from '../store/useAppStore'
 import { won } from '../lib/format'
-import { CATEGORIES, MAX_PER_ITEM, PRODUCTS, TAGS, discountPct, flashRate, liveStock, salePrice, surgePct, trendOf } from '../../server/products'
+import { CATEGORIES, MAX_PER_ITEM, PRODUCTS, TAGS, discountPct, flashRate, liveStock, salePrice, surgeLabel, surgePct, trendOf } from '../../server/products'
 
 // 제주 특산품·기념품 — 담기 버튼은 store 의 장바구니에 연결
 export default function Shop() {
@@ -116,7 +116,7 @@ export default function Shop() {
                             {flashRate(p, slot) > 0 && <span className="flash-badge ms-1">⚡ {flashRate(p, slot)}%↓</span>}
                           </div>
                         )}
-                        {surgePct(p, slot) !== 0 && <div className={`small fw-bold ${surgePct(p, slot) > 0 ? 'text-danger' : 'text-primary'}`}>{surgePct(p, slot) > 0 ? '🔥 급등' : '💧 급락'} {surgePct(p, slot) > 0 ? '+' : ''}{surgePct(p, slot)}%</div>}
+                        {surgePct(p, slot) !== 0 && <div className={`small fw-bold ${surgePct(p, slot) > 0 ? 'text-danger' : 'text-primary'}`}>{surgeLabel(p, slot)}</div>}
                         <strong><RollingNumber text={won(salePrice(p, slot))} /></strong>
                         {trendOf(p, slot) < 0 && <span className="trend-down ms-1">▼{won(-trendOf(p, slot))}</span>}
                         {trendOf(p, slot) > 0 && <span className="trend-up ms-1">▲{won(trendOf(p, slot))}</span>}

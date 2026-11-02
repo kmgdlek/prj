@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { Alert, Badge, Button, Form, Table } from 'react-bootstrap'
 import PageHeader from '../components/PageHeader'
-import { PRODUCTS, basePrice, salePrice, surgePct } from '../../server/products'
+import { PRODUCTS, basePrice, isSudden, salePrice, surgePct } from '../../server/products'
 import { won } from '../lib/format'
 import { useAppStore } from '../store/useAppStore'
 
@@ -48,7 +48,7 @@ export default function Admin() {
                   <td className="text-end">
                     <div className="fw-bold">{won(salePrice(p, slot))}</div>
                     {o ? <Badge bg="warning" text="dark">관리자 설정 · {hhmm(o.until)}까지</Badge>
-                      : s !== 0 ? <Badge bg={s > 0 ? 'danger' : 'primary'}>{s > 0 ? '급등' : '급락'} {s > 0 ? '+' : ''}{s}%</Badge> : null}
+                      : s !== 0 ? <Badge bg={s > 0 ? 'danger' : 'primary'}>{isSudden(p, slot) ? (s > 0 ? '급등' : '급락') : (s > 0 ? '서서히 상승' : '서서히 하락')} {s > 0 ? '+' : ''}{s}%</Badge> : null}
                   </td>
                   <td>
                     <div className="d-flex gap-1 flex-wrap">
