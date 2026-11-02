@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom'
 import { Badge, Button } from 'react-bootstrap'
 import { useLagFollow } from '../hooks/useLagFollow'
 import { displayName, useAppStore } from '../store/useAppStore'
+import AdminBadge from './AdminBadge'
 import LevelBadge from './LevelBadge'
 import Avatar from './Avatar'
 
@@ -50,7 +51,7 @@ export default function SideCard() {
                 <Link to="/mypage" aria-label="마이페이지"><Avatar user={user} size={40} /></Link>
                 <div className="min-w-0">
                   <div className="d-flex align-items-center gap-2 min-w-0">
-                    <span className="flex-shrink-0"><LevelBadge part="lv" /></span>
+                    <span className="flex-shrink-0"><LevelBadge part="lv" /></span><AdminBadge />
                     <span className="fw-bold text-truncate">{displayName(user)}</span>
                   </div>
                   <div className="small text-body-secondary text-truncate mb-1">{user.email}</div>

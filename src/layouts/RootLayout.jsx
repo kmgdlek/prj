@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { Link, NavLink, Outlet, ScrollRestoration, useLocation, useNavigate } from 'react-router-dom'
 import { Badge, Button, Container, Navbar, Offcanvas, Toast, ToastContainer } from 'react-bootstrap'
+import AdminBadge from '../components/AdminBadge'
 import ChatPanel from '../components/ChatPanel'
 import { useTheme } from '../lib/theme'
 import { NAV_GROUPS, NAV_ITEMS } from '../router'
@@ -119,7 +120,7 @@ export default function RootLayout() {
                   <Link to="/mypage" onClick={close} aria-label="마이페이지"><Avatar user={user} size={52} /></Link>
                   <div className="flex-grow-1 min-w-0">
                     <div className="d-flex align-items-center gap-2 min-w-0">
-                      <span className="flex-shrink-0"><LevelBadge part="lv" /></span>
+                      <span className="flex-shrink-0"><LevelBadge part="lv" /></span><AdminBadge />
                       <span className="fw-bold text-truncate">{displayName(user)}</span>
                     </div>
                     <div className="small text-body-secondary text-truncate">{user.email}</div>

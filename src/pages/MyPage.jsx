@@ -8,6 +8,7 @@ import OrderTracker from '../components/OrderTracker'
 import { Stars } from '../components/StarRating'
 import { FavButton } from '../components/ItemCard'
 import { Empty } from '../components/Status'
+import AdminBadge from '../components/AdminBadge'
 import { displayName, useAppStore } from '../store/useAppStore'
 import { discountPct, productOf, salePrice } from '../../server/products'
 import { STATUS, STEPS, stageOf, statusOf } from '../lib/order'
@@ -45,7 +46,7 @@ export default function MyPage() {
           <Col xs="auto"><Avatar user={user} size={72} /></Col>
           <Col>
             <div className="d-flex align-items-center gap-2 flex-wrap">
-              <LevelBadge part="lv" /><h4 className="fw-bold mb-0">{displayName(user)}</h4>
+              <LevelBadge part="lv" /><AdminBadge /><h4 className="fw-bold mb-0">{displayName(user)}</h4>
             </div>
             <div className="small text-body-secondary mb-1">{user.email}</div>
             <div style={{ maxWidth: 320 }}><LevelBadge part="name" withProgress /></div>
