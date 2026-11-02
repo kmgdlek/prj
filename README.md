@@ -14,6 +14,8 @@
 
 제주대 청년도약 부트캠프 1기 · 제주 콘텐츠·문화 IP 프로젝트
 
+### 🔗 [라이브 데모 → prj-kappa-nine.vercel.app](https://prj-kappa-nine.vercel.app/)
+
 </div>
 
 ---
