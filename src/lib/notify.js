@@ -44,8 +44,8 @@ const hash = (str) => { let h = 2166136261; for (const ch of str) { h ^= ch.char
 
 // 지금 상황(시세·찜·재고·날씨)을 보고 새로 보낼 알림을 돌려준다. 이미 보낸 알림(같은 id)은 다시 만들지 않는다.
 // 한 번에 너무 많이 쏟아지지 않도록 종류마다 개수를 제한한다.
-export function buildNotifications({ now, slot, stockSlot, favorites, weather, prefs, notifs, stockOf, orders = [], grants = [] }) {
-  const have = new Set(notifs.map((n) => n.id))
+export function buildNotifications({ now, slot, stockSlot, favorites, weather, prefs, notifs, stockOf, orders = [], grants = [], seen = [], lastDealAt = 0 }) {
+  const have = new Set([...notifs.map((n) => n.id), ...seen])          // 지워서 목록에서 사라진 알림도 '이미 보낸 것'으로 쳐서 다시 만들지 않는다
   const out = []
   const add = (n) => { if (!have.has(n.id)) { have.add(n.id); out.push({ ...n, at: now, read: false }) } }
   const favIds = favorites.filter((f) => f.source === 'product').map((f) => f.item_id)
@@ -78,8 +78,7 @@ export function buildNotifications({ now, slot, stockSlot, favorites, weather, p
 
   // 추천 물건: 지금 가장 싼 상품 한 개 (최근 알림과 gap 분 이상 떨어져 있을 때만)
   if (prefs.deal) {
-    const lastDeal = notifs.find((n) => n.topic === 'deal')
-    if (!lastDeal || now - lastDeal.at >= prefs.gap * 60000) {
+    if (!lastDealAt || now - lastDealAt >= prefs.gap * 60000) {
       const best = PRODUCTS
         .filter((p) => flashRate(p, slot) >= 10 || surgePct(p, slot) <= -30)
         .sort((a, b) => dropPct(b, slot) - dropPct(a, slot))[0]

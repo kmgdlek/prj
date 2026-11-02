@@ -18,6 +18,8 @@ const safeLS = {
 const toastTimers = new Map()   // 알림 id → 사라질 때까지의 타이머 (같은 알림이 또 오면 시간을 다시 잰다)
 function armToast(id, fn) { clearTimeout(toastTimers.get(id)); toastTimers.set(id, setTimeout(() => { toastTimers.delete(id); fn() }, 2800)) }
 const notifKey = (user) => `tamra-notifs:${user?.id ?? 'guest'}`
+const seenKey = (user) => `tamra-notif-seen:${user?.id ?? 'guest'}`     // 지금까지 보낸 알림 id 기록 (지워도 다시 안 오게)
+const SEEN_MAX = 600
 let lastOverrideLoad = 0
 let lastGrantLoad = 0
 let authStarted = false        // StrictMode 에서 구독이 두 번 걸리지 않게
@@ -232,12 +234,16 @@ export const useAppStore = create((set, get) => ({
   // 시세는 1분마다, 재고는 10분마다 바뀐다: 슬롯 번호가 바뀌면 값을 갱신해 화면을 다시 그린다 (RootLayout 이 2초마다 확인)
   // ⑮ 알림 — 추천 물건·장소·찜한 상품 소식. 목록은 이 브라우저에(계정별로) 저장하고, 설정은 로그인했다면 계정(user_metadata)에도 저장해 다른 기기에서도 같게 보인다
   notifs: [],
+  notifSeen: { ids: [], dealAt: 0 },   // 지금까지 보낸 알림 id 와 마지막 추천 물건 알림 시각 — 알림을 지워도 같은 알림이 다시 만들어지지 않게
   notifsReady: false,         // 저장된 알림을 불러오기 전에 새 알림을 만들면 덮어쓰므로, 불러온 뒤에만 만든다
   notifPrefs: { ...DEFAULT_PREFS, ...(safeLS.get('tamra-notif-prefs') ?? {}) },
   loadNotifs: () => {
     const { user } = get()
     const meta = user?.user_metadata?.notif_prefs
-    set({ notifsReady: true, notifs: user ? (safeLS.get(notifKey(user)) ?? []) : [], ...(meta ? { notifPrefs: { ...DEFAULT_PREFS, ...meta } } : {}) })
+    const list = user ? (safeLS.get(notifKey(user)) ?? []) : []
+    const saved = user ? (safeLS.get(seenKey(user)) ?? {}) : {}
+    const ids = [...new Set([...(saved.ids ?? []), ...list.map((n) => n.id)])].slice(0, SEEN_MAX)     // 예전에 쌓인 알림도 기록에 넣는다
+    set({ notifsReady: true, notifs: list, notifSeen: { ids, dealAt: saved.dealAt ?? list.find((n) => n.topic === 'deal')?.at ?? 0 }, ...(meta ? { notifPrefs: { ...DEFAULT_PREFS, ...meta } } : {}) })
   },
   setNotifPrefs: async (patch) => {
     const notifPrefs = { ...get().notifPrefs, ...patch }
@@ -250,14 +256,16 @@ export const useAppStore = create((set, get) => ({
     const { notifPrefs: prefs, notifs, user } = get()
     if (!user || !prefs.enabled || !get().notifsReady) return          // 알림은 로그인했을 때만
     const now = Date.now()
-    const fresh = buildNotifications({ now, slot: get().slot, stockSlot: get().stockSlot, favorites: get().favorites, weather: get().weather, prefs, notifs, stockOf: get().stockOf, orders: get().orders, grants: get().pointGrants })
-    if (!notifs.some((n) => n.id === 'welcome')) {
+    const fresh = buildNotifications({ now, slot: get().slot, stockSlot: get().stockSlot, favorites: get().favorites, weather: get().weather, prefs, notifs, stockOf: get().stockOf, orders: get().orders, grants: get().pointGrants, seen: get().notifSeen.ids, lastDealAt: get().notifSeen.dealAt })
+    if (!notifs.some((n) => n.id === 'welcome') && !get().notifSeen.ids.includes('welcome')) {
       fresh.push({ id: 'welcome', topic: 'welcome', tag: '안내', emoji: '🔔', title: '알림이 켜져 있어요', body: '추천 물건과 장소, 찜한 상품 소식이 여기에 모여요. 마이페이지에서 끄거나 고를 수 있어요', to: '/mypage?tab=notify', at: now, read: false })
     }
     if (!fresh.length) return
     const next = mergeNotifs(fresh, notifs)
-    set({ notifs: next })
+    const seen = { ids: [...fresh.map((n) => n.id), ...get().notifSeen.ids].slice(0, SEEN_MAX), dealAt: fresh.some((n) => n.topic === 'deal') ? now : get().notifSeen.dealAt }
+    set({ notifs: next, notifSeen: seen })
     safeLS.set(notifKey(user), next)
+    safeLS.set(seenKey(user), seen)
     if (prefs.toast) get().toast(fresh[0].title, 'secondary')
   },
   markNotifRead: (id) => {
@@ -268,7 +276,11 @@ export const useAppStore = create((set, get) => ({
     const next = get().notifs.map((n) => ({ ...n, read: true }))
     set({ notifs: next }); safeLS.set(notifKey(get().user), next)
   },
-  clearNotifs: () => { set({ notifs: [] }); safeLS.set(notifKey(get().user), []) },
+  clearNotifs: () => { set({ notifs: [] }); safeLS.set(notifKey(get().user), []) },       // 보낸 기록(notifSeen)은 남아서 같은 알림이 다시 오지 않는다
+  deleteNotif: (id) => {
+    const next = get().notifs.filter((n) => n.id !== id)
+    set({ notifs: next }); safeLS.set(notifKey(get().user), next)
+  },
 
   // ⑰ 적립금 지급 — 관리자가 주는 적립금(shop_point_grants). 잔액 = 주문 적립 + 지급 − 사용. 테이블이 아직 없으면 조용히 건너뜀
   pointGrants: [],

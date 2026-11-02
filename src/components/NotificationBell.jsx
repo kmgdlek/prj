@@ -8,7 +8,7 @@ import { useAppStore } from '../store/useAppStore'
 export default function NotificationBell() {
   const [open, setOpen] = useState(false)
   const navigate = useNavigate()
-  const { notifs, notifPrefs, setNotifPrefs, markNotifRead, markAllNotifsRead, clearNotifs, selectMyth } = useAppStore()
+  const { notifs, notifPrefs, setNotifPrefs, markNotifRead, markAllNotifsRead, clearNotifs, deleteNotif, selectMyth } = useAppStore()
   const unread = notifs.filter((n) => !n.read).length
   const on = notifPrefs.enabled
 
@@ -49,7 +49,7 @@ export default function NotificationBell() {
           ) : (
             <ul className="notif-list">
               {notifs.map((n) => (
-                <li key={n.id}>
+                <li key={n.id} className="notif-li">
                   <button type="button" className={`notif-item ${n.read ? '' : 'unread'}`} onClick={() => openItem(n)}>
                     <span className="notif-emoji">{n.emoji}</span>
                     <span className="flex-grow-1 text-start">
@@ -61,6 +61,7 @@ export default function NotificationBell() {
                       <span className="d-block small text-body-secondary">{n.body}</span>
                     </span>
                   </button>
+                  <button type="button" className="notif-del" aria-label="이 알림 지우기" title="지우기" onClick={() => deleteNotif(n.id)}><i className="bi bi-x-lg" /></button>
                 </li>
               ))}
             </ul>
