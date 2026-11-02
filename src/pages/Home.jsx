@@ -9,10 +9,20 @@ import HomeExtras from '../components/HomeExtras'
 
 // 지도 오른쪽 바로가기 — 제주 장터가 맨 위
 const SHORTCUTS = [
-  { to: '/shop', icon: 'bag-heart', label: '제주 장터', desc: '한라봉·오메기떡·기념품 최대 5% 할인', badge: 'SALE' },
+  { to: '/shop', icon: 'bag-heart', label: '제주 장터', desc: '1분마다 오르내리는 시세 · 타임특가 · 특산품 20종', badge: 'LIVE' },
   { to: '/myths', icon: 'book', label: '신화 도감', desc: `탐라 신화 ${MYTHS.length}편의 이야기` },
-  { to: '/benefits', icon: 'gift', label: '제주 혜택', desc: '탐나는전·타임특가·등급별 혜택 모아 보기' },
+  { to: '/benefits', icon: 'gift', label: '제주 혜택', desc: '탐나는전·쿠폰·등급별 혜택 모아 보기' },
   { to: '/my', icon: 'stars', label: '내 별자리', desc: '별표로 담아 둔 신화·장소·유산 모아 보기' },
+]
+
+// 홈 소개 아래의 기능 한눈에 보기 (누르면 그 기능으로)
+const FEATURES = [
+  { to: '/map', icon: 'map', label: '살아 있는 3D 섬' },
+  { to: '/map', icon: 'cloud-sun', label: '실제 날씨·시간대' },
+  { to: '/agent', icon: 'robot', label: '이야기꾼 AI' },
+  { to: '/shop', icon: 'graph-up-arrow', label: '실시간 시세 장터' },
+  { to: '/benefits', icon: 'gift', label: '제주 혜택' },
+  { to: '/mypage?tab=notify', icon: 'bell', label: '맞춤 알림' },
 ]
 
 // 작은 지도에서는 이름표를 숨긴다 (마커가 많아 겹침). 선택한 마커의 이름표는 항상 보인다
@@ -33,8 +43,14 @@ export default function Home() {
         <Badge bg="warning" text="dark" className="mb-2">제주 콘텐츠·문화 IP</Badge>
         <h1 className="fw-bold display-5 hero-title">설문대할망의 섬, 탐라신화 3D</h1>
         <p className="lead text-body-secondary">
-          치마폭의 흙으로 한라산을 쌓은 여신과 1만 8천 신의 이야기를, 돌려 보고 눌러 보는 3D 섬 위에서 만나 보세요.
+          치마폭의 흙으로 한라산을 쌓은 여신과 1만 8천 신의 이야기를, 날씨와 시간에 따라 숨 쉬는 3D 섬 위에서 만나 보세요.
+          신화 {MYTHS.length}곳을 눌러 보고, 이야기꾼 AI에게 물어보고, 제주 장터에서 오르내리는 시세로 쇼핑까지.
         </p>
+        <div className="d-flex flex-wrap gap-2 mb-2">
+          {FEATURES.map((f) => (
+            <Link key={f.label} to={f.to} className="tag-chip text-decoration-none"><i className={`bi bi-${f.icon} me-1`} />{f.label}</Link>
+          ))}
+        </div>
         <WeatherLine />
       </section>
 
