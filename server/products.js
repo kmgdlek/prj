@@ -80,8 +80,9 @@ export const flashRate = (p, slot = slotOf()) => {
 // 큰 시세 변동은 두 종류이고, 2시간을 한 구간으로 보고 상품·구간마다 확률로 일어난다 (둘 다 상품·시각으로 정해지는 고정된 값)
 //  ① 서서히 오름/내림 (SURGE_CHANCE 1.2%): 20~40분에 걸쳐 천천히(폭이 클수록 더 천천히) 변하고 → 10분 유지 → 같은 시간에 걸쳐 천천히 돌아온다
 //  ② 급등/급락 (SUDDEN_CHANCE 0.2%, ①의 1/6 — 가장 드물다): 2분 만에 확 변하고 → 10분 유지 → 10분에 걸쳐 돌아온다
+//  ③ 약한 오름 (MILD_CHANCE 8%): 정가를 +3~15% 만 넘는 작은 오름. 15~25분에 걸쳐 천천히 오르고 → 10~20분 유지 → 천천히 돌아온다 (정가 위로 올라가는 모습이 자주 보이게)
 // 폭은 오르면 +50~+300%(일반판매가를 훌쩍 넘길 수 있다), 내리면 -50~-95%. 방향은 반반
-export const SURGE_CHANCE = 0.012, SUDDEN_CHANCE = 0.002
+export const SURGE_CHANCE = 0.012, SUDDEN_CHANCE = 0.002, MILD_CHANCE = 0.08
 const SURGE_EPOCH = 120, SURGE_HOLD = 10, SURGE_MIN = 0.5, SURGE_UP_MAX = 3, SURGE_DOWN_MAX = 0.95
 const ease = (t) => t * t * (3 - 2 * t)          // 시작과 끝이 부드러운 곡선 (smoothstep)
 const surgeEvent = (p, slot, sudden) => {
@@ -95,9 +96,19 @@ const surgeEvent = (p, slot, sudden) => {
   const shape = t < 0 ? 0 : t < ramp ? ease(t / ramp) : t < ramp + SURGE_HOLD ? 1 : t < ramp + SURGE_HOLD + fall ? ease((ramp + SURGE_HOLD + fall - t) / fall) : 0
   return 1 + (up ? 1 : -1) * mag * shape
 }
+// ③ 약한 오름: 정점의 가격이 '정가의 1.03~1.15배'가 되도록 평소 가격(basePrice)에 곱할 비율을 정한다
+const mildEvent = (p, slot) => {
+  const epoch = Math.floor(slot / SURGE_EPOCH)
+  if (unit(`${p.id}:em:${epoch}`) >= MILD_CHANCE) return 1
+  const peak = (p.price * (1.03 + unit(`${p.id}:mm:${epoch}`) * 0.12)) / basePrice(p)     // 정점에서 평소 가격의 몇 배인지
+  const ramp = 15 + Math.round(unit(`${p.id}:rm:${epoch}`) * 10), hold = 10 + Math.round(unit(`${p.id}:hm:${epoch}`) * 10)
+  const t = (slot % SURGE_EPOCH) - Math.floor(unit(`${p.id}:sm:${epoch}`) * 21)
+  const shape = t < 0 ? 0 : t < ramp ? ease(t / ramp) : t < ramp + hold ? 1 : t < 2 * ramp + hold ? ease((2 * ramp + hold - t) / ramp) : 0
+  return 1 + (peak - 1) * shape
+}
 export const surgeFactor = (p, slot = slotOf()) => {
   // 두 이벤트가 겹쳐도 가격이 뚝 끊기지 않게 곱해서 잇는다 (너무 커지거나 작아지지 않게 +300%·-95% 안으로 묶음)
-  return Math.min(1 + SURGE_UP_MAX, Math.max(1 - SURGE_DOWN_MAX, surgeEvent(p, slot, true) * surgeEvent(p, slot, false)))
+  return Math.min(1 + SURGE_UP_MAX, Math.max(1 - SURGE_DOWN_MAX, surgeEvent(p, slot, true) * surgeEvent(p, slot, false) * mildEvent(p, slot)))
 }
 export const isSudden = (p, slot = slotOf()) => surgeEvent(p, slot, true) !== 1
 // 급등락으로 평소보다 몇 % 달라졌는지 (+면 급등, -면 급락, 0이면 평소)
@@ -107,7 +118,10 @@ export const surgeLabel = (p, slot = slotOf()) => {
   const pct = surgePct(p, slot)
   if (!pct) return ''
   const t = `${pct > 0 ? '+' : ''}${pct}%`
-  return isSudden(p, slot) ? `${pct > 0 ? '🔥 급등' : '💧 급락'} ${t}` : `${pct > 0 ? '📈 서서히 상승' : '📉 서서히 하락'} ${t}`
+  if (isSudden(p, slot)) return `${pct > 0 ? '🔥 급등' : '💧 급락'} ${t}`
+  const over = Math.round((salePrice(p, slot) / p.price - 1) * 100)                  // 정가보다 몇 % 높은지
+  if (pct > 0) return over > 0 ? `📈 서서히 상승 · 정가 +${over}%` : `📈 서서히 상승 ${t}`
+  return `📉 서서히 하락 ${t}`
 }
 
 // 관리자가 정한 가격 기록(shop_price_override): { [상품 id]: [{ price, from, until(ms) }, ...] } (from 이 이른 순). 앱이 DB 에서 불러와 넣는다.
@@ -128,7 +142,7 @@ export const salePrice = (p, slot = slotOf()) => {
   if (o) return o.price
   const base = basePrice(p), r = flashRate(p, slot), f = surgeFactor(p, slot)
   const flash = r ? (base * (100 - r)) / 100 : base
-  const w = Math.min(1, Math.abs(f - 1) / SURGE_MIN)                          // 급등락이 깊어질수록 타임특가 잡음을 서서히 끈다 (가격이 튀지 않게)
+  const w = Math.min(1, Math.abs(f - 1) / 0.1)                                // 큰 변동이 진행될수록 타임특가 잡음을 서서히 끈다 (10% 벗어나면 완전히 끔. 가격이 튀지 않게)
   return Math.max(10, Math.floor((flash * (1 - w) + base * f * w) / 10) * 10)
 };
 
