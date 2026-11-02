@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { Link, NavLink, Outlet, useLocation, useNavigate } from 'react-router-dom'
+import { Link, NavLink, Outlet, ScrollRestoration, useLocation, useNavigate } from 'react-router-dom'
 import { Badge, Button, Container, Navbar, Offcanvas, Toast, ToastContainer } from 'react-bootstrap'
 import ChatPanel from '../components/ChatPanel'
 import { NAV_GROUPS, NAV_ITEMS } from '../router'
@@ -153,6 +153,9 @@ export default function RootLayout() {
           {menuOpen && <HealthMini />}
         </Offcanvas.Body>
       </Offcanvas>
+
+      {/* 새 화면으로 가면 맨 위에서 시작하고, 뒤로 가기를 하면 원래 스크롤 위치로 돌아간다 */}
+      <ScrollRestoration />
 
       <main className="flex-grow-1 py-4">
         <Container>
