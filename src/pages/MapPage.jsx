@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { Badge, Button, ButtonGroup } from 'react-bootstrap'
 import PageHeader from '../components/PageHeader'
@@ -13,6 +13,8 @@ import { WEATHER_ICON, WEATHER_LABEL, weatherKind } from '../lib/weather'
 const ALWAYS_LABELED = new Set(['seolmundae', 'ohbaek', 'samseonghyeol', 'yongduam', 'sanbang', 'seongsan', 'yeongdeung', 'songdang'])
 const MARKERS = MYTHS.map((m) => ({ id: m.id, name: m.title, lat: m.lat, lng: m.lng, color: m.color, label: ALWAYS_LABELED.has(m.id) ? undefined : false }))
 
+const clockText = () => new Date().toLocaleTimeString('ko-KR', { hour: 'numeric', minute: '2-digit' })
+
 // 탐라 지도 — 큰 3D 지도. 마커(또는 아래 칩)를 누르면 그 장소로 다가가고, X 로 전체 보기로 돌아온다
 export default function MapPage() {
   const { selectedMythId, selectMyth } = useAppStore()
@@ -23,14 +25,32 @@ export default function MapPage() {
   const now = modeAt()
   const [wsel, setWsel] = useState('auto')               // 'auto' = 지금 제주시의 실제 예보, 아니면 맑음·흐림·비·눈을 직접 골라 보기
   const real = weatherKind(useAppStore((s) => s.weather.제주시))
+  const [clock, setClock] = useState(() => clockText())   // 지금 시각 (30초마다 갱신)
+  useEffect(() => { const t = setInterval(() => setClock(clockText()), 30000); return () => clearInterval(t) }, [])
 
-  return (
+  // 전체화면: 가능하면 브라우저 전체화면(Fullscreen API)으로, 안 되는 곳(아이폰 등)은 화면을 꽉 채운 창으로. Esc 로 나온다
+  const [full, setFull] = useState(false)
+  const wrap = useRef(null)
+  const toggleFull = () => {
+    if (full) { if (document.fullscreenElement) document.exitFullscreen?.().catch(() => {}); setFull(false) }
+    else { setFull(true); wrap.current?.requestFullscreen?.().catch(() => {}) }
+  }
+  useEffect(() => {
+    if (!full) return
+    const onKey = (e) => { if (e.key === 'Escape') setFull(false) }
+    const onFs = () => { if (!document.fullscreenElement) setFull(false) }          // 브라우저가 Esc 로 전체화면을 끝냈을 때
+    const prev = document.body.style.overflow
+    document.body.style.overflow = 'hidden'
+    window.addEventListener('keydown', onKey)
+    document.addEventListener('fullscreenchange', onFs)
+    return () => { document.body.style.overflow = prev; window.removeEventListener('keydown', onKey); document.removeEventListener('fullscreenchange', onFs) }
+  }, [full])
+
+  const controls = (
     <>
-      <PageHeader icon="map" title="탐라 지도" subtitle={`실제 제주 해안선 위에 올린 신화 ${MYTHS.length}곳 · 드래그로 회전 · 지도를 클릭한 뒤 휠로 확대`} />
-      <div className="d-flex align-items-center gap-2 mb-2 flex-wrap">
         <ButtonGroup size="sm">
           <Button variant={sel === 'auto' ? 'primary' : 'outline-primary'} onClick={() => setSel('auto')}>
-            <i className="bi bi-clock me-1" />지금 ({MODES[now].label})
+            <i className="bi bi-clock me-1" />지금 {clock} ({MODES[now].label})
           </Button>
           {Object.entries(MODES).map(([k, v]) => (
             <Button key={k} variant={sel === k ? 'primary' : 'outline-primary'} onClick={() => setSel(k)}>
@@ -48,12 +68,22 @@ export default function MapPage() {
             </Button>
           ))}
         </ButtonGroup>
-      </div>
+    </>
+  )
+
+  return (
+    <>
+      <PageHeader icon="map" title="탐라 지도" subtitle={`실제 제주 해안선 위에 올린 신화 ${MYTHS.length}곳 · 드래그로 회전 · 지도를 클릭한 뒤 휠로 확대`} />
+      {!full && <div className="d-flex align-items-center gap-2 mb-2 flex-wrap">{controls}</div>}
       <p className="small text-body-secondary mb-2">시간대와 제주의 실제 날씨(기상청)에 따라 하늘과 풍경이 달라져요. 버튼으로 다른 모습도 볼 수 있어요.</p>
       {/* 지도 안에 카드가 떠서 신화 내용이 나온다 (아래로 스크롤할 필요 없음) */}
-      <div className="position-relative">
-        <Scene height="64vh" items={MARKERS} selectedId={selectedMythId} onSelect={(m) => selectMyth(m.id)} autoRotate
+      <div ref={wrap} className={`position-relative map-wrap ${full ? 'full' : ''}`}>
+        <Scene height={full ? '100dvh' : '64vh'} items={MARKERS} selectedId={selectedMythId} onSelect={(m) => selectMyth(m.id)} autoRotate
           mode={sel === 'auto' ? undefined : sel} weather={wsel === 'auto' ? undefined : wsel} />
+        {full && <div className="map-full-controls">{controls}</div>}
+        <Button variant="dark" size="sm" className="map-full-btn" onClick={toggleFull} aria-label={full ? '전체화면 끝내기' : '전체화면'} title={full ? '전체화면 끝내기 (Esc)' : '전체화면'}>
+          <i className={`bi bi-${full ? 'fullscreen-exit' : 'arrows-fullscreen'}`} />{full && <span className="ms-1">나가기</span>}
+        </Button>
         {myth ? (
           <div className="scene-overlay map-card" key={myth.id}>
             <div className="d-flex align-items-start gap-2">

@@ -18,6 +18,14 @@ body { font-family: 'Pretendard', system-ui, sans-serif; }
 }
 .marker-label.on { background: #ffd166; color: #1a0b3d; border-color: #ffd166; }
 
+/* 탐라 지도 전체화면 (브라우저 전체화면이 안 되는 곳에서도 화면을 꽉 채운다) */
+.map-wrap.full { position: fixed !important; inset: 0; z-index: 1040; background: #0b0620; }
+.map-wrap.full .scene { border-radius: 0 !important; border: 0; }
+.map-full-btn { position: absolute; top: 12px; right: 12px; z-index: 6; background: rgba(15, 8, 40, .75); border-color: rgba(255, 255, 255, .25); }
+.map-full-controls { position: absolute; left: 12px; top: 12px; z-index: 6; max-width: calc(100% - 140px); display: flex; flex-direction: column; align-items: flex-start; gap: .4rem; padding: .5rem; border-radius: .75rem; background: rgba(15, 8, 40, .7); backdrop-filter: blur(6px); }
+.map-full-controls .btn-group { flex-wrap: wrap; }
+.map-wrap.full .map-card { bottom: 16px; }
+
 /* 3D 위에 겹쳐 보이는 설명 카드 */
 .scene-overlay {
   position: absolute; left: 12px; right: 12px; bottom: 12px; max-width: 460px;
@@ -372,3 +380,8 @@ body { font-family: 'Pretendard', system-ui, sans-serif; }
 .notif-item:hover { background: var(--bs-tertiary-bg); }
 .notif-item.unread { border-color: var(--bs-primary-text-emphasis); background: var(--bs-primary-bg-subtle); }
 .notif-emoji { flex: none; width: 40px; height: 40px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 1.3rem; background: var(--bs-tertiary-bg); }
+/* 전체화면 컨트롤은 어두운 3D 위에 뜨므로 밝은 글자로 */
+.map-full-controls .btn-outline-primary { --bs-btn-color: #fff; --bs-btn-border-color: rgba(255, 255, 255, .45); --bs-btn-hover-bg: #4a6a8a; --bs-btn-hover-border-color: #4a6a8a; --bs-btn-hover-color: #fff; }
+.map-full-controls .btn-outline-success { --bs-btn-color: #a6efcf; --bs-btn-border-color: rgba(166, 239, 207, .5); --bs-btn-hover-bg: #1f9d6b; --bs-btn-hover-border-color: #1f9d6b; --bs-btn-hover-color: #fff; }
+.map-full-controls .btn-primary { --bs-btn-bg: #4a6a8a; --bs-btn-border-color: #5b7fa6; --bs-btn-hover-bg: #5b7fa6; --bs-btn-active-bg: #5b7fa6; }
+.map-full-controls .btn-success { --bs-btn-bg: #1f9d6b; --bs-btn-border-color: #1f9d6b; }
