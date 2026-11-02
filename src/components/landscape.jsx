@@ -12,7 +12,7 @@ const noRay = () => null
 const rngOf = (seed) => () => ((seed = (seed * 16807) % 2147483647) / 2147483647)
 
 // 모양 하나를 여러 부품(원기둥·원뿔·구)으로 만들고 부품마다 색을 칠해 한 덩어리로 합친다
-function part(geo, color, { x = 0, y = 0, z = 0, rx = 0, rz = 0, sx = 1, sy = 1, sz = 1 } = {}) {
+export function part(geo, color, { x = 0, y = 0, z = 0, rx = 0, rz = 0, sx = 1, sy = 1, sz = 1 } = {}) {
   const g = geo.clone()
   g.scale(sx, sy, sz); g.rotateX(rx); g.rotateZ(rz); g.translate(x, y, z)
   const c = new THREE.Color(color), n = g.attributes.position.count, arr = new Float32Array(n * 3)
@@ -21,10 +21,10 @@ function part(geo, color, { x = 0, y = 0, z = 0, rx = 0, rz = 0, sx = 1, sy = 1,
   g.deleteAttribute('uv')
   return g
 }
-const cyl = (r0, r1, h, seg = 6) => new THREE.CylinderGeometry(r1, r0, h, seg)
-const cone = (r, h, seg = 7) => new THREE.ConeGeometry(r, h, seg)
-const ball = (r, d = 1) => new THREE.IcosahedronGeometry(r, d)
-const merge = (parts) => mergeGeometries(parts.map((p) => (p.index ? p.toNonIndexed() : p)))
+export const cyl = (r0, r1, h, seg = 6) => new THREE.CylinderGeometry(r1, r0, h, seg)
+export const cone = (r, h, seg = 7) => new THREE.ConeGeometry(r, h, seg)
+export const ball = (r, d = 1) => new THREE.IcosahedronGeometry(r, d)
+export const merge = (parts) => mergeGeometries(parts.map((p) => (p.index ? p.toNonIndexed() : p)))
 
 const GEO = {
   conifer: () => merge([

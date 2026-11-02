@@ -8,6 +8,7 @@ import { weatherKind } from '../lib/weather'
 import { useAppStore } from '../store/useAppStore'
 import { Boats, Clouds, Fireflies, Gulls, Lamps, Moon, Precip, Sun } from './skyThings'
 import Landscape from './landscape'
+import { Dolphins, Islets, Mainland, WavySea } from './sea'
 
 // 섬을 이 배율로 키워 보여 준다 (지형·오름·나무·마커가 모두 같은 비율로 커진다). 카메라 목표 같은 '월드 좌표'는 이 값을 곱해 쓴다
 const WORLD = 1.5
@@ -103,20 +104,8 @@ function Oreums({ count = 368 }) {
 function Abyss() {
   return (
     <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, -0.76, 0]} receiveShadow>
-      <planeGeometry args={[140, 90]} />
+      <planeGeometry args={[320, 220]} />
       <meshStandardMaterial color="#05153a" roughness={0.95} />
-    </mesh>
-  )
-}
-
-// 바다: 반투명이라 아래 해저 그라데이션(얕은 청록 → 깊은 남색)이 비친다
-function Sea({ color, opacity }) {
-  const ref = useRef()
-  useFrame(({ clock }) => { ref.current.position.y = Math.sin(clock.elapsedTime * 0.7) * 0.012 })
-  return (
-    <mesh ref={ref} rotation={[-Math.PI / 2, 0, 0]} receiveShadow>
-      <planeGeometry args={[80, 50]} />
-      <meshPhysicalMaterial color={color} transparent opacity={opacity} roughness={0.12} metalness={0.25} clearcoat={0.6} />
     </mesh>
   )
 }
@@ -253,11 +242,14 @@ export default function Jeju3D({ items = [], selectedId, onSelect, height = 460,
         )}
         {(w === 'rain' || w === 'snow') && <Precip kind={w} />}
         <Abyss />
-        <Sea color={T.sea} opacity={T.seaOpacity} />
+        <WavySea color={T.sea} opacity={T.seaOpacity} />
         <group scale={WORLD}>
           <Island />
           <Oreums />
           <Landscape />
+          <Islets />
+          <Mainland />
+          <Dolphins />
           <Halo sparkles={m !== 'morning'} />
           {pins.map((m, i) => <Marker key={m.id} m={m} index={i} selected={m.id === selectedId} onSelect={onSelect} />)}
         </group>
