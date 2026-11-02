@@ -221,3 +221,9 @@ body { font-family: 'Pretendard', system-ui, sans-serif; }
 .level-item.done:not(:last-child)::after { background: var(--bs-primary); }
 .level-item:not(.mine):not(.done) .level-dot { opacity: .75; }
 .level-item.mine { background: rgba(var(--bs-primary-rgb), .08); outline: 1px solid rgba(var(--bs-primary-rgb), .35); }
+
+/* 지도 안에 뜨는 신화 카드 */
+.map-card { max-width: 420px; animation: card-in .3s ease; }
+.map-card-story { max-height: 26vh; overflow-y: auto; line-height: 1.55; }
+@keyframes card-in { from { opacity: 0; transform: translateY(10px); } }
+@media (max-width: 575px) { .map-card { max-width: none; } }
