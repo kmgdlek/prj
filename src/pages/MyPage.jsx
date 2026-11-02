@@ -16,11 +16,13 @@ import { couponState, couponText } from '../lib/coupon'
 import { pointsSummary } from '../lib/checkout'
 import { getRecent } from '../lib/recent'
 import { won } from '../lib/format'
+import { GAPS, PREF_GROUPS } from '../lib/notify'
+import { KINDS } from '../../server/myths'
 
 const TABS = [
   ['summary', 'house', '요약'], ['orders', 'truck', '주문·배송'], ['coupons', 'ticket-perforated', '쿠폰함'],
   ['points', 'coin', '적립금'], ['wish', 'heart', '찜한 상품'], ['recent', 'clock-history', '최근 본 상품'],
-  ['reviews', 'chat-square-text', '내 후기'], ['settings', 'gear', '계정 설정'], ['help', 'question-circle', '고객센터'],
+  ['reviews', 'chat-square-text', '내 후기'], ['notify', 'bell', '알림 설정'], ['settings', 'gear', '계정 설정'], ['help', 'question-circle', '고객센터'],
 ]
 
 // 마이페이지 — 쇼핑몰의 "내 정보" 모음. ?tab=coupons 처럼 주소로 바로 열 수 있다
@@ -75,6 +77,7 @@ export default function MyPage() {
       {tab === 'wish' && <ProductGrid ids={wish.map((f) => f.item_id)} empty="찜한 상품이 없어요. 장터에서 하트를 눌러 보세요." />}
       {tab === 'recent' && <ProductGrid ids={getRecent()} empty="최근 본 상품이 없어요." />}
       {tab === 'reviews' && <MyReviews />}
+      {tab === 'notify' && <NotifySettings />}
       {tab === 'settings' && <Settings />}
       {tab === 'help' && <Help />}
     </>
@@ -263,6 +266,68 @@ function MyReviews() {
 }
 
 // 계정 설정: 프로필 사진 · 닉네임 · 비밀번호 · 로그아웃
+// 알림 설정: 맨 위 스위치로 알림 전체를 끄고 켜고, 그 아래에서 받고 싶은 알림만 고른다 (바꾸면 바로 저장)
+function NotifySettings() {
+  const { notifPrefs: p, setNotifPrefs, toast } = useAppStore()
+  const save = (patch) => setNotifPrefs(patch).catch((e) => toast(e.message, 'danger'))
+  const off = !p.enabled
+  const toggleKind = (k) => {
+    const kinds = p.kinds.includes(k) ? p.kinds.filter((x) => x !== k) : [...p.kinds, k]
+    if (kinds.length) save({ kinds })                          // 분류는 최소 하나는 남긴다
+  }
+  return (
+    <Row className="g-3">
+      <Col lg={8}>
+        <Card className="mb-3"><Card.Body className="d-flex align-items-center gap-3 flex-wrap">
+          <i className={`bi bi-bell${off ? '-slash' : ''}-fill fs-2 ${off ? 'text-body-secondary' : 'text-primary'}`} />
+          <div className="flex-grow-1" style={{ minWidth: 160 }}>
+            <div className="fw-bold">{off ? '알림이 꺼져 있어요' : '알림이 켜져 있어요'}</div>
+            <div className="small text-body-secondary">{off ? '새 알림이 오지 않고, 아래 설정은 다시 켜면 적용돼요' : '끄면 추천 물건·장소 알림을 모두 받지 않아요'}</div>
+          </div>
+          <Button variant={off ? 'primary' : 'outline-danger'} className="text-nowrap" onClick={() => save({ enabled: off })}>
+            <i className={`bi bi-bell${off ? '' : '-slash'} me-1`} />{off ? '알림 켜기' : '알림 끄기'}
+          </Button>
+        </Card.Body></Card>
+
+        <div style={off ? { opacity: .5, pointerEvents: 'none' } : undefined} aria-disabled={off}>
+          {PREF_GROUPS.map((g) => (
+            <Card key={g.title} className="mb-3"><Card.Body>
+              <h6 className="fw-bold mb-3"><i className={`bi bi-${g.icon} me-2 text-primary`} />{g.title}</h6>
+              {g.items.map(([k, title, desc]) => (
+                <Form.Check key={k} type="switch" id={`np-${k}`} className="mb-3" label={<><span className="fw-bold">{title}</span><div className="small text-body-secondary">{desc}</div></>}
+                  checked={!!p[k]} onChange={(e) => save({ [k]: e.target.checked })} />
+              ))}
+              {g.title === '추천 장소' && (
+                <div className="ms-4">
+                  <div className="small text-body-secondary mb-1">추천받을 분류</div>
+                  <div className="d-flex gap-2 flex-wrap">
+                    {KINDS.map((k) => (
+                      <Form.Check key={k} inline type="checkbox" id={`nk-${k}`} label={k} checked={p.kinds.includes(k)} disabled={!p.place} onChange={() => toggleKind(k)} />
+                    ))}
+                  </div>
+                </div>
+              )}
+            </Card.Body></Card>
+          ))}
+
+          <Card className="mb-3"><Card.Body>
+            <h6 className="fw-bold mb-3"><i className="bi bi-sliders me-2 text-primary" />받는 방식</h6>
+            <div className="mb-3">
+              <div className="fw-bold">추천 물건 알림 간격</div>
+              <div className="small text-body-secondary mb-2">타임특가 추천이 이 간격보다 자주 오지 않아요</div>
+              <div className="d-flex gap-3 flex-wrap">
+                {GAPS.map((g) => <Form.Check key={g.min} type="radio" name="gap" id={`gap-${g.min}`} label={g.label} checked={p.gap === g.min} onChange={() => save({ gap: g.min })} />)}
+              </div>
+            </div>
+            <Form.Check type="switch" id="np-toast" label={<><span className="fw-bold">팝업으로도 알려 주기</span><div className="small text-body-secondary">새 알림이 오면 화면 아래에 잠깐 보여 줘요</div></>}
+              checked={p.toast} onChange={(e) => save({ toast: e.target.checked })} />
+          </Card.Body></Card>
+        </div>
+      </Col>
+    </Row>
+  )
+}
+
 function Settings() {
   const { user, uploadAvatar, removeAvatar, updateNickname, changePassword, signOut, toast } = useAppStore()
   const navigate = useNavigate()

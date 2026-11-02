@@ -361,3 +361,11 @@ body { font-family: 'Pretendard', system-ui, sans-serif; }
 .roll-inner > span { height: 50%; display: block; text-align: center; }
 @keyframes roll-down { from { transform: translateY(-50%); } to { transform: translateY(0); } }
 @media (prefers-reduced-motion: reduce) { .roll-inner { animation-duration: .01s; } }
+
+/* ── 알림창 ── */
+.notif-panel { --bs-offcanvas-width: min(400px, 100vw); }
+.notif-list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: .5rem; }
+.notif-item { width: 100%; display: flex; gap: .75rem; align-items: flex-start; padding: .75rem; border: 1px solid var(--bs-border-color); border-radius: .75rem; background: var(--bs-body-bg); color: inherit; transition: background .15s; }
+.notif-item:hover { background: var(--bs-tertiary-bg); }
+.notif-item.unread { border-color: var(--bs-primary-text-emphasis); background: var(--bs-primary-bg-subtle); }
+.notif-emoji { flex: none; width: 40px; height: 40px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 1.3rem; background: var(--bs-tertiary-bg); }

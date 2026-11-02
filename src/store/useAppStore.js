@@ -6,9 +6,15 @@ import { levelOf, totalSpent } from '../lib/level'
 import { STATUS } from '../lib/order'
 import { DAY, PROMO_CODES, gradeCouponsFor } from '../lib/coupon'
 import { calcCheckout, pointsSummary } from '../lib/checkout'
+import { DEFAULT_PREFS, buildNotifications, mergeNotifs } from '../lib/notify'
 import { resizeToJpeg } from '../lib/image'
 
 const pendingFav = new Set()   // 저장·삭제가 진행 중인 항목 키 (연타 방지)
+const safeLS = {
+  get: (k) => { try { return JSON.parse(localStorage.getItem(k)) } catch { return null } },
+  set: (k, v) => { try { localStorage.setItem(k, JSON.stringify(v)) } catch { /* 저장 못 해도 이번 접속엔 동작 */ } },
+}
+const notifKey = (user) => `tamra-notifs:${user?.id ?? 'guest'}`
 let lastOverrideLoad = 0
 let authStarted = false        // StrictMode 에서 구독이 두 번 걸리지 않게
 
@@ -44,16 +50,18 @@ export const useAppStore = create((set, get) => ({
     if (authStarted) return
     authStarted = true
     get().loadStock(); get().loadReviews(); get().loadOverrides()               // 재고·후기는 누구나 볼 수 있어서 로그인 전에도
-    if (!supabase) return set({ authReady: true })
+    if (!supabase) { get().loadNotifs(); return set({ authReady: true }) }
     const { data } = await supabase.auth.getSession()
     set({ user: data.session?.user ?? null, authReady: true })
     if (get().user) get().loadUserData()
+    get().loadNotifs()
     supabase.auth.onAuthStateChange((_event, session) => {
       const user = session?.user ?? null
       const changed = user?.id !== get().user?.id
       set({ user })
       if (!changed) return
-      set({ favorites: [], cart: [], orders: [], coupons: [], messages: [], isAdmin: false })     // 다른 사람의 데이터가 남지 않게 비움
+      set({ favorites: [], cart: [], orders: [], coupons: [], messages: [], isAdmin: false })
+      get().loadNotifs()     // 다른 사람의 데이터가 남지 않게 비움
       if (user) get().loadUserData()
     })
   },
@@ -193,6 +201,46 @@ export const useAppStore = create((set, get) => ({
   rawStockOf: (id) => get().stock[id] ?? productOf(id)?.stock ?? 0,                  // DB(또는 기본) 재고
   stockOf: (id) => liveStock(get().rawStockOf(id), id, get().stockSlot),              // 화면에 보이는 재고 (10분마다 변동)
   // 시세는 1분마다, 재고는 10분마다 바뀐다: 슬롯 번호가 바뀌면 값을 갱신해 화면을 다시 그린다 (RootLayout 이 2초마다 확인)
+  // ⑮ 알림 — 추천 물건·장소·찜한 상품 소식. 목록은 이 브라우저에(계정별로) 저장하고, 설정은 로그인했다면 계정(user_metadata)에도 저장해 다른 기기에서도 같게 보인다
+  notifs: [],
+  notifsReady: false,         // 저장된 알림을 불러오기 전에 새 알림을 만들면 덮어쓰므로, 불러온 뒤에만 만든다
+  notifPrefs: { ...DEFAULT_PREFS, ...(safeLS.get('tamra-notif-prefs') ?? {}) },
+  loadNotifs: () => {
+    const { user } = get()
+    const meta = user?.user_metadata?.notif_prefs
+    set({ notifsReady: true, notifs: safeLS.get(notifKey(user)) ?? [], ...(meta ? { notifPrefs: { ...DEFAULT_PREFS, ...meta } } : {}) })
+  },
+  setNotifPrefs: async (patch) => {
+    const notifPrefs = { ...get().notifPrefs, ...patch }
+    set({ notifPrefs })
+    safeLS.set('tamra-notif-prefs', notifPrefs)
+    if (supabase && get().user) await supabase.auth.updateUser({ data: { notif_prefs: notifPrefs } })
+  },
+  // 지금 상황을 보고 새 알림을 만든다 (RootLayout 이 시세가 바뀔 때마다 부른다)
+  runNotifier: () => {
+    const { notifPrefs: prefs, notifs, user } = get()
+    if (!prefs.enabled || !get().notifsReady) return
+    const now = Date.now()
+    const fresh = buildNotifications({ now, slot: get().slot, stockSlot: get().stockSlot, favorites: get().favorites, weather: get().weather, prefs, notifs, stockOf: get().stockOf })
+    if (!notifs.some((n) => n.id === 'welcome')) {
+      fresh.push({ id: 'welcome', topic: 'welcome', tag: '안내', emoji: '🔔', title: '알림이 켜져 있어요', body: '추천 물건과 장소, 찜한 상품 소식이 여기에 모여요. 마이페이지에서 끄거나 고를 수 있어요', to: '/mypage?tab=notify', at: now, read: false })
+    }
+    if (!fresh.length) return
+    const next = mergeNotifs(fresh, notifs)
+    set({ notifs: next })
+    safeLS.set(notifKey(user), next)
+    if (prefs.toast) get().toast(fresh[0].title, 'secondary')
+  },
+  markNotifRead: (id) => {
+    const next = get().notifs.map((n) => (n.id === id ? { ...n, read: true } : n))
+    set({ notifs: next }); safeLS.set(notifKey(get().user), next)
+  },
+  markAllNotifsRead: () => {
+    const next = get().notifs.map((n) => ({ ...n, read: true }))
+    set({ notifs: next }); safeLS.set(notifKey(get().user), next)
+  },
+  clearNotifs: () => { set({ notifs: [] }); safeLS.set(notifKey(get().user), []) },
+
   // ⑭ 관리자 — shop_admins 에 내 id 가 있으면 관리자. 관리자만 시세를 직접 정할 수 있다 (RLS 가 DB 에서 막음)
   isAdmin: false,
   priceVer: 0,                 // 관리자가 정한 가격이 바뀌면 올라가서 화면을 다시 그리게 한다
