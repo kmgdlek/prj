@@ -1,22 +1,30 @@
-import { useState } from 'react'
-import { Link, Navigate, useLocation, useNavigate } from 'react-router-dom'
+import { useEffect, useState } from 'react'
+import { Link, Navigate, useLocation } from 'react-router-dom'
 import { Alert, Button, Card, Form } from 'react-bootstrap'
 import PageHeader from '../components/PageHeader'
 import { isSupabaseReady } from '../lib/supabase'
 import { authErrorMessage } from '../lib/authError'
 import { useAppStore } from '../store/useAppStore'
 
-// 회원가입 전용 화면 (로그인은 /login). 이메일 인증을 켜 둔 프로젝트면 가입 뒤 로그인 화면으로 보낸다
+// 회원가입 전용 화면 (로그인은 /login). 가입하면 '가입 완료' 화면을 보여 준다:
+// 이메일 인증을 켜 둔 프로젝트면 인증 메일 안내(다시 보내기 포함), 꺼 둔 프로젝트면 바로 환영 + 갈 곳 안내
 export default function Signup() {
-  const { user, signUp, toast } = useAppStore()
-  const navigate = useNavigate()
+  const { user, signUp, resendConfirm, toast } = useAppStore()
   const from = useLocation().state?.from ?? '/'
   const [form, setForm] = useState({ nickname: '', email: '', password: '', password2: '' })
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState('')
+  const [done, setDone] = useState(null)             // 가입 완료 정보 { needsConfirm, email, nickname }
+  const [wait, setWait] = useState(0)                // 인증 메일 다시 보내기 대기 초
+  useEffect(() => {
+    if (wait <= 0) return
+    const t = setTimeout(() => setWait((w) => w - 1), 1000)
+    return () => clearTimeout(t)
+  }, [wait])
   const set = (k) => (e) => setForm({ ...form, [k]: e.target.value })
 
-  if (user) return <Navigate to={from} replace />
+  if (done) return <Done done={done} from={from} wait={wait} onResend={resend} />
+  if (user && !busy) return <Navigate to={from} replace />          // 가입 처리 중에는 로그인 상태가 먼저 바뀌어도 이동하지 않는다 (완료 화면을 보여 주려고)
 
   async function onSubmit(e) {
     e.preventDefault()
@@ -24,18 +32,18 @@ export default function Signup() {
     setBusy(true); setError('')
     try {
       const { needsConfirm } = await signUp(form)
-      if (needsConfirm) {
-        toast('가입 완료! 메일함의 인증 링크를 누른 뒤 로그인하세요', 'info')
-        navigate('/login', { replace: true, state: { from } })
-      } else {
-        toast('가입하고 로그인했어요')
-        navigate(from, { replace: true })
-      }
+      setDone({ needsConfirm, email: form.email.trim(), nickname: form.nickname.trim() })
+      setWait(60)
     } catch (err) {
       setError(authErrorMessage(err))
     } finally {
       setBusy(false)
     }
+  }
+
+  async function resend() {
+    try { await resendConfirm(done.email); setWait(60); toast('인증 메일을 다시 보냈어요', 'info') }
+    catch (err) { toast(authErrorMessage(err), 'danger') }
   }
 
   return (
@@ -69,6 +77,41 @@ export default function Signup() {
       <p className="text-center mt-3 mb-0 small">
         이미 계정이 있나요? <Link to="/login" state={{ from }}>로그인</Link>
       </p>
+    </div>
+  )
+}
+
+// 가입 완료 화면
+function Done({ done, from, wait, onResend }) {
+  return (
+    <div className="mx-auto text-center" style={{ maxWidth: 480 }}>
+      <Card><Card.Body className="py-5 px-4">
+        <i className={`bi bi-${done.needsConfirm ? 'envelope-check' : 'check-circle'} display-3 text-success`} />
+        <h3 className="fw-bold mt-3">{done.needsConfirm ? '가입 완료! 메일을 확인해 주세요' : `환영해요, ${done.nickname}님!`}</h3>
+        {done.needsConfirm ? (
+          <>
+            <p className="text-body-secondary mb-3"><b>{done.email}</b> 로 인증 메일을 보냈어요.</p>
+            <ol className="text-start small mx-auto mb-4" style={{ maxWidth: 340 }}>
+              <li>메일함을 열어요 (안 보이면 스팸함도 확인)</li>
+              <li>메일 안의 <b>인증 링크</b>를 눌러요</li>
+              <li>돌아와서 로그인하면 끝!</li>
+            </ol>
+            <div className="d-grid gap-2">
+              <Button as={Link} to="/login" state={{ from }}>로그인하러 가기</Button>
+              <Button variant="outline-secondary" disabled={wait > 0} onClick={onResend}>{wait > 0 ? `인증 메일 다시 보내기 (${wait}초 뒤)` : '인증 메일 다시 보내기'}</Button>
+            </div>
+          </>
+        ) : (
+          <>
+            <p className="text-body-secondary mb-4">가입이 끝나 바로 로그인됐어요. 이제 별자리·장바구니·주문이 내 계정에 저장돼요.</p>
+            <div className="d-grid gap-2">
+              <Button as={Link} to="/shop"><i className="bi bi-bag-heart me-1" />제주 장터 구경하기</Button>
+              <Button as={Link} to="/map" variant="outline-primary"><i className="bi bi-map me-1" />3D 지도 보기</Button>
+              {from !== '/' && <Button as={Link} to={from} variant="link">가려던 곳으로 돌아가기</Button>}
+            </div>
+          </>
+        )}
+      </Card.Body></Card>
     </div>
   )
 }

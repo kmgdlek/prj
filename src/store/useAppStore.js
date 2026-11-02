@@ -71,6 +71,12 @@ export const useAppStore = create((set, get) => ({
     if (error) throw error
     return { needsConfirm: !data.session }              // 이메일 인증을 켜 둔 프로젝트면 세션이 바로 안 생긴다
   },
+  // 인증 메일 다시 보내기 (가입 완료 화면의 버튼)
+  resendConfirm: async (email) => {
+    if (!supabase) throw new Error('Supabase 설정(.env.local)이 필요해요')
+    const { error } = await supabase.auth.resend({ type: 'signup', email, options: { emailRedirectTo: window.location.origin } })
+    if (error) throw error
+  },
   signIn: async ({ email, password }) => {
     if (!supabase) throw new Error('Supabase 설정(.env.local)이 필요해요')
     const { error } = await supabase.auth.signInWithPassword({ email, password })
