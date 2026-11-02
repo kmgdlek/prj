@@ -5,7 +5,8 @@ import { fetchImages } from '../api/client'
 import { won } from '../lib/format'
 import { useAppStore } from '../store/useAppStore'
 import { MYTHS } from '../../server/myths'
-import { MAX_PER_ITEM, PRODUCTS, productOf, salePrice } from '../../server/products'
+import { MAX_PER_ITEM, PRODUCTS, basePrice, discountPct, flashRate, liveStock, productOf, salePrice, trendOf } from '../../server/products'
+import SlotTimer from '../components/SlotTimer'
 import { Empty } from '../components/Status'
 import { FavButton } from '../components/ItemCard'
 import { Stars, ratingOf } from '../components/StarRating'
@@ -21,7 +22,9 @@ export default function ProductDetail() {
   const selectMyth = useAppStore((s) => s.selectMyth)
   const reviews = useAppStore((s) => s.reviews)
   const deleteReview = useAppStore((s) => s.deleteReview)
-  const stock = useAppStore((s) => s.stock[id] ?? p?.stock ?? 0)
+  const slot = useAppStore((s) => s.slot)               // 10분마다 바뀌는 시세·재고 번호
+  const rawStock = useAppStore((s) => s.stock[id] ?? p?.stock ?? 0)
+  const stock = liveStock(rawStock, id, slot)
   const inCart = useAppStore((s) => s.cart.find((c) => c.product_id === id)?.qty ?? 0)
   const [images, setImages] = useState([])
   const [shown, setShown] = useState(0)
@@ -90,14 +93,21 @@ export default function ProductDetail() {
           <p className="text-body-secondary">{p.desc}</p>
           {/* 왼쪽에 항목 이름을 붙인 가격 표: 일반판매가 → 할인가(깎인 금액) → 현재가(최종) */}
           <dl className="price-rows mb-3">
-            {p.discount > 0 && (
+            {discountPct(p, slot) > 0 && (
               <>
                 <dt>일반판매가</dt><dd className="text-body-secondary text-decoration-line-through">{won(p.price)}</dd>
-                <dt>할인가</dt><dd className="text-danger fw-bold">-{won(p.price - salePrice(p))} ({p.discount}%)</dd>
+                {p.discount > 0 && <><dt>할인가</dt><dd className="text-danger fw-bold">-{won(p.price - basePrice(p))} ({p.discount}%)</dd></>}
+                {flashRate(p, slot) > 0 && <><dt>타임특가</dt><dd className="text-danger fw-bold">-{won(basePrice(p) - salePrice(p, slot))} (⚡ {flashRate(p, slot)}% 추가)</dd></>}
               </>
             )}
-            <dt className="price-now-label">현재가</dt><dd className="price-now">{won(salePrice(p))}</dd>
+            <dt className="price-now-label">현재가</dt>
+            <dd className="price-now">
+              {won(salePrice(p, slot))}
+              {trendOf(p, slot) < 0 && <span className="trend-down ms-2">▼ 10분 전보다 {won(-trendOf(p, slot))} 내림</span>}
+              {trendOf(p, slot) > 0 && <span className="trend-up ms-2">▲ 10분 전보다 {won(trendOf(p, slot))} 오름</span>}
+            </dd>
           </dl>
+          <div className="small text-body-secondary mb-3"><i className="bi bi-lightning-charge-fill text-danger me-1" />10분마다 시세와 재고가 바뀌어요 · 다음 변동까지 <SlotTimer /></div>
 
           <Card className="mb-3"><Card.Body className="small">
             <div className="d-flex gap-2"><i className="bi bi-truck" /> 과제용 샘플 상품이라 실제 배송은 이루어지지 않아요</div>
@@ -114,7 +124,7 @@ export default function ProductDetail() {
               <strong style={{ minWidth: 28, textAlign: 'center' }}>{qty}</strong>
               <Button size="sm" variant="outline-secondary" aria-label="하나 더하기" disabled={qty >= maxQty} onClick={() => setQty(qty + 1)}><i className="bi bi-plus" /></Button>
             </div>
-            <span className="ms-auto">합계 <strong className="fs-5 ms-1">{won(salePrice(p) * qty)}</strong></span>
+            <span className="ms-auto">합계 <strong className="fs-5 ms-1">{won(salePrice(p, slot) * qty)}</strong></span>
           </div>
 
           {!user && <Alert variant="info" className="py-2 small"><Link to="/login" state={{ from: `/shop/${p.id}` }}>로그인</Link>하면 장바구니에 담을 수 있어요.</Alert>}
@@ -131,7 +141,7 @@ export default function ProductDetail() {
         <tbody>
           <tr><th style={{ width: 120 }} className="bg-body-tertiary">상품명</th><td>{p.name}</td></tr>
           <tr><th className="bg-body-tertiary">분류</th><td>{p.category}</td></tr>
-          <tr><th className="bg-body-tertiary">판매가</th><td>{p.discount > 0 ? <><s className="text-body-secondary me-2">{won(p.price)}</s>{won(salePrice(p))} <span className="text-danger small">-{won(p.price - salePrice(p))} ({p.discount}%)</span></> : won(p.price)}</td></tr>
+          <tr><th className="bg-body-tertiary">판매가</th><td>{discountPct(p, slot) > 0 ? <><s className="text-body-secondary me-2">{won(p.price)}</s>{won(salePrice(p, slot))} <span className="text-danger small">-{won(p.price - salePrice(p, slot))} ({discountPct(p, slot)}%)</span></> : won(p.price)}</td></tr>
           <tr><th className="bg-body-tertiary">설명</th><td>{p.desc}</td></tr>
         </tbody>
       </Table>
@@ -184,7 +194,7 @@ export default function ProductDetail() {
               <Col key={r.id}>
                 <Card as={Link} to={`/shop/${r.id}`} className="h-100 item-card text-decoration-none">
                   <div className="product-tile" style={{ background: `linear-gradient(135deg, ${r.color}, #1a0b3d)`, height: 90, fontSize: '2.5rem' }}>{r.emoji}</div>
-                  <Card.Body className="p-2"><div className="small fw-bold">{r.name}</div><div className="small">{r.discount > 0 && <span className="text-danger fw-bold me-1">{r.discount}%</span>}{won(salePrice(r))}</div></Card.Body>
+                  <Card.Body className="p-2"><div className="small fw-bold">{r.name}</div><div className="small">{discountPct(r, slot) > 0 && <span className="text-danger fw-bold me-1">{discountPct(r, slot)}%</span>}{won(salePrice(r, slot))}</div></Card.Body>
                 </Card>
               </Col>
             ))}

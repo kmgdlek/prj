@@ -9,7 +9,7 @@ import { Stars } from '../components/StarRating'
 import { FavButton } from '../components/ItemCard'
 import { Empty } from '../components/Status'
 import { displayName, useAppStore } from '../store/useAppStore'
-import { productOf, salePrice } from '../../server/products'
+import { discountPct, productOf, salePrice } from '../../server/products'
 import { STATUS, STEPS, stageOf, statusOf } from '../lib/order'
 import { couponState, couponText } from '../lib/coupon'
 import { pointsSummary } from '../lib/checkout'
@@ -224,7 +224,7 @@ function ProductGrid({ ids, empty }) {
             </Link>
             <Card.Body className="d-flex flex-column p-2">
               <Link to={`/shop/${p.id}`} className="small fw-bold text-reset text-decoration-none">{p.name}</Link>
-              <div className="small mb-2">{p.discount > 0 && <span className="text-danger fw-bold me-1">{p.discount}%</span>}{won(salePrice(p))}</div>
+              <div className="small mb-2">{discountPct(p) > 0 && <span className="text-danger fw-bold me-1">{discountPct(p)}%</span>}{won(salePrice(p))}</div>
               <div className="d-flex gap-1 mt-auto">
                 <FavButton fav={{ source: 'product', id: p.id, title: p.name }} icon="heart" label={false} />
                 <Button size="sm" className="flex-fill" onClick={() => addToCart(p.id)}><i className="bi bi-cart-plus" /></Button>

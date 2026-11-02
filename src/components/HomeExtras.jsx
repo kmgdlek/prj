@@ -2,7 +2,8 @@ import { useEffect } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { Badge, Button, Card, Col, Row } from 'react-bootstrap'
 import { MYTHS } from '../../server/myths'
-import { PRODUCTS, salePrice } from '../../server/products'
+import { PRODUCTS, discountPct, salePrice } from '../../server/products'
+import SlotTimer from './SlotTimer'
 import { useAppStore } from '../store/useAppStore'
 import { won } from '../lib/format'
 
@@ -11,11 +12,12 @@ export default function HomeExtras() {
   const navigate = useNavigate()
   const selectMyth = useAppStore((s) => s.selectMyth)
   const images = useAppStore((s) => s.productImages)
+  const slot = useAppStore((s) => s.slot)               // 10분마다 특가 상품이 바뀐다
   const loadProductImages = useAppStore((s) => s.loadProductImages)
   useEffect(() => { loadProductImages() }, [loadProductImages])
   const day = Math.floor(Date.now() / 86400000)
   const myth = MYTHS[day % MYTHS.length]
-  const deals = [...PRODUCTS].sort((a, b) => b.discount - a.discount).slice(0, 4)
+  const deals = [...PRODUCTS].sort((a, b) => discountPct(b, slot) - discountPct(a, slot)).slice(0, 4)
 
   return (
     <Row className="g-3 mt-2">
@@ -33,7 +35,7 @@ export default function HomeExtras() {
       <Col lg={7}>
         <Card className="h-100"><Card.Body>
           <div className="d-flex align-items-center mb-2">
-            <div className="small text-body-secondary"><i className="bi bi-tags me-1" />오늘의 특가</div>
+            <div className="small text-body-secondary"><i className="bi bi-lightning-charge-fill text-danger me-1" />지금의 특가 · 다음 변동 <SlotTimer /></div>
             <Link to="/shop" className="ms-auto small">전체 보기</Link>
           </div>
           <Row xs={2} md={4} className="g-2">
@@ -44,7 +46,7 @@ export default function HomeExtras() {
                     ? <img src={images[p.id].url} alt={p.name} loading="lazy" className="deal-img" />
                     : <div className="deal-img d-flex align-items-center justify-content-center fs-2" style={{ background: `linear-gradient(135deg, ${p.color}, #1a0b3d)` }}>{p.emoji}</div>}
                   <div className="small fw-bold mt-1 text-truncate">{p.name}</div>
-                  <div className="small"><Badge bg="danger" className="me-1">{p.discount}%</Badge>{won(salePrice(p))}</div>
+                  <div className="small"><Badge bg="danger" className="me-1">{discountPct(p, slot)}%</Badge>{won(salePrice(p, slot))}</div>
                 </Link>
               </Col>
             ))}

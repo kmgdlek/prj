@@ -4,7 +4,7 @@ import { Alert, Badge, Button, Card, Col, Form, InputGroup, ListGroup, Row } fro
 import PageHeader from '../components/PageHeader'
 import { Empty, Loading } from '../components/Status'
 import { useAppStore } from '../store/useAppStore'
-import { productOf, salePrice } from '../../server/products'
+import { discountPct, productOf, salePrice } from '../../server/products'
 import { calcCheckout, pointsSummary } from '../lib/checkout'
 import { couponState, couponText } from '../lib/coupon'
 import { totalSpent } from '../lib/level'
@@ -56,7 +56,7 @@ export default function Cart() {
                       <div className="flex-grow-1">
                         <Link to={`/shop/${p.id}`} className="fw-bold text-reset text-decoration-none">{p.name}</Link>
                         <div className="small text-body-secondary">
-                          {p.discount > 0 && <><s className="me-1">{won(p.price)}</s><span className="text-danger fw-bold me-1">{p.discount}%</span></>}{won(salePrice(p))}
+                          {discountPct(p) > 0 && <><s className="me-1">{won(p.price)}</s><span className="text-danger fw-bold me-1">{discountPct(p)}%</span></>}{won(salePrice(p))}
                         </div>
                         {stockOf(p.id) <= 5 && <div className="small text-danger">남은 수량 {stockOf(p.id)}개</div>}{qty >= max && stockOf(p.id) > 5 && <div className="small text-body-secondary">최대 {max}개까지 담을 수 있어요</div>}
                       </div>

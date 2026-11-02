@@ -1,7 +1,7 @@
 import { create } from 'zustand'
 import { supabase } from '../lib/supabase'
 import { askAgent, fetchShopImages, fetchWeather, ping } from '../api/client'
-import { MAX_PER_ITEM, productOf, salePrice } from '../../server/products'
+import { MAX_PER_ITEM, liveStock, productOf, salePrice, slotOf } from '../../server/products'
 import { levelOf, totalSpent } from '../lib/level'
 import { STATUS } from '../lib/order'
 import { DAY, PROMO_CODES, gradeCouponsFor } from '../lib/coupon'
@@ -187,7 +187,16 @@ export const useAppStore = create((set, get) => ({
     const { data, error } = await supabase.from('shop_stock').select('product_id, qty')
     if (!error && data) set({ stock: Object.fromEntries(data.map((r) => [r.product_id, r.qty])) })
   },
-  stockOf: (id) => get().stock[id] ?? productOf(id)?.stock ?? 0,
+  rawStockOf: (id) => get().stock[id] ?? productOf(id)?.stock ?? 0,                  // DB(또는 기본) 재고
+  stockOf: (id) => liveStock(get().rawStockOf(id), id, get().slot),                   // 화면에 보이는 재고 (10분마다 변동)
+  // 10분 시세·재고 변동: 슬롯 번호가 바뀌면 값을 갱신해 화면을 다시 그린다 (RootLayout 이 2초마다 확인)
+  slot: slotOf(),
+  tickSlot: () => {
+    const next = slotOf()
+    if (next === get().slot) return
+    set({ slot: next })
+    get().toast('⚡ 10분이 지나 시세와 재고가 바뀌었어요', 'info')
+  },
 
   // ⑦ 장바구니 — 내 계정의 cart_items. 담는 순간 화면에 먼저 반영하고 DB 에는 "이 수량"으로 덮어쓴다(upsert)
   cart: [],            // { product_id, qty }
@@ -313,7 +322,7 @@ export const useAppStore = create((set, get) => ({
     for (const i of order.items) {
       if (get().stock[i.product_id] === undefined) continue          // DB 재고 행이 없는 상품은 되돌릴 것도 없다
       const r = await rpcSafe('shop_give_stock', { p_id: i.product_id, p_qty: i.qty })
-      if (!r.missing && !r.error) set({ stock: { ...get().stock, [i.product_id]: get().stockOf(i.product_id) + i.qty } })
+      if (!r.missing && !r.error) set({ stock: { ...get().stock, [i.product_id]: get().rawStockOf(i.product_id) + i.qty } })
     }
     if (order.coupon_id) {
       await supabase.from('shop_coupons').update({ used_at: null }).eq('id', order.coupon_id)
@@ -395,7 +404,7 @@ export const useAppStore = create((set, get) => ({
       set({ coupons: get().coupons.map((c) => (c.id === data.coupon_id ? { ...c, used_at: new Date().toISOString() } : c)) })
     }
     const stockNow = { ...get().stock }
-    for (const t of taken) stockNow[t.p.id] = get().stockOf(t.p.id) - t.qty
+    for (const t of taken) stockNow[t.p.id] = get().rawStockOf(t.p.id) - t.qty
     const before = levelOf(totalSpent(orders)).lv
     set({ cart: [], orders: [data, ...orders], stock: stockNow })
     const after = levelOf(totalSpent(get().orders))

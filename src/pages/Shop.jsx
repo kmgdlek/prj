@@ -7,7 +7,8 @@ import { FavButton } from '../components/ItemCard'
 import { Stars, ratingOf } from '../components/StarRating'
 import { useAppStore } from '../store/useAppStore'
 import { won } from '../lib/format'
-import { CATEGORIES, MAX_PER_ITEM, PRODUCTS, TAGS, salePrice } from '../../server/products'
+import { CATEGORIES, MAX_PER_ITEM, PRODUCTS, TAGS, discountPct, flashRate, liveStock, salePrice, trendOf } from '../../server/products'
+import SlotTimer from '../components/SlotTimer'
 
 // 제주 특산품·기념품 — 담기 버튼은 store 의 장바구니에 연결
 export default function Shop() {
@@ -16,6 +17,7 @@ export default function Shop() {
   const cart = useAppStore((s) => s.cart)
   const reviews = useAppStore((s) => s.reviews)
   const stock = useAppStore((s) => s.stock)
+  const slot = useAppStore((s) => s.slot)               // 10분마다 바뀌는 시세·재고 번호 (바뀌면 화면이 다시 그려진다)
   const images = useAppStore((s) => s.productImages)
   const loadProductImages = useAppStore((s) => s.loadProductImages)
   useEffect(() => { loadProductImages() }, [loadProductImages])
@@ -25,13 +27,13 @@ export default function Shop() {
   const [tags, setTags] = useState(() => params.getAll('tag').filter((t) => TAGS.includes(t)))   // 상세 화면의 태그를 누르면 /shop?tag=선물 로 들어온다
   const toggleTag = (t) => setTags((cur) => (cur.includes(t) ? cur.filter((x) => x !== t) : [...cur, t]))
   const [sort, setSort] = useState('basic')
-  const stockOf = (p) => stock[p.id] ?? p.stock
+  const stockOf = (p) => liveStock(stock[p.id] ?? p.stock, p.id, slot)
 
   const SORTS = {
     basic: () => 0,
-    low: (a, b) => salePrice(a) - salePrice(b),
-    high: (a, b) => salePrice(b) - salePrice(a),
-    discount: (a, b) => b.discount - a.discount,
+    low: (a, b) => salePrice(a, slot) - salePrice(b, slot),
+    high: (a, b) => salePrice(b, slot) - salePrice(a, slot),
+    discount: (a, b) => discountPct(b, slot) - discountPct(a, slot),
     rating: (a, b) => ratingOf(reviews, b.id).avg - ratingOf(reviews, a.id).avg,
   }
   const list = PRODUCTS
@@ -48,6 +50,12 @@ export default function Shop() {
           <i className="bi bi-info-circle me-2" />장바구니에 담으려면 <Link to="/login" state={{ from: '/shop' }}>로그인</Link>이 필요해요.
         </Alert>
       )}
+      {/* 10분마다 시세·재고가 바뀐다 */}
+      <div className="flash-banner mb-3">
+        <i className="bi bi-lightning-charge-fill text-danger" /><strong>10분 타임특가</strong>
+        <span>10분마다 시세와 재고가 바뀌어요 · 지금 {PRODUCTS.filter((p) => flashRate(p, slot) > 0).length}개 상품이 더 싸졌어요</span>
+        <span className="ms-auto">다음 변동까지 <SlotTimer /></span>
+      </div>
       <div className="d-flex flex-wrap gap-2 align-items-center mb-4">
         {CATEGORIES.map((c) => (
           <Button key={c} size="sm" variant={c === category ? 'primary' : 'outline-secondary'} onClick={() => setCategory(c)}>{c}</Button>
@@ -101,8 +109,15 @@ export default function Shop() {
                     </div>
                     <div className="d-flex align-items-center justify-content-between mt-auto">
                       <div className="lh-sm">
-                        {p.discount > 0 && <div className="small"><s className="text-body-secondary me-1">{won(p.price)}</s><span className="text-danger fw-bold">{p.discount}%</span></div>}
-                        <strong>{won(salePrice(p))}</strong>
+                        {discountPct(p, slot) > 0 && (
+                          <div className="small">
+                            <s className="text-body-secondary me-1">{won(p.price)}</s><span className="text-danger fw-bold">{discountPct(p, slot)}%</span>
+                            {flashRate(p, slot) > 0 && <span className="flash-badge ms-1">⚡ {flashRate(p, slot)}%↓</span>}
+                          </div>
+                        )}
+                        <strong>{won(salePrice(p, slot))}</strong>
+                        {trendOf(p, slot) < 0 && <span className="trend-down ms-1">▼{won(-trendOf(p, slot))}</span>}
+                        {trendOf(p, slot) > 0 && <span className="trend-up ms-1">▲{won(trendOf(p, slot))}</span>}
                       </div>
                       <Button size="sm" variant={qty ? 'success' : 'primary'} disabled={left <= 0 || full} onClick={() => addToCart(p.id)}>
                         <i className={`bi bi-${qty ? 'cart-check' : 'cart-plus'} me-1`} />{left <= 0 ? '품절' : full ? `최대 ${qty}개` : qty ? `담김 ${qty}` : '담기'}
