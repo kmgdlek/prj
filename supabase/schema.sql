@@ -266,5 +266,38 @@ end $$;
 revoke all on function grant_points_by_email(text, bigint, text) from public;
 grant execute on function grant_points_by_email(text, bigint, text) to authenticated;
 
+-- ⑯ 수요 기록(주식처럼 사면 오르고 취소·환불이면 내리는 시세): 주문이 들어오거나 취소·환불되면 DB 트리거가 한 줄씩 남긴다
+-- 누구나 읽지만(누가 샀는지는 담지 않는다) 쓰기는 트리거만 할 수 있다 (사용자가 직접 조작할 수 없음)
+create table if not exists shop_demand (
+  id         bigint generated always as identity primary key,
+  product_id text not null,
+  qty        int  not null,                 -- + 구매 · − 취소/환불
+  kind       text not null check (kind in ('buy', 'cancel', 'refund')),
+  created_at timestamptz not null default now()
+);
+create index if not exists shop_demand_lookup on shop_demand (product_id, created_at);
+alter table shop_demand enable row level security;
+drop policy if exists "shop_demand read" on shop_demand;
+create policy "shop_demand read" on shop_demand for select using (true);
+
+create or replace function shop_demand_on_order() returns trigger
+language plpgsql security definer set search_path = public as $$
+declare it jsonb;
+begin
+  if tg_op = 'INSERT' then
+    for it in select * from jsonb_array_elements(new.items) loop
+      insert into shop_demand (product_id, qty, kind) values (it->>'product_id', coalesce((it->>'qty')::int, 1), 'buy');
+    end loop;
+  elsif new.status is distinct from old.status and new.status in ('주문취소', '반품·환불 접수') and coalesce(old.status, '주문완료') = '주문완료' then
+    for it in select * from jsonb_array_elements(new.items) loop
+      insert into shop_demand (product_id, qty, kind)
+      values (it->>'product_id', -coalesce((it->>'qty')::int, 1), case when new.status = '주문취소' then 'cancel' else 'refund' end);
+    end loop;
+  end if;
+  return null;
+end $$;
+drop trigger if exists shop_demand_orders on orders;
+create trigger shop_demand_orders after insert or update of status on orders for each row execute function shop_demand_on_order();
+
 -- 새 컬럼·정책을 API 가 바로 인식하도록 스키마 캐시를 새로고침
 notify pgrst, 'reload schema';

@@ -9,7 +9,7 @@ import { FavButton } from '../components/ItemCard'
 import { Stars, ratingOf } from '../components/StarRating'
 import { useAppStore } from '../store/useAppStore'
 import { won } from '../lib/format'
-import { CATEGORIES, MAX_PER_ITEM, PRODUCTS, TAGS, discountPct, dropPct, flashRate, liveStock, salePrice, surgeLabel, surgePct, trendOf } from '../../server/products'
+import { CATEGORIES, MAX_PER_ITEM, PRODUCTS, TAGS, demandLabel, demandPct, discountPct, dropPct, flashRate, liveStock, salePrice, surgeLabel, surgePct, trendOf } from '../../server/products'
 
 // 제주 특산품·기념품 — 담기 버튼은 store 의 장바구니에 연결
 export default function Shop() {
@@ -117,6 +117,7 @@ export default function Shop() {
                             {surgePct(p, slot) === 0 && flashRate(p, slot) > 0 && <span className="flash-badge ms-1">⚡ {flashRate(p, slot)}%↓</span>}
                           </div>
                         )}
+                        {demandPct(p, slot) !== 0 && surgePct(p, slot) === 0 && <div className={`small fw-bold ${demandPct(p, slot) > 0 ? 'text-danger' : 'text-primary'}`}>{demandLabel(p, slot)}</div>}
                         {discountPct(p, slot) <= 0 && surgePct(p, slot) === 0 && <div className="small text-body-secondary">정가 {won(p.price)}{discountPct(p, slot) < 0 && <span className="text-danger fw-bold ms-1">+{-discountPct(p, slot)}%</span>}</div>}
                         {surgePct(p, slot) !== 0 && <div className={`small fw-bold ${surgePct(p, slot) > 0 ? 'text-danger' : 'text-primary'}`}>{surgeLabel(p, slot)}</div>}
                         <strong><RollingNumber text={won(salePrice(p, slot))} /></strong>

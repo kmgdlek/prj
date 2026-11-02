@@ -107,7 +107,8 @@ flowchart LR
 | 서서히 오름/내림 | 상품마다 2시간 구간에 1.2% 확률(`SURGE_CHANCE`). 오르면 +50~+300%, 내리면 -50~-95%. 20~40분에 걸쳐 천천히 변하고(폭이 클수록 더 천천히) → 10분 유지 → 같은 시간 동안 서서히 돌아옴 |
 | 급등/급락 (가장 드묾) | 2시간 구간에 0.2% 확률(`SUDDEN_CHANCE`, 위의 1/6). 같은 폭이 2분 만에 확 변하고 → 10분 유지 → 10분에 걸쳐 돌아옴 |
 | 약한 오름 | 2시간 구간에 8% 확률(`MILD_CHANCE`). 평소 시세에서 +5~20% 만 더 오르는 작은 오름. 15~25분에 걸쳐 천천히 오르고 10~20분 유지한 뒤 천천히 돌아옴 |
-| 화면 | 장터 카드·상품 상세에 `📈 서서히 상승 · 정가 +9%` / `📉 서서히 하락 -40%` / `🔥 급등 +180%` / `💧 급락 -80%` 표시, 1분봉 차트에서 회색 일반판매가 선을 넘나드는 모습 확인 |
+| 수요(주식처럼) | 누가 **사면 1개당 +1.2%**, **취소·환불이면 1개당 -1.8%** (30분마다 절반씩 사그라듦, 최대 +40% · 최저 -20%). 30분 넘게 **아무도 안 사면 3시간에 걸쳐 최대 -8%** 까지 서서히 내림. 수요 때문에 내릴 땐 정가 밑으로는 안 내려감. 구매·취소·환불은 DB 트리거가 `shop_demand` 에 남기고(누구나 읽기, 사용자 쓰기 불가) 모든 접속자에게 20초 안에 반영 |
+| 화면 | 장터 카드·상품 상세에 `📈 서서히 상승 · 정가 +9%` / `📉 서서히 하락 -40%` / `🔥 급등 +180%` / `💧 급락 -80%` / `🛒 구매가 몰려 +6%` / `↩ 취소·환불로 -5%` / `🕸️ 관심이 줄어 -3%` 표시, 1분봉 차트에서 회색 일반판매가 선을 넘나드는 모습 확인 |
 
 가끔 일어나는 이벤트라 시연 때 바로 보이지 않을 수 있습니다. 확률은 `SURGE_CHANCE`·`SUDDEN_CHANCE` 로 조절합니다.
 
@@ -172,7 +173,7 @@ vercel dev                     # 화면 + /api 서버 함수 → http://localhos
 
 ### Supabase 준비
 
-1. 프로젝트 생성 후 SQL Editor 에서 [`supabase/schema.sql`](supabase/schema.sql) 실행 (favorites · cart_items · orders · shop_stock · shop_coupons · shop_reviews · shop_chat_messages · shop_admins · shop_price_override · shop_invites · shop_point_grants 테이블, 재고 함수, 프로필 사진 저장소, RLS. 여러 번 실행해도 안전)
+1. 프로젝트 생성 후 SQL Editor 에서 [`supabase/schema.sql`](supabase/schema.sql) 실행 (favorites · cart_items · orders · shop_stock · shop_coupons · shop_reviews · shop_chat_messages · shop_admins · shop_price_override · shop_invites · shop_point_grants · shop_demand 테이블, 재고 함수, 프로필 사진 저장소, RLS. 여러 번 실행해도 안전)
 2. Authentication → Providers → Email 에서 Confirm email 을 끄면 가입 즉시 로그인됩니다(수업용). 켜 두면 메일 인증 후 로그인
 3. Authentication → URL Configuration 에서 **Site URL** 을 배포 주소(`https://prj-kappa-nine.vercel.app`)로 바꾸고, Redirect URLs 에 `https://prj-kappa-nine.vercel.app/**` 를 추가 (가입 완료 페이지 `/welcome` 으로 돌아오려면 필요. 안 하면 가입 인증 메일의 링크가 다른 사이트로 돌아간다)
 4. 첫 화면의 동작 체크 카드가 모두 초록색이면 연결 성공

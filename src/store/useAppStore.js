@@ -1,7 +1,7 @@
 import { create } from 'zustand'
 import { supabase } from '../lib/supabase'
 import { askAgent, fetchShopImages, fetchWeather, ping } from '../api/client'
-import { MAX_PER_ITEM, liveStock, productOf, salePrice, setPriceOverrides, slotOf, stockSlotOf } from '../../server/products'
+import { MAX_PER_ITEM, liveStock, productOf, salePrice, setDemandEvents, setPriceOverrides, slotOf, stockSlotOf } from '../../server/products'
 import { levelOf, totalSpent } from '../lib/level'
 import { STATUS } from '../lib/order'
 import { DAY, PROMO_CODES, gradeCouponsFor } from '../lib/coupon'
@@ -22,6 +22,7 @@ const seenKey = (user) => `tamra-notif-seen:${user?.id ?? 'guest'}`     // 지�
 const SEEN_MAX = 600
 let lastOverrideLoad = 0
 let lastGrantLoad = 0
+let lastDemandLoad = 0
 let authStarted = false        // StrictMode 에서 구독이 두 번 걸리지 않게
 
 // 화면에 보여 줄 이름: 가입 때 적은 닉네임, 없으면 이메일 앞부분
@@ -57,7 +58,7 @@ export const useAppStore = create((set, get) => ({
   initAuth: async () => {
     if (authStarted) return
     authStarted = true
-    get().loadStock(); get().loadReviews(); get().loadOverrides()               // 재고·후기는 누구나 볼 수 있어서 로그인 전에도
+    get().loadStock(); get().loadReviews(); get().loadOverrides(); get().loadDemand()               // 재고·후기는 누구나 볼 수 있어서 로그인 전에도
     if (!supabase) { get().loadNotifs(); return set({ authReady: true }) }
     const { data } = await supabase.auth.getSession()
     set({ user: data.session?.user ?? null, authReady: true })
@@ -306,6 +307,19 @@ export const useAppStore = create((set, get) => ({
     return data?.[0]?.nickname ?? who
   },
 
+  // ⑱ 수요(주식처럼) — 최근 6시간의 구매·취소·환불 기록(shop_demand)을 불러와 시세 계산에 넣는다. 테이블이 아직 없으면 조용히 건너뜀
+  loadDemand: async () => {
+    if (!supabase) return
+    lastDemandLoad = Date.now()
+    const since = new Date(Date.now() - 6 * 3600000).toISOString()
+    const { data, error } = await supabase.from('shop_demand').select('product_id, qty, created_at').gte('created_at', since).order('created_at', { ascending: true })
+    if (error) return
+    const map = {}
+    for (const r of data) (map[r.product_id] ??= []).push({ qty: r.qty, t: new Date(r.created_at).getTime() })
+    setDemandEvents(map)
+    set({ priceVer: get().priceVer + 1 })
+  },
+
   // ⑭ 관리자 — shop_admins 에 내 id 가 있으면 관리자. 관리자만 시세를 직접 정할 수 있다 (RLS 가 DB 에서 막음)
   isAdmin: false,
   priceVer: 0,                 // 관리자가 정한 가격이 바뀌면 올라가서 화면을 다시 그리게 한다
@@ -350,6 +364,7 @@ export const useAppStore = create((set, get) => ({
   tickSlot: () => {
     const price = slotOf(), stock = stockSlotOf()
     if (Date.now() - lastOverrideLoad > 15000) get().loadOverrides()   // 다른 사람(관리자)이 바꾼 시세를 15초 안에 따라온다
+    if (Date.now() - lastDemandLoad > 20000) get().loadDemand()          // 다른 사람의 구매·환불이 20초 안에 시세에 반영된다
     if (get().user && Date.now() - lastGrantLoad > 30000) { lastGrantLoad = Date.now(); get().loadPointGrants() }   // 다른 관리자가 준 적립금도 30초 안에 따라온다
     if (price !== get().slot) set({ slot: price })
     if (stock !== get().stockSlot) set({ stockSlot: stock })        // 알림 없이 조용히 갱신
@@ -526,6 +541,7 @@ export const useAppStore = create((set, get) => ({
     const { error } = await supabase.from('orders').update(patch).eq('id', id)
     if (error) { set({ orders: before }); get().toast(error.message, 'danger'); return false }
     get().toast(doneMessage)
+    get().loadDemand()                                       // 취소·환불이면 시세가 바로 내려가도록
     return true
   },
   cancelOrder: async (order) => {
@@ -600,6 +616,7 @@ export const useAppStore = create((set, get) => ({
     const after = levelOf(totalSpent(get().orders))
     get().toast(after.lv > before ? `주문 완료! LV.${after.lv} ${after.name} 달성 🎉` : '주문이 접수됐어요')
     if (after.lv > before) get().loadCoupons()               // 새 등급 쿠폰 받기
+    get().loadDemand()                                       // 내 구매가 시세에 반영돼 오르는 모습을 바로 보여 준다
     return data
   },
 

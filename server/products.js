@@ -143,6 +143,38 @@ export const overrideOf = (p, slot = slotOf()) => {
   return rows.findLast((o) => o.from <= at && at < o.until) ?? null
 }
 
+// ── 수요(주식처럼): 누가 사면 오르고, 취소·환불이 있거나 아무도 안 사면 내린다 ──────────────
+// 구매·취소·환불 기록(shop_demand)을 앱이 DB 에서 불러와 넣는다: { [상품 id]: [{ qty, t(ms) }, ...] } (t 가 이른 순)
+//  · 구매 1개마다 +1.2%, 취소·환불 1개마다 −1.8%. 시간이 지나면 30분마다 절반씩 사그라든다 (최대 +40%, 최저 −20%)
+//  · 한참(30분 넘게) 아무도 안 사면 서서히 최대 −8% 까지 내린다 — 3시간에 걸쳐. (수요 때문에 내려갈 때는 정가 밑으로는 안 내려간다)
+let demand = {}
+export const setDemandEvents = (map) => { demand = map ?? {} }
+const DEMAND_UP = 0.012, DEMAND_DOWN = 0.018, DEMAND_HALF = 30 * 60000, IDLE_START = 30, IDLE_FULL = 180, IDLE_MAX = 0.08
+const DEMAND_EPOCH = Date.parse('2026-11-02T08:30:00Z')        // 수요 시세를 시작한 시각 (이 전에는 '아무도 안 샀다'로 치지 않는다)
+const demandParts = (p, slot) => {
+  const at = Math.min(Date.now(), slot * PRICE_SLOT_MS + PRICE_SLOT_MS - 1)
+  let pressure = 0, lastBuy = 0, net = 0
+  for (const e of demand[p.id] ?? []) {
+    if (e.t > at) break
+    const w = 0.5 ** ((at - e.t) / DEMAND_HALF)
+    pressure += e.qty * (e.qty > 0 ? DEMAND_UP : DEMAND_DOWN) * w
+    net += e.qty * w
+    if (e.qty > 0) lastBuy = e.t
+  }
+  const idleMin = Math.max(0, (at - Math.max(lastBuy, DEMAND_EPOCH)) / 60000)
+  const idle = Math.min(IDLE_MAX, (Math.max(0, idleMin - IDLE_START) / (IDLE_FULL - IDLE_START)) * IDLE_MAX)
+  return { pressure: Math.min(0.4, Math.max(-0.2, pressure)), idle, net }
+}
+export const demandFactor = (p, slot = slotOf()) => { const d = demandParts(p, slot); return 1 + d.pressure - d.idle }
+export const demandPct = (p, slot = slotOf()) => Math.round((demandFactor(p, slot) - 1) * 100)
+// 화면에 붙일 말 (수요 영향이 1% 미만이면 빈 문자열)
+export const demandLabel = (p, slot = slotOf()) => {
+  const d = demandParts(p, slot), pct = demandPct(p, slot)
+  if (Math.abs(pct) < 1) return ''
+  const t = `${pct > 0 ? '+' : ''}${pct}%`
+  return pct > 0 ? `🛒 구매가 몰려 ${t}` : d.pressure < -0.005 ? `↩ 취소·환불로 ${t}` : `🕸️ 관심이 줄어 ${t}`      // 내려간 이유: 기록이 순수하게 음수(취소·환불)면 환불, 아니면 아무도 안 사서
+}
+
 // 지금 팔리는 가격 (장바구니·주문·화면 모두 이 값을 쓴다)
 export const salePrice = (p, slot = slotOf()) => {
   const o = overrideOf(p, slot)
@@ -150,7 +182,10 @@ export const salePrice = (p, slot = slotOf()) => {
   const base = basePrice(p), f = surgeFactor(p, slot)
   const flash = flashPrice(p, slot)
   const w = Math.min(1, Math.abs(f - 1) / 0.1)                                // 큰 변동이 진행될수록 타임특가 잡음을 서서히 끈다 (10% 벗어나면 완전히 끔. 가격이 튀지 않게)
-  return Math.max(10, Math.floor((flash * (1 - w) + base * f * w) / 10) * 10)
+  const market = flash * (1 - w) + base * f * w
+  const dm = demandFactor(p, slot)
+  const priced = dm < 1 ? Math.max(market * dm, Math.min(market, p.price)) : market * dm      // 수요로 내릴 때는 정가 밑으로 안 간다 (이미 정가 밑이면 더 내리지 않는다)
+  return Math.max(10, Math.floor(priced / 10) * 10)
 };
 
 // 정가 대비 지금 가격이 몇 % 싼지(비싸면 음수), 직전 1분보다 얼마나 변했는지(음수 = 내려감)

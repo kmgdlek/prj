@@ -5,7 +5,7 @@ import { fetchImages } from '../api/client'
 import { won } from '../lib/format'
 import { useAppStore } from '../store/useAppStore'
 import { MYTHS } from '../../server/myths'
-import { MAX_PER_ITEM, PRODUCTS, basePrice, discountPct, flashRate, liveStock, productOf, salePrice, surgeLabel, surgePct, trendOf } from '../../server/products'
+import { MAX_PER_ITEM, PRODUCTS, basePrice, discountPct, flashRate, liveStock, productOf, demandLabel, demandPct, salePrice, surgeLabel, surgePct, trendOf } from '../../server/products'
 import RetryImg from '../components/RetryImg'
 import RollingNumber from '../components/RollingNumber'
 import PriceChart from '../components/PriceChart'
@@ -129,6 +129,7 @@ export default function ProductDetail() {
             <dd className={surgePct(p, slot) !== 0 ? (surgePct(p, slot) > 0 ? 'text-danger fw-bold' : 'text-primary fw-bold') : (discountPct(p, slot) < 0 ? 'text-danger fw-bold' : discountPct(p, slot) > 0 ? 'text-primary fw-bold' : 'text-body-secondary')}>
               {surgePct(p, slot) !== 0 ? surgeLabel(p, slot) : discountPct(p, slot) === 0 ? '정가와 같아요' : `정가보다 ${Math.abs(discountPct(p, slot))}% ${discountPct(p, slot) < 0 ? '높아요' : '낮아요'}`}
             </dd>
+            {demandPct(p, slot) !== 0 && <><dt>수요</dt><dd className={demandPct(p, slot) > 0 ? 'text-danger fw-bold' : 'text-primary fw-bold'}>{demandLabel(p, slot)}</dd></>}
             {surgePct(p, slot) === 0 && flashRate(p, slot) > 0 && <><dt>타임특가</dt><dd className="text-danger fw-bold">-{won(basePrice(p) - salePrice(p, slot))} (⚡ {flashRate(p, slot)}% 할인)</dd></>}
             <dt className="price-now-label">현재가</dt>
             <dd className="price-now">
