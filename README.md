@@ -75,6 +75,7 @@ flowchart LR
 ```
 
 - 키는 서버에만. 공공데이터·Claude 키는 `/api` 안에서만 쓰고, 브라우저에는 `VITE_` 값(Supabase anon)만 내려갑니다.
+- 사진은 서버가 중계. Pixabay 사진을 브라우저가 직접 받으면 요청이 몰릴 때 429 로 깨져서, `/api/img` 가 대신 받아(재시도 포함) 하루 CDN 캐시합니다. 그래도 깨지면 화면이 두 번 다시 불러옵니다.
 - `server/` 공용. 화면용 API(`api/tour.js`)와 에이전트(`api/agent.js`)가 같은 함수를 재사용합니다.
 
 ### 🧪 에이전트 테스트 질문 4개
@@ -122,7 +123,7 @@ insert into shop_admins (user_id) select id from auth.users where email = '관�
 ## 🧱 폴더 구조
 
 ```
-api/          Vercel 서버 함수 (비밀 키는 여기서만)  hello · tour · weather · heritage · agent
+api/          Vercel 서버 함수 (비밀 키는 여기서만)  hello · tour · weather · heritage · agent · pixabay · shop-images · img
 server/       공공데이터 호출 + 신화 데이터          tour · weather · heritage · myths
 supabase/     schema.sql  (favorites 테이블 + RLS)
 src/
