@@ -411,3 +411,7 @@ body { font-family: 'Pretendard', system-ui, sans-serif; }
 @keyframes toast-out { from { opacity: 1; transform: translateX(0); } to { opacity: 0; transform: translateX(120%); } }
 @keyframes toast-bump { 0% { transform: scale(1); } 40% { transform: scale(1.06); } 100% { transform: scale(1); } }
 @media (prefers-reduced-motion: reduce) { .notif-toast, .notif-toast.leaving { animation-duration: .01s; } .toast-msg { animation: none; } }
+
+/* 친구 초대 QR: 흰 바탕을 유지해 어두운 테마에서도 카메라가 읽는다 */
+.invite-qr { background: #fff; padding: .6rem; border-radius: .9rem; border: 1px solid var(--bs-border-color); line-height: 0; }
+.invite-qr img { max-width: 100%; height: auto; }

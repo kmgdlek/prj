@@ -7,6 +7,7 @@ import { STATUS } from '../lib/order'
 import { DAY, PROMO_CODES, gradeCouponsFor } from '../lib/coupon'
 import { calcCheckout, pointsSummary } from '../lib/checkout'
 import { DEFAULT_PREFS, buildNotifications, mergeNotifs } from '../lib/notify'
+import { FRIEND_COUPON, INVITEE_COUPON, MAX_REWARDED, THREE_COUPON, getSavedInvite, inviteCodeOf } from '../lib/invite'
 import { resizeToJpeg } from '../lib/image'
 
 const pendingFav = new Set()   // 저장·삭제가 진행 중인 항목 키 (연타 방지)
@@ -47,6 +48,7 @@ export const useAppStore = create((set, get) => ({
     get().loadCart()
     get().loadChat()
     get().loadAdmin()
+    get().claimInvite().then(() => get().loadInvites())
   },
   initAuth: async () => {
     if (authStarted) return
@@ -62,14 +64,14 @@ export const useAppStore = create((set, get) => ({
       const changed = user?.id !== get().user?.id
       set({ user })
       if (!changed) return
-      set({ favorites: [], cart: [], orders: [], coupons: [], messages: [], isAdmin: false })
+      set({ favorites: [], cart: [], orders: [], coupons: [], messages: [], invites: [], isAdmin: false })
       get().loadNotifs()     // 다른 사람의 데이터가 남지 않게 비움
       if (user) get().loadUserData()
     })
   },
   signUp: async ({ email, password, nickname }) => {
     if (!supabase) throw new Error('Supabase 설정(.env.local)이 필요해요')
-    const { data, error } = await supabase.auth.signUp({ email, password, options: { data: { nickname: nickname.trim() }, emailRedirectTo: `${window.location.origin}/welcome` } })   // 인증 메일의 링크가 지금 접속한 사이트의 가입 완료 페이지(/welcome)로 오게 (Supabase 의 Redirect URLs 에 등록돼 있어야 함)
+    const { data, error } = await supabase.auth.signUp({ email, password, options: { data: { nickname: nickname.trim(), ...(getSavedInvite() ? { invited_by: getSavedInvite() } : {}) }, emailRedirectTo: `${window.location.origin}/welcome` } })   // 인증 메일의 링크가 지금 접속한 사이트의 가입 완료 페이지(/welcome)로 오게 (Supabase 의 Redirect URLs 에 등록돼 있어야 함)
     if (error) throw error
     return { needsConfirm: !data.session }              // 이메일 인증을 켜 둔 프로젝트면 세션이 바로 안 생긴다
   },
@@ -387,6 +389,39 @@ export const useAppStore = create((set, get) => ({
       if (added?.length) { list = [...added, ...rows]; get().toast(`쿠폰 ${added.length}장이 도착했어요 🎁`, 'info') }
     }
     set({ coupons: list })
+  },
+  // ⑯ 친구 초대 — 쿠폰을 내 쿠폰함에 넣는다 (이미 받은 쿠폰은 (사용자, source) 가 유일해서 다시 안 생긴다). 새로 받은 쿠폰 목록을 돌려준다
+  giveCoupons: async (list) => {
+    const { user } = get()
+    if (!supabase || !user || !list.length) return []
+    const { data } = await supabase.from('shop_coupons').upsert(
+      list.map((c) => ({ user_id: user.id, source: c.source, title: c.title, kind: c.kind, value: c.value, min: c.min, expires_at: new Date(Date.now() + c.expiresDays * DAY).toISOString() })),
+      { onConflict: 'user_id,source', ignoreDuplicates: true },
+    ).select()
+    if (data?.length) { get().toast(`쿠폰 ${data.length}장이 도착했어요 🎁`, 'info'); await get().loadCoupons() }     // 쿠폰함을 다시 불러와 로그인 직후에 겹쳐 돈 다른 불러오기 결과에 덮이지 않게
+    return data ?? []
+  },
+  invites: [],              // 내 초대 코드로 가입한 친구들 [{ invitee, created_at }]
+  // 초대 링크로 가입한 새 계정이 처음 로그인했을 때: 초대 기록을 남기고 환영 쿠폰을 받는다
+  claimInvite: async () => {
+    const { user } = get()
+    const code = user?.user_metadata?.invited_by
+    if (!supabase || !code || code === inviteCodeOf(user)) return
+    const { data: mine, error } = await supabase.from('shop_invites').select('id').eq('invitee', user.id).maybeSingle()
+    if (error) return                                                      // 테이블이 아직 없으면 조용히 건너뜀
+    if (!mine) { const { error: e2 } = await supabase.from('shop_invites').insert({ inviter_code: code }); if (e2) return }
+    await get().giveCoupons([INVITEE_COUPON])
+  },
+  // 내가 초대한 친구 수를 세고, 늘어난 만큼 감사 쿠폰(친구 1명당, 5명까지)과 3명 달성 쿠폰을 받는다
+  loadInvites: async () => {
+    const { user } = get()
+    if (!supabase || !user) return
+    const { data, error } = await supabase.from('shop_invites').select('invitee, created_at').eq('inviter_code', inviteCodeOf(user)).order('created_at', { ascending: true })
+    if (error) return
+    set({ invites: data })
+    const rewards = data.slice(0, MAX_REWARDED).map((_, i) => ({ ...FRIEND_COUPON, source: `invite:friend:${i + 1}` }))
+    if (data.length >= 3) rewards.push(THREE_COUPON)
+    await get().giveCoupons(rewards)
   },
   registerCoupon: async (code) => {
     const key = code.trim().toUpperCase()

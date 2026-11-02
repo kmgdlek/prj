@@ -46,6 +46,7 @@
 | 🛍️ 제주 장터 | 제주 특산품·기념품 20종(태그·정렬·별점·찜). 가격은 1분마다, 재고는 10분마다 바뀌는 타임특가에, 드물게 서서히 오르내리고 아주 드물게 급등(최대 +300%)·급락(최대 -95%)(일반판매가를 넘기도 함, 아래 '시세 규칙'). 시세가 바뀌면 바뀐 자리의 숫자가 위에서 아래로 굴러 바뀌고, 상품 상세에 사진 슬라이더·후기·이어진 신화와 1분봉 차트(최고가 빨간 화살표 · 최저가 파란 화살표 · 일반판매가 회색 선) |
 | 🧾 장바구니·결제 | 쿠폰 · 적립금 · 등급 혜택(추가 할인·적립률·무료배송 기준) · 배송비를 계산하는 결제 요약. 주문하면 재고가 줄고 취소하면 돌아옴 (실제 결제 없음) |
 | 🚚 주문 진행 | 결제완료 → 상품준비중 → 배송중 → 배송완료 단계 표시. 취소는 배송 전, 반품/환불은 배송 후, 배송 후 후기·별점 작성 |
+| 🤝 친구 초대 | 내 초대 링크(`/signup?invite=코드`)와 그 링크가 담긴 QR 을 만들어 복사·공유·저장. 친구가 링크로 가입하고 처음 로그인하면 친구는 5,000원 쿠폰, 나는 친구 1명당 3,000원 쿠폰(5명까지)과 3명 달성 10% 쿠폰을 받음. 초대 기록은 Supabase `shop_invites`(RLS) |
 | 🔔 알림 | 로그인했을 때만. 메뉴 막대의 종 버튼 → 알림창. 추천 물건(타임특가·급락), 추천 장소(날씨에 맞춘 신화 장소, 6시간마다), 찜한 상품의 가격 하락·재고 부족, 시세 급등락 소식을 모아 보여주고 누르면 해당 상품·지도로 이동. 마이페이지 '알림 설정'에서 알림 끄기/켜기와 세부 항목(종류별·장소 분류·알림 간격·팝업)을 고르면 바로 저장(로그인하면 계정에도 저장) |
 | 🛠️ 시세 관리(관리자) | 관리자 등급(`shop_admins`)만 상품별 시세를 직접 정하고(10분~3시간) 되돌릴 수 있음. 정한 가격은 모든 접속자에게 15초 안에 반영. 쓰기 권한은 DB의 RLS(`is_shop_admin()`)가 막고, 메뉴·페이지는 관리자에게만 보임 |
 | 🎁 제주 혜택 | 탐나는전(지역사랑상품권) 같은 제주 지역 혜택 안내 + 장터 혜택(타임특가·쿠폰·찜) + 등급별 혜택을 한 페이지에. 지역 혜택 문구는 예시이므로 공식 안내 확인 필요 |
@@ -171,7 +172,7 @@ vercel dev                     # 화면 + /api 서버 함수 → http://localhos
 
 ### Supabase 준비
 
-1. 프로젝트 생성 후 SQL Editor 에서 [`supabase/schema.sql`](supabase/schema.sql) 실행 (favorites · cart_items · orders · shop_stock · shop_coupons · shop_reviews · shop_chat_messages · shop_admins · shop_price_override 테이블, 재고 함수, 프로필 사진 저장소, RLS. 여러 번 실행해도 안전)
+1. 프로젝트 생성 후 SQL Editor 에서 [`supabase/schema.sql`](supabase/schema.sql) 실행 (favorites · cart_items · orders · shop_stock · shop_coupons · shop_reviews · shop_chat_messages · shop_admins · shop_price_override · shop_invites 테이블, 재고 함수, 프로필 사진 저장소, RLS. 여러 번 실행해도 안전)
 2. Authentication → Providers → Email 에서 Confirm email 을 끄면 가입 즉시 로그인됩니다(수업용). 켜 두면 메일 인증 후 로그인
 3. Authentication → URL Configuration 에서 **Site URL** 을 배포 주소(`https://prj-kappa-nine.vercel.app`)로 바꾸고, Redirect URLs 에 `https://prj-kappa-nine.vercel.app/**` 를 추가 (가입 완료 페이지 `/welcome` 으로 돌아오려면 필요. 안 하면 가입 인증 메일의 링크가 다른 사이트로 돌아간다)
 4. 첫 화면의 동작 체크 카드가 모두 초록색이면 연결 성공

@@ -5,6 +5,7 @@ import PageHeader from '../components/PageHeader'
 import { isSupabaseReady } from '../lib/supabase'
 import { authErrorMessage } from '../lib/authError'
 import { useAppStore } from '../store/useAppStore'
+import { INVITEE_COUPON, getSavedInvite } from '../lib/invite'
 
 // 회원가입 전용 화면 (로그인은 /login). 가입하면 '가입 완료' 화면을 보여 준다:
 // 이메일 인증을 켜 둔 프로젝트면 인증 메일 안내(다시 보내기 포함), 꺼 둔 프로젝트면 바로 환영 + 갈 곳 안내
@@ -51,6 +52,7 @@ export default function Signup() {
   return (
     <div className="mx-auto" style={{ maxWidth: 440 }}>
       <PageHeader icon="person-plus" title="회원가입" subtitle="가입하면 별자리·장바구니·주문을 저장할 수 있어요" />
+      {getSavedInvite() && <Alert variant="success" className="py-2 small"><i className="bi bi-gift me-1" />친구 초대로 오셨네요! 가입하고 처음 로그인하면 <b>{INVITEE_COUPON.title}</b>을 드려요.</Alert>}
       {!isSupabaseReady && <Alert variant="warning">Supabase 설정(.env.local)이 없어 가입할 수 없어요</Alert>}
       <Card>
         <Card.Body>

@@ -219,5 +219,19 @@ create policy "price_override admin insert" on shop_price_override for insert wi
 create policy "price_override admin update" on shop_price_override for update using (is_shop_admin()) with check (is_shop_admin());
 create policy "price_override admin delete" on shop_price_override for delete using (is_shop_admin());
 
+-- ⑭ 친구 초대: 친구가 처음 로그인할 때 한 줄이 생긴다 (친구 1명당 한 번, 초대 코드 = 초대한 사람 id 의 앞 8글자 대문자)
+-- 초대한 사람은 자기 코드로 들어온 줄만 읽어 '초대한 친구 수'를 세고, 초대받은 사람은 자기 줄만 읽는다. 자기 자신을 초대할 수는 없다
+create table if not exists shop_invites (
+  id           bigint generated always as identity primary key,
+  invitee      uuid not null unique default auth.uid() references auth.users(id) on delete cascade,
+  inviter_code text not null check (inviter_code ~ '^[0-9A-F]{8}$' and inviter_code <> upper(substr(invitee::text, 1, 8))),
+  created_at   timestamptz not null default now()
+);
+alter table shop_invites enable row level security;
+drop policy if exists "shop_invites insert own" on shop_invites;
+drop policy if exists "shop_invites read" on shop_invites;
+create policy "shop_invites insert own" on shop_invites for insert with check (auth.uid() = invitee);
+create policy "shop_invites read" on shop_invites for select using (auth.uid() = invitee or inviter_code = upper(substr(auth.uid()::text, 1, 8)));
+
 -- 새 컬럼·정책을 API 가 바로 인식하도록 스키마 캐시를 새로고침
 notify pgrst, 'reload schema';

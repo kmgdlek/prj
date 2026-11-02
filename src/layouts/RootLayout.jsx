@@ -5,6 +5,7 @@ import AdminBadge from '../components/AdminBadge'
 import NotificationBell from '../components/NotificationBell'
 import ChatPanel from '../components/ChatPanel'
 import { useTheme } from '../lib/theme'
+import { captureInvite } from '../lib/invite'
 import { NAV_GROUPS, NAV_ITEMS } from '../router'
 import LevelBadge from '../components/LevelBadge'
 import SideCard from '../components/SideCard'
@@ -89,6 +90,7 @@ export default function RootLayout() {
 
   // 앱이 켜질 때 한 번: 로그인 상태를 확인하고, 로그인돼 있으면 별·장바구니·주문을 미리 불러온다
   useEffect(() => { initAuth() }, [initAuth])
+  useEffect(() => { captureInvite() }, [])                    // 주소의 ?invite=코드 를 기억해 둔다 (친구 초대 링크로 들어온 경우)
 
   // 알림: 시세가 바뀌거나(1분) 설정·찜·날씨가 바뀔 때 새 알림이 있는지 본다. 추천 장소는 날씨가 필요해서 먼저 불러온다
   useEffect(() => { if (user && notifPrefs.enabled && notifPrefs.place) loadWeather() }, [user, notifPrefs.enabled, notifPrefs.place, loadWeather])
