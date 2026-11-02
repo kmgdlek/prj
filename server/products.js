@@ -77,13 +77,32 @@ export const flashRate = (p, slot = slotOf()) => {
   return Math.max(1, Math.round(unit(`${p.id}:b:${slot}`) * 20));
 };
 
+// 급등락(아주 드문 이벤트): 60분을 한 구간으로 보고, 상품·구간마다 SURGE_CHANCE 확률로 이벤트가 일어난다.
+// 일어나면 가격이 50~70% 오르거나(일반판매가를 넘을 수도 있다) 내리는데, 갑자기가 아니라
+// 20분에 걸쳐 천천히 변하고 → 10분 유지 → 20분에 걸쳐 천천히 돌아온다. 이것도 상품·시각으로 정해지는 고정된 값
+export const SURGE_CHANCE = 0.006;               // 상품 하나가 한 시간 구간에 급등락할 확률 (0.6% — 상품 하나당 평균 7일에 한 번, 가게 전체로는 하루 2~3번)
+const SURGE_EPOCH = 60, SURGE_RAMP = 20, SURGE_HOLD = 10, SURGE_MIN = 0.5, SURGE_MAX = 0.7
+const ease = (t) => t * t * (3 - 2 * t)          // 시작과 끝이 부드러운 곡선 (smoothstep)
+export const surgeFactor = (p, slot = slotOf()) => {
+  const epoch = Math.floor(slot / SURGE_EPOCH)
+  if (unit(`${p.id}:ev:${epoch}`) >= SURGE_CHANCE) return 1
+  const t = (slot % SURGE_EPOCH) - Math.floor(unit(`${p.id}:evs:${epoch}`) * 11)   // 이벤트 시작(구간 앞 10분 안)부터 지난 분
+  const shape = t < 0 ? 0 : t < SURGE_RAMP ? ease(t / SURGE_RAMP) : t < SURGE_RAMP + SURGE_HOLD ? 1 : t < 2 * SURGE_RAMP + SURGE_HOLD ? ease((2 * SURGE_RAMP + SURGE_HOLD - t) / SURGE_RAMP) : 0
+  const mag = SURGE_MIN + unit(`${p.id}:evm:${epoch}`) * (SURGE_MAX - SURGE_MIN)
+  return 1 + (unit(`${p.id}:evd:${epoch}`) < 0.5 ? -1 : 1) * mag * shape
+}
+// 급등락으로 평소보다 몇 % 달라졌는지 (+면 급등, -면 급락, 0이면 평소)
+export const surgePct = (p, slot = slotOf()) => Math.round((surgeFactor(p, slot) - 1) * 100)
+
 // 지금 팔리는 가격 (장바구니·주문·화면 모두 이 값을 쓴다)
 export const salePrice = (p, slot = slotOf()) => {
-  const base = basePrice(p), r = flashRate(p, slot);
-  return r ? Math.floor((base * (100 - r)) / 100 / 10) * 10 : base;
+  const base = basePrice(p), r = flashRate(p, slot), f = surgeFactor(p, slot)
+  const flash = r ? (base * (100 - r)) / 100 : base
+  const w = Math.min(1, Math.abs(f - 1) / SURGE_MIN)                          // 급등락이 깊어질수록 타임특가 잡음을 서서히 끈다 (가격이 튀지 않게)
+  return Math.max(10, Math.floor((flash * (1 - w) + base * f * w) / 10) * 10)
 };
 
-// 정가 대비 지금 가격이 몇 % 싼지, 직전 1분보다 얼마나 변했는지(음수 = 내려감)
+// 정가 대비 지금 가격이 몇 % 싼지(비싸면 음수), 직전 1분보다 얼마나 변했는지(음수 = 내려감)
 export const discountPct = (p, slot = slotOf()) => Math.round((1 - salePrice(p, slot) / p.price) * 100);
 export const trendOf = (p, slot = slotOf()) => salePrice(p, slot) - salePrice(p, slot - 1);
 

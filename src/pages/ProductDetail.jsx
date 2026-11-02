@@ -5,7 +5,7 @@ import { fetchImages } from '../api/client'
 import { won } from '../lib/format'
 import { useAppStore } from '../store/useAppStore'
 import { MYTHS } from '../../server/myths'
-import { MAX_PER_ITEM, PRODUCTS, basePrice, discountPct, flashRate, liveStock, productOf, salePrice, trendOf } from '../../server/products'
+import { MAX_PER_ITEM, PRODUCTS, basePrice, discountPct, flashRate, liveStock, productOf, salePrice, surgePct, trendOf } from '../../server/products'
 import PriceChart from '../components/PriceChart'
 import { Empty } from '../components/Status'
 import { FavButton } from '../components/ItemCard'
@@ -121,9 +121,10 @@ export default function ProductDetail() {
           {/* 왼쪽에 항목 이름을 붙인 가격 표: 일반판매가 → 할인가(깎인 금액) → 현재가(최종) */}
           <div className="price-wrap">
           <dl className="price-rows mb-3">
+            <dt>일반판매가</dt><dd className={discountPct(p, slot) > 0 ? 'text-body-secondary text-decoration-line-through' : 'text-body-secondary'}>{won(p.price)}</dd>
+            {surgePct(p, slot) !== 0 && <><dt>시세</dt><dd className={surgePct(p, slot) > 0 ? 'text-danger fw-bold' : 'text-primary fw-bold'}>{surgePct(p, slot) > 0 ? '🔥 급등' : '💧 급락'} 평소보다 {surgePct(p, slot) > 0 ? '+' : ''}{surgePct(p, slot)}%</dd></>}
             {discountPct(p, slot) > 0 && (
               <>
-                <dt>일반판매가</dt><dd className="text-body-secondary text-decoration-line-through">{won(p.price)}</dd>
                 {p.discount > 0 && <><dt>할인가</dt><dd className="text-danger fw-bold">-{won(p.price - basePrice(p))} ({p.discount}%)</dd></>}
                 {flashRate(p, slot) > 0 && <><dt>타임특가</dt><dd className="text-danger fw-bold">-{won(basePrice(p) - salePrice(p, slot))} (⚡ {flashRate(p, slot)}% 추가)</dd></>}
               </>
