@@ -82,6 +82,7 @@ export default function RootLayout() {
   const notifPrefs = useAppStore((s) => s.notifPrefs)
   const weatherLoaded = useAppStore((s) => s.weather.제주시)       // 날씨가 도착하면 추천 장소를 날씨에 맞춰 만든다
   const favCount = useAppStore((s) => s.favorites.length)
+  const orderCount = useAppStore((s) => s.orders.length)
   const loadWeather = useAppStore((s) => s.loadWeather)
   const runNotifier = useAppStore((s) => s.runNotifier)
   const navigate = useNavigate()
@@ -94,7 +95,9 @@ export default function RootLayout() {
 
   // 알림: 시세가 바뀌거나(1분) 설정·찜·날씨가 바뀔 때 새 알림이 있는지 본다. 추천 장소는 날씨가 필요해서 먼저 불러온다
   useEffect(() => { if (user && notifPrefs.enabled && notifPrefs.place) loadWeather() }, [user, notifPrefs.enabled, notifPrefs.place, loadWeather])
-  useEffect(() => { runNotifier() }, [runNotifier, slot, notifsReady, notifPrefs, weatherLoaded, favCount, user?.id])
+  useEffect(() => { runNotifier() }, [runNotifier, slot, notifsReady, notifPrefs, weatherLoaded, favCount, orderCount, user?.id])
+  // 주문 단계(상품준비중 1분 · 배송중 3분 · 배송완료 6분)가 바뀌는 때를 놓치지 않도록 로그인 중에는 15초마다 확인
+  useEffect(() => { if (!user) return; const t = setInterval(runNotifier, 15000); return () => clearInterval(t) }, [user, runNotifier])
 
   // 시세(1분)·재고(10분)가 바뀌는 시각을 넘겼는지 2초마다 확인
   useEffect(() => { const t = setInterval(tickSlot, 2000); return () => clearInterval(t) }, [tickSlot])

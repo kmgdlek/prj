@@ -36,15 +36,15 @@ export default function Orders() {
     <>
       <PageHeader icon="receipt" title="주문 내역" subtitle="배송 진행 단계를 확인하고, 배송이 끝나면 후기를 남겨요" />
       <Row className="g-3 mb-4">
-        <Col md={5}>
+        <Col md={4}>
           <Card className="h-100"><Card.Body>
             <div className="small text-body-secondary mb-1">내 등급</div>
             <LevelBadge withProgress />
           </Card.Body></Card>
         </Col>
-        <Col xs={6} md={3}><Stat label="주문" value={`${orders.length}건`} /></Col>
+        <Col xs={6} md={2}><Stat label="주문" value={`${orders.length}건`} /></Col>
         <Col xs={6} md={2}><Stat label="산 물건" value={`${count}개`} /></Col>
-        <Col xs={12} md={2}><Stat label="누적 구매액" value={won(totalSpent(orders))} note="취소·환불 제외" /></Col>
+        <Col xs={12} md={4}><Stat label="누적 구매액" value={won(totalSpent(orders))} note="취소·환불 제외" /></Col>
       </Row>
 
       {orders.length === 0 ? (
@@ -163,7 +163,7 @@ function Stat({ label, value, note }) {
   return (
     <Card className="h-100"><Card.Body>
       <div className="small text-body-secondary">{label}</div>
-      <div className="fw-bold fs-5">{value}</div>
+      <div className="fw-bold fs-5 text-nowrap">{value}</div>
       {note && <div className="small text-body-secondary">{note}</div>}
     </Card.Body></Card>
   )

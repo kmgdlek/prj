@@ -248,7 +248,7 @@ export const useAppStore = create((set, get) => ({
     const { notifPrefs: prefs, notifs, user } = get()
     if (!user || !prefs.enabled || !get().notifsReady) return          // 알림은 로그인했을 때만
     const now = Date.now()
-    const fresh = buildNotifications({ now, slot: get().slot, stockSlot: get().stockSlot, favorites: get().favorites, weather: get().weather, prefs, notifs, stockOf: get().stockOf })
+    const fresh = buildNotifications({ now, slot: get().slot, stockSlot: get().stockSlot, favorites: get().favorites, weather: get().weather, prefs, notifs, stockOf: get().stockOf, orders: get().orders })
     if (!notifs.some((n) => n.id === 'welcome')) {
       fresh.push({ id: 'welcome', topic: 'welcome', tag: '안내', emoji: '🔔', title: '알림이 켜져 있어요', body: '추천 물건과 장소, 찜한 상품 소식이 여기에 모여요. 마이페이지에서 끄거나 고를 수 있어요', to: '/mypage?tab=notify', at: now, read: false })
     }

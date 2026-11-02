@@ -2,6 +2,7 @@ import { MYTHS } from '../../server/myths'
 import { PRODUCTS, basePrice, discountPct, flashRate, isSudden, salePrice, surgePct } from '../../server/products'
 import { weatherKind, WEATHER_LABEL } from './weather'
 import { won } from './format'
+import { stageOf } from './order'
 
 // ── 알림 설정 ─────────────────────────────────────────────
 // enabled = 알림 끄기/켜기(전체). 그 밑에 세부 항목. 세부 항목은 전체가 꺼져 있으면 의미가 없다.
@@ -10,6 +11,7 @@ export const DEFAULT_PREFS = {
   deal: true,          // 추천 물건: 타임특가·급락 상품
   favPrice: true,      // 찜한 상품 가격이 내려갔을 때
   favStock: true,      // 찜한 상품 재고가 얼마 안 남았을 때
+  order: true,         // 주문한 상품의 상품준비중·배송중·배송완료
   surge: true,         // 시세가 크게 오르거나 내렸을 때
   place: true,         // 추천 장소: 날씨에 맞춘 신화 장소
   kinds: ['신화', '전설', '문화·자연'],   // 추천받을 장소 분류
@@ -25,6 +27,9 @@ export const PREF_GROUPS = [
     ['favStock', '찜한 상품 재고 부족', '남은 수량이 5개 이하가 되면 알려 줘요'],
     ['surge', '시세 급등·급락', '가격이 50% 넘게 움직이는 상품이 생기면 알려 줘요'],
   ] },
+  { title: '주문·배송', icon: 'truck', items: [
+    ['order', '주문 진행 상태', '상품 준비 중, 배송 시작, 배송 완료가 되면 알려 줘요'],
+  ] },
   { title: '추천 장소', icon: 'geo-alt', items: [
     ['place', '날씨 맞춤 장소 추천', '지금 제주 날씨에 어울리는 신화 장소를 6시간마다 한 곳 추천해요'],
   ] },
@@ -37,12 +42,28 @@ const hash = (str) => { let h = 2166136261; for (const ch of str) { h ^= ch.char
 
 // 지금 상황(시세·찜·재고·날씨)을 보고 새로 보낼 알림을 돌려준다. 이미 보낸 알림(같은 id)은 다시 만들지 않는다.
 // 한 번에 너무 많이 쏟아지지 않도록 종류마다 개수를 제한한다.
-export function buildNotifications({ now, slot, stockSlot, favorites, weather, prefs, notifs, stockOf }) {
+export function buildNotifications({ now, slot, stockSlot, favorites, weather, prefs, notifs, stockOf, orders = [] }) {
   const have = new Set(notifs.map((n) => n.id))
   const out = []
   const add = (n) => { if (!have.has(n.id)) { have.add(n.id); out.push({ ...n, at: now, read: false }) } }
   const favIds = favorites.filter((f) => f.source === 'product').map((f) => f.item_id)
   const favProducts = PRODUCTS.filter((p) => favIds.includes(p.id))
+
+  // 주문·배송: 주문한 지 1시간 안의 주문이 상품준비중·배송중·배송완료 단계가 되면 한 번씩 (현재 단계만 알려서, 앱을 닫아 둔 사이 지나간 단계는 쏟아내지 않는다)
+  if (prefs.order) {
+    const MSG = {
+      1: { emoji: '📦', title: '상품 준비 중이에요', body: (l) => `${l} 주문을 포장하고 있어요` },
+      2: { emoji: '🚚', title: '배송이 시작됐어요', body: (l) => `${l} 주문이 배송 중이에요` },
+      3: { emoji: '✅', title: '배송이 완료됐어요', body: (l) => `${l}이(가) 도착했어요. 후기를 남겨 보세요` },
+    }
+    for (const o of orders) {
+      if (now - new Date(o.created_at).getTime() > HOUR) continue
+      const stage = stageOf(o, now), m = MSG[stage]
+      if (!m) continue                                              // 취소·환불 접수, 또는 아직 결제완료 단계
+      const first = o.items?.[0]?.name ?? '주문한 상품', label = o.items?.length > 1 ? `${first} 외 ${o.items.length - 1}건` : first
+      add({ id: `order:${o.id}:${stage}`, topic: 'order', tag: '주문·배송', emoji: m.emoji, title: m.title, body: m.body(label), to: '/orders' })
+    }
+  }
 
   // 추천 물건: 지금 가장 싼 상품 한 개 (최근 알림과 gap 분 이상 떨어져 있을 때만)
   if (prefs.deal) {
@@ -97,7 +118,7 @@ export function buildNotifications({ now, slot, stockSlot, favorites, weather, p
         body: `${m.place} · ${m.summary}`, to: outdoor ? '/map' : '/myths' })
     }
   }
-  return out.slice(0, 4)
+  return out.slice(0, 5)
 }
 
 export const mergeNotifs = (fresh, notifs) => [...fresh, ...notifs].slice(0, MAX)

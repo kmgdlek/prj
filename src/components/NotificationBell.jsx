@@ -54,7 +54,7 @@ export default function NotificationBell() {
                     <span className="notif-emoji">{n.emoji}</span>
                     <span className="flex-grow-1 text-start">
                       <span className="d-flex align-items-center gap-2 mb-1">
-                        <Badge bg={n.topic === 'place' ? 'success' : n.topic === 'surge' ? 'danger' : 'primary'} className="fw-normal">{n.tag}</Badge>
+                        <Badge bg={n.topic === 'place' ? 'success' : n.topic === 'surge' ? 'danger' : n.topic === 'order' ? 'warning' : 'primary'} text={n.topic === 'order' ? 'dark' : undefined} className="fw-normal">{n.tag}</Badge>
                         <span className="small text-body-secondary ms-auto">{ago(n.at)}</span>
                       </span>
                       <span className="d-block fw-bold lh-sm">{n.title}</span>
