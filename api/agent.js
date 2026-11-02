@@ -31,7 +31,7 @@ const tools = [
   },
   {
     name: 'search_products',
-    description: '제주 장터에서 파는 특산품·기념품을 찾는다 (한라봉, 오메기떡, 돌하르방, 에코백 등). 선물·기념품·살 거리 질문에 쓴다',
+    description: '제주 장터에서 파는 특산품·기념품을 찾는다 (한라봉, 오메기떡, 돌하르방, 에코백 등). 대부분 1~5% 할인 중이며 결과의 salePrice 가 실제 판매가다. 선물·기념품·살 거리 질문에 쓴다',
     input_schema: {
       type: 'object',
       properties: {

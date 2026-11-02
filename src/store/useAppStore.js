@@ -1,7 +1,7 @@
 import { create } from 'zustand'
 import { supabase } from '../lib/supabase'
 import { askAgent, fetchShopImages } from '../api/client'
-import { productOf } from '../../server/products'
+import { productOf, salePrice } from '../../server/products'
 import { levelOf, totalSpent } from '../lib/level'
 import { STATUS } from '../lib/order'
 
@@ -185,7 +185,7 @@ export const useAppStore = create((set, get) => ({
     if (!user || cart.length === 0) return false
     const items = cart.map((c) => {
       const p = productOf(c.product_id)
-      return { product_id: c.product_id, name: p?.name ?? c.product_id, price: p?.price ?? 0, qty: c.qty }
+      return { product_id: c.product_id, name: p?.name ?? c.product_id, price: p ? salePrice(p) : 0, qty: c.qty }
     })
     const total = items.reduce((sum, i) => sum + i.price * i.qty, 0)
     const { data, error } = await supabase.from('orders').insert({ user_id: user.id, total, items }).select().single()

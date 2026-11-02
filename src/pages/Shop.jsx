@@ -5,7 +5,7 @@ import PageHeader from '../components/PageHeader'
 import { Empty } from '../components/Status'
 import { useAppStore } from '../store/useAppStore'
 import { won } from '../lib/format'
-import { CATEGORIES, PRODUCTS } from '../../server/products'
+import { CATEGORIES, PRODUCTS, salePrice } from '../../server/products'
 
 // 제주 특산품·기념품 — 담기 버튼은 store 의 장바구니에 연결
 export default function Shop() {
@@ -55,7 +55,10 @@ export default function Shop() {
                     <Card.Title className="fs-6 fw-bold"><Link to={`/shop/${p.id}`} className="text-reset text-decoration-none">{p.name}</Link></Card.Title>
                     <Card.Text className="small text-body-secondary">{p.desc}</Card.Text>
                     <div className="d-flex align-items-center justify-content-between mt-auto">
-                      <strong>{won(p.price)}</strong>
+                      <div className="lh-sm">
+                        {p.discount > 0 && <div className="small"><s className="text-body-secondary me-1">{won(p.price)}</s><span className="text-danger fw-bold">{p.discount}%</span></div>}
+                        <strong>{won(salePrice(p))}</strong>
+                      </div>
                       <Button size="sm" variant={qty ? 'success' : 'primary'} onClick={() => addToCart(p.id)}>
                         <i className={`bi bi-${qty ? 'cart-check' : 'cart-plus'} me-1`} />{qty ? `담김 ${qty}` : '담기'}
                       </Button>

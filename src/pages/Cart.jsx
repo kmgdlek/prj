@@ -4,7 +4,7 @@ import { Alert, Button, Card, ListGroup } from 'react-bootstrap'
 import PageHeader from '../components/PageHeader'
 import { Empty, Loading } from '../components/Status'
 import { useAppStore } from '../store/useAppStore'
-import { productOf } from '../../server/products'
+import { productOf, salePrice } from '../../server/products'
 import { won } from '../lib/format'
 
 // 장바구니 + 주문 내역 (로그인 필요 — router 의 RequireAuth 가 막아 준다)
@@ -15,7 +15,7 @@ export default function Cart() {
   const [done, setDone] = useState(false)
 
   const lines = cart.map((c) => ({ ...c, p: productOf(c.product_id) })).filter((l) => l.p)
-  const total = lines.reduce((sum, l) => sum + l.p.price * l.qty, 0)
+  const total = lines.reduce((sum, l) => sum + salePrice(l.p) * l.qty, 0)
 
   async function order() {
     setBusy(true)
@@ -40,14 +40,16 @@ export default function Cart() {
                   : <span className="fs-2">{p.emoji}</span>}
                 <div className="flex-grow-1">
                   <Link to={`/shop/${p.id}`} className="fw-bold text-reset text-decoration-none">{p.name}</Link>
-                  <div className="small text-body-secondary">{won(p.price)}</div>
+                  <div className="small text-body-secondary">
+                    {p.discount > 0 && <><s className="me-1">{won(p.price)}</s><span className="text-danger fw-bold me-1">{p.discount}%</span></>}{won(salePrice(p))}
+                  </div>
                 </div>
                 <div className="d-flex align-items-center gap-2">
                   <Button size="sm" variant="outline-secondary" aria-label="하나 빼기" onClick={() => setCartQty(p.id, qty - 1)}><i className="bi bi-dash" /></Button>
                   <span style={{ minWidth: 24, textAlign: 'center' }}>{qty}</span>
                   <Button size="sm" variant="outline-secondary" aria-label="하나 더하기" onClick={() => setCartQty(p.id, qty + 1)}><i className="bi bi-plus" /></Button>
                 </div>
-                <strong style={{ minWidth: 90, textAlign: 'right' }}>{won(p.price * qty)}</strong>
+                <strong style={{ minWidth: 90, textAlign: 'right' }}>{won(salePrice(p) * qty)}</strong>
                 <Button size="sm" variant="outline-danger" aria-label="삭제" onClick={() => setCartQty(p.id, 0)}><i className="bi bi-trash" /></Button>
               </ListGroup.Item>
             ))}

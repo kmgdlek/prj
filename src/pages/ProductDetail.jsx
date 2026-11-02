@@ -5,7 +5,7 @@ import { fetchImages } from '../api/client'
 import { won } from '../lib/format'
 import { useAppStore } from '../store/useAppStore'
 import { MYTHS } from '../../server/myths'
-import { PRODUCTS, productOf } from '../../server/products'
+import { PRODUCTS, productOf, salePrice } from '../../server/products'
 import { Empty } from '../components/Status'
 
 // 상품 상세 — 큰 사진(썸네일로 바꿔 보기) · 가격 · 수량 · 장바구니/바로구매 · 상품정보 · 이어진 신화 · 같은 분류 상품
@@ -71,7 +71,15 @@ export default function ProductDetail() {
           <Badge bg="primary" className="mb-2">{p.category}</Badge>
           <h2 className="fw-bold">{p.name}</h2>
           <p className="text-body-secondary">{p.desc}</p>
-          <div className="display-6 fw-bold mb-3">{won(p.price)}</div>
+          {p.discount > 0 ? (
+            <div className="mb-3">
+              <div className="text-body-secondary text-decoration-line-through fs-5">{won(p.price)}</div>
+              <div className="text-danger fw-bold fs-4">{p.discount}% 할인</div>
+              <div className="display-6 fw-bold">{won(salePrice(p))}</div>
+            </div>
+          ) : (
+            <div className="display-6 fw-bold mb-3">{won(p.price)}</div>
+          )}
 
           <Card className="mb-3"><Card.Body className="small">
             <div className="d-flex gap-2"><i className="bi bi-truck" /> 과제용 샘플 상품이라 실제 배송은 이루어지지 않아요</div>
@@ -85,7 +93,7 @@ export default function ProductDetail() {
               <strong style={{ minWidth: 28, textAlign: 'center' }}>{qty}</strong>
               <Button size="sm" variant="outline-secondary" aria-label="하나 더하기" disabled={qty >= 20} onClick={() => setQty(qty + 1)}><i className="bi bi-plus" /></Button>
             </div>
-            <span className="ms-auto">합계 <strong className="fs-5 ms-1">{won(p.price * qty)}</strong></span>
+            <span className="ms-auto">합계 <strong className="fs-5 ms-1">{won(salePrice(p) * qty)}</strong></span>
           </div>
 
           {!user && <Alert variant="info" className="py-2 small"><Link to="/login" state={{ from: `/shop/${p.id}` }}>로그인</Link>하면 장바구니에 담을 수 있어요.</Alert>}
@@ -101,7 +109,7 @@ export default function ProductDetail() {
         <tbody>
           <tr><th style={{ width: 120 }} className="bg-body-tertiary">상품명</th><td>{p.name}</td></tr>
           <tr><th className="bg-body-tertiary">분류</th><td>{p.category}</td></tr>
-          <tr><th className="bg-body-tertiary">판매가</th><td>{won(p.price)}</td></tr>
+          <tr><th className="bg-body-tertiary">판매가</th><td>{p.discount > 0 ? <><s className="text-body-secondary me-2">{won(p.price)}</s>{won(salePrice(p))} ({p.discount}% 할인)</> : won(p.price)}</td></tr>
           <tr><th className="bg-body-tertiary">설명</th><td>{p.desc}</td></tr>
         </tbody>
       </Table>
@@ -128,7 +136,7 @@ export default function ProductDetail() {
               <Col key={r.id}>
                 <Card as={Link} to={`/shop/${r.id}`} className="h-100 item-card text-decoration-none">
                   <div className="product-tile" style={{ background: `linear-gradient(135deg, ${r.color}, #1a0b3d)`, height: 90, fontSize: '2.5rem' }}>{r.emoji}</div>
-                  <Card.Body className="p-2"><div className="small fw-bold">{r.name}</div><div className="small">{won(r.price)}</div></Card.Body>
+                  <Card.Body className="p-2"><div className="small fw-bold">{r.name}</div><div className="small">{r.discount > 0 && <span className="text-danger fw-bold me-1">{r.discount}%</span>}{won(salePrice(r))}</div></Card.Body>
                 </Card>
               </Col>
             ))}
