@@ -7,6 +7,10 @@ import { useTimeMode } from '../lib/timeOfDay'
 import { weatherKind } from '../lib/weather'
 import { useAppStore } from '../store/useAppStore'
 import { Boats, Clouds, Fireflies, Gulls, Lamps, Moon, Precip, Sun } from './skyThings'
+import Landscape from './landscape'
+
+// 섬을 이 배율로 키워 보여 준다 (지형·오름·나무·마커가 모두 같은 비율로 커진다). 카메라 목표 같은 '월드 좌표'는 이 값을 곱해 쓴다
+const WORLD = 1.5
 
 // 시간대별 하늘·빛·바다 색. 새벽 = 보랏빛 하늘 + 동쪽의 해돋이, 아침 = 맑은 낮, 밤 = 달빛
 const THEME = {
@@ -176,11 +180,15 @@ function Marker({ m, index, selected, onSelect }) {
 // 이동이 끝난 뒤에는 다시 마우스로 자유롭게 돌려 볼 수 있다.
 const CENTER = new THREE.Vector3(0, 0.3, 0)
 const HOME_CAM = new THREE.Vector3(0, 10, 13)
+// 화면이 좁고 세로로 길수록(폰) 섬이 잘리지 않게 카메라를 조금 뒤로 뺀다
+const homeCam = (aspect) => HOME_CAM.clone().multiplyScalar((aspect >= 1.4 ? 1 : 1 + (1.4 - aspect) * 0.55) * 1.2)
 
 function CameraRig({ focus }) {
   const controls = useThree((s) => s.controls)
   const camera = useThree((s) => s.camera)
+  const size = useThree((s) => s.size)
   const until = useRef(0)
+  useEffect(() => { if (!focus) camera.position.copy(homeCam(size.width / size.height)) }, [size.width, size.height]) // eslint-disable-line react-hooks/exhaustive-deps
   const lastId = useRef(null)
   useFrame(({ clock }, dt) => {
     if (!controls) return
@@ -190,15 +198,15 @@ function CameraRig({ focus }) {
     const k = 1 - Math.pow(0.001, dt)
     if (focus) {
       const [x, z] = toXZ(Number(focus.lat), Number(focus.lng))
-      const target = new THREE.Vector3(x, heightAt(x, z), z)
+      const target = new THREE.Vector3(x * WORLD, heightAt(x, z) * WORLD, z * WORLD)
       controls.target.lerp(target, k)
       // 섬 중심 → 마커 방향(바깥쪽)에서 다가간다. 그래야 한라산이 마커 뒤에 놓여 가리지 않는다
-      const out = new THREE.Vector3(x, 0, z)
+      const out = new THREE.Vector3(x * WORLD, 0, z * WORLD)
       if (out.length() < 1) out.set(0, 0, 1); else out.normalize()
       camera.position.lerp(target.clone().add(out.multiplyScalar(4.6)).add(new THREE.Vector3(0, 2.6, 0)), k)
     } else {
       controls.target.lerp(CENTER, k)                      // 복귀: 섬 한가운데 + 처음 거리
-      camera.position.lerp(HOME_CAM, k)
+      camera.position.lerp(homeCam(size.width / size.height), k)
     }
     controls.update()
   })
@@ -223,18 +231,18 @@ export default function Jeju3D({ items = [], selectedId, onSelect, height = 460,
   const [zoomOn, setZoomOn] = useState(false)
   return (
     <div style={{ height }} onPointerDown={() => setZoomOn(true)} onPointerLeave={() => setZoomOn(false)}>
-      <Canvas shadows camera={{ position: [0, 10, 13], fov: 45 }} style={{ height: '100%' }} dpr={[1, 2]}>
+      <Canvas shadows camera={{ position: [0, 12, 15.6], fov: 45 }} style={{ height: '100%' }} dpr={[1, 2]}>
         <color attach="background" args={[T.bg]} />
         <fog attach="fog" args={[T.bg, T.fog[0], T.fog[1]]} />
         <hemisphereLight args={T.hemi} />
         <ambientLight intensity={T.ambient} />
         {/* 달빛·햇빛: 그림자를 드리워 한라산·오름의 입체감을 만든다 */}
         <directionalLight position={T.key.pos} intensity={T.key.i} color={T.key.color} castShadow
-          shadow-mapSize={[2048, 2048]} shadow-bias={-0.0004} shadow-normalBias={0.03}
-          shadow-camera-left={-12} shadow-camera-right={12} shadow-camera-top={9} shadow-camera-bottom={-9}
-          shadow-camera-near={1} shadow-camera-far={40} />
+          shadow-mapSize={[3072, 3072]} shadow-bias={-0.0004} shadow-normalBias={0.03}
+          shadow-camera-left={-18} shadow-camera-right={18} shadow-camera-top={13} shadow-camera-bottom={-13}
+          shadow-camera-near={1} shadow-camera-far={55} />
         <directionalLight position={T.fill.pos} intensity={T.fill.i} color={T.fill.color} />
-        {T.halla > 0 && <pointLight position={[HALLA[0], 4, HALLA[1]]} intensity={T.halla} color="#b388ff" distance={8} />}
+        {T.halla > 0 && <pointLight position={[HALLA[0] * WORLD, 4 * WORLD, HALLA[1] * WORLD]} intensity={T.halla * 1.5} color="#b388ff" distance={8 * WORLD} />}
         {T.stars > 0 && <Stars radius={70} depth={35} count={T.stars} factor={3.5} fade speed={1} />}
         {m === 'night' && <>{!dim && <Moon />}{calm && <Fireflies />}</>}
         {m === 'dawn' && <>{!dim && <Sun mode="dawn" />}<Lamps /></>}
@@ -246,12 +254,15 @@ export default function Jeju3D({ items = [], selectedId, onSelect, height = 460,
         {(w === 'rain' || w === 'snow') && <Precip kind={w} />}
         <Abyss />
         <Sea color={T.sea} opacity={T.seaOpacity} />
-        <Island />
-        <Oreums />
-        <Halo sparkles={m !== 'morning'} />
-        {pins.map((m, i) => <Marker key={m.id} m={m} index={i} selected={m.id === selectedId} onSelect={onSelect} />)}
+        <group scale={WORLD}>
+          <Island />
+          <Oreums />
+          <Landscape />
+          <Halo sparkles={m !== 'morning'} />
+          {pins.map((m, i) => <Marker key={m.id} m={m} index={i} selected={m.id === selectedId} onSelect={onSelect} />)}
+        </group>
         <OrbitControls makeDefault enablePan={false} enableZoom={zoomOn} target={[0, 0.3, 0]}
-          minDistance={3} maxDistance={22} maxPolarAngle={Math.PI / 2.15}
+          minDistance={3} maxDistance={30} maxPolarAngle={Math.PI / 2.15}
           enableDamping dampingFactor={0.08}
           autoRotate={autoRotate && !selectedId} autoRotateSpeed={0.6} />
         <CameraRig focus={focus} />
