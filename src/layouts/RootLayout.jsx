@@ -1,9 +1,10 @@
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useState } from 'react'
 import { Link, NavLink, Outlet, useLocation, useNavigate } from 'react-router-dom'
 import { Badge, Button, Container, Nav, Navbar, Offcanvas, Toast, ToastContainer } from 'react-bootstrap'
 import ChatPanel from '../components/ChatPanel'
 import { NAV_ITEMS } from '../router'
 import LevelBadge from '../components/LevelBadge'
+import SideCard from '../components/SideCard'
 import { displayName, useAppStore } from '../store/useAppStore'
 
 // 이야기꾼 AI: 오른쪽 아래 둥근 버튼을 누르면 채팅창이 부드럽게 열리고, 다시 누르면 부드럽게 닫힌다.
@@ -41,39 +42,6 @@ function AgentWindow() {
   )
 }
 
-// 오른쪽에 떠 있는 장바구니·메뉴 버튼 — 스크롤하면 한 박자 늦게 천천히 따라온다.
-// 스크롤한 만큼 반대로 밀렸다가(offset), 매 프레임 조금씩 제자리로 돌아오는 방식
-function FloatingNav({ cartCount, onMenu }) {
-  const ref = useRef(null)
-  useEffect(() => {
-    if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return
-    let last = window.scrollY, offset = 0, raf
-    const onScroll = () => {
-      offset = Math.max(-160, Math.min(160, offset + (last - window.scrollY)))
-      last = window.scrollY
-    }
-    const tick = () => {
-      offset *= 0.95                                   // 클수록 더 천천히 따라온다
-      if (Math.abs(offset) < 0.1) offset = 0
-      if (ref.current) ref.current.style.transform = `translateY(${offset.toFixed(1)}px)`
-      raf = requestAnimationFrame(tick)
-    }
-    window.addEventListener('scroll', onScroll, { passive: true })
-    raf = requestAnimationFrame(tick)
-    return () => { window.removeEventListener('scroll', onScroll); cancelAnimationFrame(raf) }
-  }, [])
-
-  return (
-    <div ref={ref} className="floating-nav">
-      <Link to="/cart" className="floating-btn position-relative" aria-label={`장바구니 ${cartCount}개`}>
-        <i className="bi bi-cart3" />
-        {cartCount > 0 && <Badge bg="warning" text="dark" pill className="position-absolute top-0 start-100 translate-middle">{cartCount}</Badge>}
-      </Link>
-      <button type="button" className="floating-btn" aria-label="메뉴 열기" onClick={onMenu}><i className="bi bi-list" /></button>
-    </div>
-  )
-}
-
 export default function RootLayout() {
   const toasts = useAppStore((s) => s.toasts)
   const user = useAppStore((s) => s.user)
@@ -94,7 +62,15 @@ export default function RootLayout() {
           <Navbar.Brand as={NavLink} to="/" className="fw-bold">
             <i className="bi bi-moon-stars-fill me-2 text-warning" />탐라신화 3D
           </Navbar.Brand>
-          {/* 모든 화면에서 오른쪽 세 줄 버튼 하나로 메뉴를 연다 */}
+          <div className="d-flex align-items-center gap-1">
+            <Button as={Link} to="/cart" variant="outline-light" className="border-0 fs-4 py-0 px-2 position-relative" aria-label={`장바구니 ${cartCount}개`}>
+              <i className="bi bi-cart3" />
+              {cartCount > 0 && <Badge bg="warning" text="dark" pill className="position-absolute top-0 start-100 translate-middle fs-6">{cartCount}</Badge>}
+            </Button>
+            <Button variant="outline-light" className="border-0 fs-3 py-0 px-2" aria-label="메뉴 열기" onClick={() => setMenuOpen(true)}>
+              <i className="bi bi-list" />
+            </Button>
+          </div>
         </Container>
       </Navbar>
 
@@ -152,7 +128,7 @@ export default function RootLayout() {
         </Container>
       </footer>
 
-      <FloatingNav cartCount={cartCount} onMenu={() => setMenuOpen(true)} />
+      <SideCard />
       <AgentWindow />
 
       {/* 오른쪽 아래 AI 버튼과 겹치지 않도록 알림은 아래 가운데에 */}
