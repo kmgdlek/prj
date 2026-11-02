@@ -19,6 +19,7 @@ const toastTimers = new Map()   // 알림 id → 사라질 때까지의 타이�
 function armToast(id, fn) { clearTimeout(toastTimers.get(id)); toastTimers.set(id, setTimeout(() => { toastTimers.delete(id); fn() }, 2800)) }
 const notifKey = (user) => `tamra-notifs:${user?.id ?? 'guest'}`
 let lastOverrideLoad = 0
+let lastGrantLoad = 0
 let authStarted = false        // StrictMode 에서 구독이 두 번 걸리지 않게
 
 // 화면에 보여 줄 이름: 가입 때 적은 닉네임, 없으면 이메일 앞부분
@@ -249,7 +250,7 @@ export const useAppStore = create((set, get) => ({
     const { notifPrefs: prefs, notifs, user } = get()
     if (!user || !prefs.enabled || !get().notifsReady) return          // 알림은 로그인했을 때만
     const now = Date.now()
-    const fresh = buildNotifications({ now, slot: get().slot, stockSlot: get().stockSlot, favorites: get().favorites, weather: get().weather, prefs, notifs, stockOf: get().stockOf, orders: get().orders })
+    const fresh = buildNotifications({ now, slot: get().slot, stockSlot: get().stockSlot, favorites: get().favorites, weather: get().weather, prefs, notifs, stockOf: get().stockOf, orders: get().orders, grants: get().pointGrants })
     if (!notifs.some((n) => n.id === 'welcome')) {
       fresh.push({ id: 'welcome', topic: 'welcome', tag: '안내', emoji: '🔔', title: '알림이 켜져 있어요', body: '추천 물건과 장소, 찜한 상품 소식이 여기에 모여요. 마이페이지에서 끄거나 고를 수 있어요', to: '/mypage?tab=notify', at: now, read: false })
     }
@@ -277,12 +278,20 @@ export const useAppStore = create((set, get) => ({
     const { data, error } = await supabase.from('shop_point_grants').select('*').eq('user_id', user.id).order('created_at', { ascending: false })
     if (!error) set({ pointGrants: data })
   },
-  grantPoints: async (amount, reason = '관리자 지급') => {
+  // 적립금 지급: email 을 비우면 내 계정에, 적으면 그 사람에게 (이메일 → 계정 찾기는 DB 함수가 한다). 받은 사람 닉네임을 돌려준다
+  grantPoints: async ({ email = '', amount, reason = '관리자 지급' }) => {
     const { user, isAdmin } = get()
     if (!isAdmin) throw new Error('관리자만 지급할 수 있어요')
-    const { data, error } = await supabase.from('shop_point_grants').insert({ user_id: user.id, amount, reason }).select().single()
-    if (error) throw error
-    set({ pointGrants: [data, ...get().pointGrants] })
+    const who = email.trim()
+    if (!who || who.toLowerCase() === (user.email ?? '').toLowerCase()) {
+      const { error } = await supabase.from('shop_point_grants').insert({ user_id: user.id, amount, reason })
+      if (error) throw error
+      await get().loadPointGrants()
+      return displayName(user)
+    }
+    const { data, error } = await supabase.rpc('grant_points_by_email', { p_email: who, p_amount: amount, p_reason: reason })
+    if (error) throw new Error(error.code === 'PGRST202' ? 'schema.sql 을 다시 실행해 주세요 (지급 함수가 아직 없어요)' : error.message)
+    return data?.[0]?.nickname ?? who
   },
 
   // ⑭ 관리자 — shop_admins 에 내 id 가 있으면 관리자. 관리자만 시세를 직접 정할 수 있다 (RLS 가 DB 에서 막음)
@@ -329,6 +338,7 @@ export const useAppStore = create((set, get) => ({
   tickSlot: () => {
     const price = slotOf(), stock = stockSlotOf()
     if (Date.now() - lastOverrideLoad > 15000) get().loadOverrides()   // 다른 사람(관리자)이 바꾼 시세를 15초 안에 따라온다
+    if (get().user && Date.now() - lastGrantLoad > 30000) { lastGrantLoad = Date.now(); get().loadPointGrants() }   // 다른 관리자가 준 적립금도 30초 안에 따라온다
     if (price !== get().slot) set({ slot: price })
     if (stock !== get().stockSlot) set({ stockSlot: stock })        // 알림 없이 조용히 갱신
   },

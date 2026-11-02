@@ -1,17 +1,21 @@
 import { useState } from 'react'
-import { Alert, Badge, Button, Card, Form, Table } from 'react-bootstrap'
+import { Alert, Badge, Button, Card, Col, Form, Row, Table } from 'react-bootstrap'
 import PageHeader from '../components/PageHeader'
 import { PRODUCTS, basePrice, isSudden, salePrice, surgePct } from '../../server/products'
-import { won, wonCompact } from '../lib/format'
+import { won } from '../lib/format'
 import { useAppStore } from '../store/useAppStore'
 
+const TAPS = [1000, 5000, 10000]
 const DURATIONS = [{ m: 10, label: '10분' }, { m: 30, label: '30분' }, { m: 60, label: '1시간' }, { m: 180, label: '3시간' }]
 const hhmm = (t) => new Date(t).toLocaleTimeString('ko-KR', { hour: '2-digit', minute: '2-digit' })
 
 // 관리자 전용 — 상품별 지금 시세를 직접 정한다. 정한 가격은 모든 접속자에게 15초 안에 반영되고, 정한 시간이 지나면 원래 시세로 돌아간다
 export default function Admin() {
-  const { overrideRows, setPriceOverride, clearPriceOverride, grantPoints, pointGrants, toast } = useAppStore()
-  const [pts, setPts] = useState('1000000000')                // 지급할 적립금
+  const { overrideRows, setPriceOverride, clearPriceOverride, grantPoints, toast } = useAppStore()
+  const [amount, setAmount] = useState('')               // 지급할 적립금
+  const [taps, setTaps] = useState({})                   // 빠른 버튼을 누른 횟수 { 1000: 3 }
+  const [toEmail, setToEmail] = useState('')
+  const [reason, setReason] = useState('')
   const slot = useAppStore((s) => s.slot)
   useAppStore((s) => s.priceVer)
   const [input, setInput] = useState({})      // { [id]: { price, minutes } }
@@ -24,11 +28,18 @@ export default function Admin() {
     setBusy(id)
     try { await fn(); toast(okMsg) } catch (e) { toast(e.message, 'danger') } finally { setBusy('') }
   }
-  async function give(amount) {
-    const n = Math.round(Number(amount))
+  // 빠른 금액 버튼은 누를 때마다 금액에 더해진다 (연속으로 누르면 +1,000 × 3 처럼 쌓인다)
+  const tap = (v) => { setAmount((a) => String((Number(a) || 0) + v)); setTaps((t) => ({ ...t, [v]: (t[v] ?? 0) + 1 })) }
+  async function give() {
+    const n = Math.round(Number(amount)), who = toEmail.trim()
     if (!Number.isFinite(n) || n === 0 || Math.abs(n) > 9e15) return toast('0이 아닌 금액을 넣어 주세요', 'warning')
+    if (who && !window.confirm(`${who} 님에게 적립금 ${won(Math.abs(n))}을 ${n > 0 ? '지급' : '회수'}할까요?`)) return
     setBusy('points')
-    try { await grantPoints(n); toast(`적립금 ${n > 0 ? '' : '-'}${wonCompact(Math.abs(n))}을 ${n > 0 ? '지급' : '회수'}했어요`) } catch (e) { toast(e.message, 'danger') } finally { setBusy('') }
+    try {
+      const name = await grantPoints({ email: who, amount: n, reason: reason.trim() || '관리자 지급' })
+      toast(`${name}님에게 적립금 ${won(Math.abs(n))}을 ${n > 0 ? '지급' : '회수'}했어요`)
+      setAmount(''); setTaps({})
+    } catch (e) { toast(e.message, 'danger') } finally { setBusy('') }
   }
   function apply(p) {
     const { price, minutes } = get(p.id), n = Math.round(Number(price))
@@ -43,14 +54,22 @@ export default function Admin() {
         가격을 넣고 <b>적용</b>을 누르면 선택한 시간 동안 그 가격으로 팔려요. 시간이 지나거나 <b>되돌리기</b>를 누르면 원래 시세(타임특가·급등락)로 돌아가요.
       </Alert>
       <Card className="mb-4"><Card.Body>
-        <h6 className="fw-bold mb-1"><i className="bi bi-coin me-1 text-primary" />내 적립금 지급</h6>
-        <p className="small text-body-secondary mb-2">관리자만 쓸 수 있어요. 지급한 적립금은 마이페이지 적립금 내역에 남고, 결제할 때 그대로 쓸 수 있어요. (지금까지 지급 {pointGrants.length}번, 합계 {wonCompact(pointGrants.reduce((s, g) => s + Number(g.amount), 0))})</p>
-        <div className="d-flex gap-2 flex-wrap align-items-center">
-          <Form.Control type="number" step="1000" style={{ maxWidth: 220 }} value={pts} onChange={(e) => setPts(e.target.value)} aria-label="지급할 적립금" />
-          {[['10억', 1000000000], ['1억', 100000000], ['100만', 1000000]].map(([label, v]) => <Button key={label} size="sm" variant="outline-secondary" onClick={() => setPts(String(v))}>{label}</Button>)}
-          <Button disabled={busy === 'points'} onClick={() => give(pts)}>지급하기</Button>
+        <h6 className="fw-bold mb-1"><i className="bi bi-coin me-1 text-primary" />적립금 지급</h6>
+        <p className="small text-body-secondary mb-3">관리자만 쓸 수 있어요. 받는 사람 이메일을 적으면 그 사람에게, 비워 두면 내 계정에 지급해요. 지급하면 그 사람의 적립금 내역에 남고 결제에 그대로 쓸 수 있어요.</p>
+        <Row className="g-2 mb-2">
+          <Col md={6}><Form.Control type="email" placeholder="받는 사람 이메일 (비우면 나)" value={toEmail} onChange={(e) => setToEmail(e.target.value)} aria-label="받는 사람 이메일" /></Col>
+          <Col md={6}><Form.Control placeholder="사유 (선택, 기본: 관리자 지급)" maxLength={40} value={reason} onChange={(e) => setReason(e.target.value)} aria-label="지급 사유" /></Col>
+        </Row>
+        <div className="d-flex gap-2 flex-wrap align-items-center mb-2">
+          <Form.Control type="number" step="100" min="0" style={{ maxWidth: 180 }} value={amount} placeholder="금액" onChange={(e) => { setAmount(e.target.value); setTaps({}) }} aria-label="지급할 적립금" />
+          {TAPS.map((v) => <Button key={v} size="sm" variant="outline-primary" onClick={() => tap(v)}>+{v.toLocaleString('ko-KR')}</Button>)}
+          <Button size="sm" variant="link" className="text-body-secondary" onClick={() => { setAmount(''); setTaps({}) }}>초기화</Button>
         </div>
-        <div className="small text-body-secondary mt-1">= {Number(pts) ? wonCompact(Number(pts)) : '-'} (마이너스 금액은 회수)</div>
+        <div className="d-flex gap-2 flex-wrap align-items-center mb-3" style={{ minHeight: 28 }}>
+          {Object.entries(taps).map(([v, n]) => <Badge key={v} bg="primary" className="fw-normal">+{Number(v).toLocaleString('ko-KR')} × {n}</Badge>)}
+          <span className="fw-bold ms-1">{Number(amount) ? `= ${won(Number(amount))}` : ''}</span>
+        </div>
+        <Button disabled={busy === 'points'} onClick={give}><i className="bi bi-send me-1" />{toEmail.trim() ? `${toEmail.trim()} 님에게 지급` : '내 계정에 지급'}</Button>
       </Card.Body></Card>
       <div className="table-responsive">
         <Table hover align="middle" className="small">

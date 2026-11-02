@@ -12,6 +12,7 @@ export const DEFAULT_PREFS = {
   favPrice: true,      // 찜한 상품 가격이 내려갔을 때
   favStock: true,      // 찜한 상품 재고가 얼마 안 남았을 때
   order: true,         // 주문한 상품의 상품준비중·배송중·배송완료
+  points: true,        // 관리자가 적립금을 지급했을 때
   surge: true,         // 시세가 크게 오르거나 내렸을 때
   place: true,         // 추천 장소: 날씨에 맞춘 신화 장소
   kinds: ['신화', '전설', '문화·자연'],   // 추천받을 장소 분류
@@ -29,6 +30,7 @@ export const PREF_GROUPS = [
   ] },
   { title: '주문·배송', icon: 'truck', items: [
     ['order', '주문 진행 상태', '상품 준비 중, 배송 시작, 배송 완료가 되면 알려 줘요'],
+    ['points', '적립금 지급', '관리자가 적립금을 지급하면 알려 줘요'],
   ] },
   { title: '추천 장소', icon: 'geo-alt', items: [
     ['place', '날씨 맞춤 장소 추천', '지금 제주 날씨에 어울리는 신화 장소를 6시간마다 한 곳 추천해요'],
@@ -42,12 +44,21 @@ const hash = (str) => { let h = 2166136261; for (const ch of str) { h ^= ch.char
 
 // 지금 상황(시세·찜·재고·날씨)을 보고 새로 보낼 알림을 돌려준다. 이미 보낸 알림(같은 id)은 다시 만들지 않는다.
 // 한 번에 너무 많이 쏟아지지 않도록 종류마다 개수를 제한한다.
-export function buildNotifications({ now, slot, stockSlot, favorites, weather, prefs, notifs, stockOf, orders = [] }) {
+export function buildNotifications({ now, slot, stockSlot, favorites, weather, prefs, notifs, stockOf, orders = [], grants = [] }) {
   const have = new Set(notifs.map((n) => n.id))
   const out = []
   const add = (n) => { if (!have.has(n.id)) { have.add(n.id); out.push({ ...n, at: now, read: false }) } }
   const favIds = favorites.filter((f) => f.source === 'product').map((f) => f.item_id)
   const favProducts = PRODUCTS.filter((p) => favIds.includes(p.id))
+
+  // 적립금 지급: 최근 7일 안에 받은 지급 기록 (지급마다 한 번)
+  if (prefs.points) {
+    for (const g of grants) {
+      if (now - new Date(g.created_at).getTime() > 7 * 24 * HOUR) continue
+      const amt = Number(g.amount)
+      add({ id: `grant:${g.id}`, topic: 'points', tag: '적립금', emoji: '🪙', title: `적립금 ${won(Math.abs(amt))}이 ${amt > 0 ? '지급' : '회수'}됐어요`, body: g.reason ?? '관리자 지급', to: '/mypage?tab=points' })
+    }
+  }
 
   // 주문·배송: 주문한 지 1시간 안의 주문이 상품준비중·배송중·배송완료 단계가 되면 한 번씩 (현재 단계만 알려서, 앱을 닫아 둔 사이 지나간 단계는 쏟아내지 않는다)
   if (prefs.order) {

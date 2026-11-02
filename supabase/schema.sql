@@ -249,5 +249,22 @@ create policy "point_grants admin insert" on shop_point_grants for insert with c
 -- (참고) SQL Editor 에서 직접 지급하려면 '이 파일 전체를 먼저 실행해 테이블을 만든 뒤', 아래 한 줄만 따로 실행한다 (파일 안에서 주석을 풀지 말 것):
 --   insert into shop_point_grants (user_id, amount, reason) select id, 1000000000, '관리자 지급' from auth.users where email = '내 이메일';
 
+-- 다른 사람에게 이메일로 적립금 지급: 이메일 → 계정 찾기는 auth.users 를 읽어야 해서 DB 함수(security definer)로 만들고, 함수 안에서 관리자인지 먼저 확인한다
+create or replace function grant_points_by_email(p_email text, p_amount bigint, p_reason text default '관리자 지급')
+returns table (user_id uuid, nickname text)
+language plpgsql security definer set search_path = public as $$
+declare uid uuid; nick text;
+begin
+  if not is_shop_admin() then raise exception '관리자만 지급할 수 있어요'; end if;
+  if p_amount is null or p_amount = 0 then raise exception '0이 아닌 금액을 넣어 주세요'; end if;
+  select u.id, coalesce(nullif(u.raw_user_meta_data->>'nickname', ''), split_part(u.email, '@', 1)) into uid, nick
+    from auth.users u where lower(u.email) = lower(trim(p_email));
+  if uid is null then raise exception '가입한 이메일이 아니에요'; end if;
+  insert into shop_point_grants (user_id, amount, reason) values (uid, p_amount, coalesce(nullif(trim(p_reason), ''), '관리자 지급'));
+  return query select uid, nick;
+end $$;
+revoke all on function grant_points_by_email(text, bigint, text) from public;
+grant execute on function grant_points_by_email(text, bigint, text) to authenticated;
+
 -- 새 컬럼·정책을 API 가 바로 인식하도록 스키마 캐시를 새로고침
 notify pgrst, 'reload schema';
