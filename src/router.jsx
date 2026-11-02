@@ -15,6 +15,7 @@ import Cart from './pages/Cart'
 import Orders from './pages/Orders'
 import Admin from './pages/Admin'
 import RequireAdmin from './components/RequireAdmin'
+import Welcome from './pages/Welcome'
 import Benefits from './pages/Benefits'
 import MyPage from './pages/MyPage'
 import RequireAuth from './components/RequireAuth'
@@ -64,6 +65,7 @@ export const router = createBrowserRouter([
       { path: 'orders', element: <RequireAuth><Orders /></RequireAuth> },
       { path: 'mypage', element: <RequireAuth><MyPage /></RequireAuth> },
       { path: 'admin', element: <RequireAdmin><Admin /></RequireAdmin> },
+      { path: 'welcome', element: <Welcome /> },
       { path: 'login', element: <Login /> },
       { path: 'signup', element: <Signup /> },
       { path: 'my', element: <RequireAuth><My /></RequireAuth> },

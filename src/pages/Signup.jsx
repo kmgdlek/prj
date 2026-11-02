@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { Link, Navigate, useLocation } from 'react-router-dom'
+import { Link, Navigate, useLocation, useNavigate } from 'react-router-dom'
 import { Alert, Button, Card, Form } from 'react-bootstrap'
 import PageHeader from '../components/PageHeader'
 import { isSupabaseReady } from '../lib/supabase'
@@ -10,6 +10,7 @@ import { useAppStore } from '../store/useAppStore'
 // 이메일 인증을 켜 둔 프로젝트면 인증 메일 안내(다시 보내기 포함), 꺼 둔 프로젝트면 바로 환영 + 갈 곳 안내
 export default function Signup() {
   const { user, signUp, resendConfirm, toast } = useAppStore()
+  const navigate = useNavigate()
   const from = useLocation().state?.from ?? '/'
   const [form, setForm] = useState({ nickname: '', email: '', password: '', password2: '' })
   const [busy, setBusy] = useState(false)
@@ -32,6 +33,7 @@ export default function Signup() {
     setBusy(true); setError('')
     try {
       const { needsConfirm } = await signUp(form)
+      if (!needsConfirm) { navigate('/welcome', { replace: true }); return }       // 인증 없이 바로 가입 → 가입 완료 페이지
       setDone({ needsConfirm, email: form.email.trim(), nickname: form.nickname.trim() })
       setWait(60)
     } catch (err) {
@@ -86,31 +88,18 @@ function Done({ done, from, wait, onResend }) {
   return (
     <div className="mx-auto text-center" style={{ maxWidth: 480 }}>
       <Card><Card.Body className="py-5 px-4">
-        <i className={`bi bi-${done.needsConfirm ? 'envelope-check' : 'check-circle'} display-3 text-success`} />
-        <h3 className="fw-bold mt-3">{done.needsConfirm ? '가입 완료! 메일을 확인해 주세요' : `환영해요, ${done.nickname}님!`}</h3>
-        {done.needsConfirm ? (
-          <>
-            <p className="text-body-secondary mb-3"><b>{done.email}</b> 로 인증 메일을 보냈어요.</p>
+        <i className="bi bi-envelope-check display-3 text-success" />
+        <h3 className="fw-bold mt-3">가입 신청 완료! 메일을 확인해 주세요</h3>
+        <p className="text-body-secondary mb-3"><b>{done.email}</b> 로 인증 메일을 보냈어요.</p>
             <ol className="text-start small mx-auto mb-4" style={{ maxWidth: 340 }}>
               <li>메일함을 열어요 (안 보이면 스팸함도 확인)</li>
               <li>메일 안의 <b>인증 링크</b>를 눌러요</li>
-              <li>돌아와서 로그인하면 끝!</li>
+              <li>가입 완료 페이지가 열리면 끝!</li>
             </ol>
             <div className="d-grid gap-2">
               <Button as={Link} to="/login" state={{ from }}>로그인하러 가기</Button>
               <Button variant="outline-secondary" disabled={wait > 0} onClick={onResend}>{wait > 0 ? `인증 메일 다시 보내기 (${wait}초 뒤)` : '인증 메일 다시 보내기'}</Button>
             </div>
-          </>
-        ) : (
-          <>
-            <p className="text-body-secondary mb-4">가입이 끝나 바로 로그인됐어요. 이제 별자리·장바구니·주문이 내 계정에 저장돼요.</p>
-            <div className="d-grid gap-2">
-              <Button as={Link} to="/shop"><i className="bi bi-bag-heart me-1" />제주 장터 구경하기</Button>
-              <Button as={Link} to="/map" variant="outline-primary"><i className="bi bi-map me-1" />3D 지도 보기</Button>
-              {from !== '/' && <Button as={Link} to={from} variant="link">가려던 곳으로 돌아가기</Button>}
-            </div>
-          </>
-        )}
       </Card.Body></Card>
     </div>
   )

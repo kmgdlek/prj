@@ -67,14 +67,14 @@ export const useAppStore = create((set, get) => ({
   },
   signUp: async ({ email, password, nickname }) => {
     if (!supabase) throw new Error('Supabase 설정(.env.local)이 필요해요')
-    const { data, error } = await supabase.auth.signUp({ email, password, options: { data: { nickname: nickname.trim() }, emailRedirectTo: window.location.origin } })   // 인증 메일의 링크가 지금 접속한 사이트로 돌아오게 (Supabase 의 Redirect URLs 에 등록돼 있어야 함)
+    const { data, error } = await supabase.auth.signUp({ email, password, options: { data: { nickname: nickname.trim() }, emailRedirectTo: `${window.location.origin}/welcome` } })   // 인증 메일의 링크가 지금 접속한 사이트의 가입 완료 페이지(/welcome)로 오게 (Supabase 의 Redirect URLs 에 등록돼 있어야 함)
     if (error) throw error
     return { needsConfirm: !data.session }              // 이메일 인증을 켜 둔 프로젝트면 세션이 바로 안 생긴다
   },
   // 인증 메일 다시 보내기 (가입 완료 화면의 버튼)
   resendConfirm: async (email) => {
     if (!supabase) throw new Error('Supabase 설정(.env.local)이 필요해요')
-    const { error } = await supabase.auth.resend({ type: 'signup', email, options: { emailRedirectTo: window.location.origin } })
+    const { error } = await supabase.auth.resend({ type: 'signup', email, options: { emailRedirectTo: `${window.location.origin}/welcome` } })
     if (error) throw error
   },
   signIn: async ({ email, password }) => {
