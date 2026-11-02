@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react'
 import { Link, NavLink, Outlet, useLocation, useNavigate } from 'react-router-dom'
 import { Badge, Button, Container, Navbar, Offcanvas, Toast, ToastContainer } from 'react-bootstrap'
 import ChatPanel from '../components/ChatPanel'
-import { NAV_ITEMS } from '../router'
+import { NAV_GROUPS, NAV_ITEMS } from '../router'
 import LevelBadge from '../components/LevelBadge'
 import SideCard from '../components/SideCard'
 import AgentStatus from '../components/AgentStatus'
@@ -132,15 +132,22 @@ export default function RootLayout() {
               </div>
             )}
           </div>
-          {/* 메뉴 목록: 칸마다 구분선 */}
+          {/* 메뉴 목록: 카테고리(EXPLORE·SHOP·MY)로 묶고, 칸마다 구분선 */}
           <nav className="menu-list">
-            {[...NAV_ITEMS.filter((item) => item.to !== '/agent'), { to: '/cart', label: '장바구니', icon: 'cart3' }].map((item) => (
-              <NavLink key={item.to} to={item.to} end={item.to === '/'} onClick={close} className="menu-row">
-                <i className={`bi bi-${item.icon}`} />
-                <span className="flex-grow-1">{item.label}</span>
-                {item.to === '/cart' && cartCount > 0 && <Badge bg="warning" text="dark" pill>{cartCount}</Badge>}
-                <i className="bi bi-chevron-right chev" />
-              </NavLink>
+            {NAV_GROUPS.map((g) => (
+              <div key={g.key} className="menu-group">
+                <div className="menu-group-title">
+                  <i className={`bi bi-${g.icon}`} /><span className="en">{g.en}</span><span className="ko">{g.label}</span>
+                </div>
+                {NAV_ITEMS.filter((item) => item.group === g.key).map((item) => (
+                  <NavLink key={item.to} to={item.to} end={item.to === '/'} onClick={close} className="menu-row">
+                    <i className={`bi bi-${item.icon}`} />
+                    <span className="flex-grow-1">{item.label}</span>
+                    {item.to === '/cart' && cartCount > 0 && <Badge bg="warning" text="dark" pill>{cartCount}</Badge>}
+                    <i className="bi bi-chevron-right chev" />
+                  </NavLink>
+                ))}
+              </div>
             ))}
           </nav>
           {menuOpen && <HealthMini />}

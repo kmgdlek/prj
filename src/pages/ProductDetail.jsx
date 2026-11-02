@@ -7,6 +7,7 @@ import { useAppStore } from '../store/useAppStore'
 import { MYTHS } from '../../server/myths'
 import { MAX_PER_ITEM, PRODUCTS, STOCK_SLOT_MS, basePrice, discountPct, flashRate, liveStock, productOf, salePrice, trendOf } from '../../server/products'
 import SlotTimer from '../components/SlotTimer'
+import PriceChart from '../components/PriceChart'
 import { Empty } from '../components/Status'
 import { FavButton } from '../components/ItemCard'
 import { Stars, ratingOf } from '../components/StarRating'
@@ -93,6 +94,7 @@ export default function ProductDetail() {
           </a>
           <p className="text-body-secondary">{p.desc}</p>
           {/* 왼쪽에 항목 이름을 붙인 가격 표: 일반판매가 → 할인가(깎인 금액) → 현재가(최종) */}
+          <div className="price-wrap">
           <dl className="price-rows mb-3">
             {discountPct(p, slot) > 0 && (
               <>
@@ -104,10 +106,13 @@ export default function ProductDetail() {
             <dt className="price-now-label">현재가</dt>
             <dd className="price-now">
               {won(salePrice(p, slot))}
-              {trendOf(p, slot) < 0 && <span className="trend-down ms-2">▼ 1분 전보다 {won(-trendOf(p, slot))} 내림</span>}
-              {trendOf(p, slot) > 0 && <span className="trend-up ms-2">▲ 1분 전보다 {won(trendOf(p, slot))} 오름</span>}
+              {trendOf(p, slot) < 0 && <div className="trend-down">▼ 1분 전보다 {won(-trendOf(p, slot))} 내림</div>}
+              {trendOf(p, slot) > 0 && <div className="trend-up">▲ 1분 전보다 {won(trendOf(p, slot))} 오름</div>}
             </dd>
           </dl>
+          {/* 가격 오른쪽 빈칸: 주식 1분봉 같은 가격 차트 (좁으면 아래로 내려간다) */}
+          <PriceChart p={p} slot={slot} />
+          </div>
           <div className="small text-body-secondary mb-3"><i className="bi bi-lightning-charge-fill text-danger me-1" />1분마다 시세가 바뀌어요 · 다음 변동까지 <SlotTimer /> <span className="ms-2">재고는 10분마다 (<SlotTimer ms={STOCK_SLOT_MS} />)</span></div>
 
           <Card className="mb-3"><Card.Body className="small">

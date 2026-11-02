@@ -87,6 +87,17 @@ export const salePrice = (p, slot = slotOf()) => {
 export const discountPct = (p, slot = slotOf()) => Math.round((1 - salePrice(p, slot) / p.price) * 100);
 export const trendOf = (p, slot = slotOf()) => salePrice(p, slot) - salePrice(p, slot - 1);
 
+// 1분봉(캔들): 한 칸 = 1분. 시가 = 직전 분의 가격, 종가 = 그 분의 가격, 고가·저가 = 그 분 안에서 오르내린 폭(꼬리, 가격의 최대 1.2%).
+// 가격은 분마다 한 번 정해지므로 꼬리는 상품·분으로 정해지는 고정된 값이다. 최근 n분, 오래된 순
+export const candlesOf = (p, slot = slotOf(), n = 30) =>
+  Array.from({ length: n }, (_, i) => {
+    const s = slot - (n - 1 - i);
+    const open = salePrice(p, s - 1), close = salePrice(p, s);
+    const up = Math.floor((Math.max(open, close) * (1 + unit(`${p.id}:wu:${s}`) * 0.012)) / 10) * 10;
+    const down = Math.floor((Math.min(open, close) * (1 - unit(`${p.id}:wl:${s}`) * 0.012)) / 10) * 10;
+    return { slot: s, open, close, high: up, low: down };
+  });
+
 // 재고: 화면에 보이는 재고는 10분마다 실제(또는 기본) 재고의 40~100% (재고가 있으면 최소 3개). 실제보다 많이 보이지는 않는다
 export const liveStock = (raw, id, slot = stockSlotOf()) =>
   raw <= 0 ? 0 : Math.max(Math.min(raw, 3), Math.floor(raw * (0.4 + unit(`${id}:s:${slot}`) * 0.6)));
