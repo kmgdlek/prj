@@ -5,6 +5,8 @@ import ChatPanel from '../components/ChatPanel'
 import { NAV_ITEMS } from '../router'
 import LevelBadge from '../components/LevelBadge'
 import SideCard from '../components/SideCard'
+import AgentStatus from '../components/AgentStatus'
+import HealthMini from '../components/HealthMini'
 import { displayName, useAppStore } from '../store/useAppStore'
 
 // 이야기꾼 AI: 오른쪽 아래 둥근 버튼을 누르면 채팅창이 부드럽게 열리고, 다시 누르면 부드럽게 닫힌다.
@@ -25,7 +27,7 @@ function AgentWindow() {
     <>
       <section className={`chat-window ${open ? 'open' : ''}`} role="dialog" aria-label="이야기꾼 AI" aria-hidden={!open}>
         <header className="chat-window-head">
-          <span className="fw-bold"><i className="bi bi-robot me-2 text-primary" />이야기꾼 AI</span>
+          <span className="fw-bold d-flex align-items-center gap-2"><i className="bi bi-robot text-primary" />이야기꾼 AI {open && <AgentStatus poll />}</span>
           <Button variant="link" className="p-0 text-body-secondary" aria-label="닫기" onClick={() => setOpen(false)}>
             <i className="bi bi-x-lg" />
           </Button>
@@ -121,6 +123,7 @@ export default function RootLayout() {
               <i className="bi bi-cart3 me-2" />장바구니{cartCount > 0 && <Badge bg="warning" text="dark" pill className="ms-2">{cartCount}</Badge>}
             </Nav.Link>
           </Nav>
+          {menuOpen && <HealthMini />}
         </Offcanvas.Body>
       </Offcanvas>
 

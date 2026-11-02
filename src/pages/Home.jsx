@@ -1,9 +1,6 @@
-import { useEffect, useState } from 'react'
-import { useRef } from 'react'
+import { useEffect, useRef } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { Badge, Button, Card, Col, Row } from 'react-bootstrap'
-import { ping } from '../api/client'
-import { isSupabaseReady, supabase } from '../lib/supabase'
 import { displayName, useAppStore } from '../store/useAppStore'
 import { MYTHS } from '../../server/myths'
 import Scene from '../components/Scene'
@@ -20,26 +17,14 @@ const SHORTCUTS = [
 
 const MARKERS = MYTHS.map((m) => ({ id: m.id, name: m.title, lat: m.lat, lng: m.lng, color: m.color }))
 
-// 홈 = 3D 신화 지도 + "동작 체크" 대시보드
+// 홈 = 3D 신화 지도(누르면 지도 페이지) + 바로가기
 export default function Home() {
   const { user, selectMyth } = useAppStore()
   const navigate = useNavigate()
   const downAt = useRef(null)
-  const [db, setDb] = useState(isSupabaseReady
-    ? { state: 'wait', msg: '확인 중...' }
-    : { state: 'fail', msg: '.env.local 에 VITE_SUPABASE_URL / ANON_KEY 를 넣으세요' })
-  const [api, setApi] = useState({ state: 'wait', msg: '확인 중...' })
 
   // 홈에 올 때마다 선택을 비워서, 항상 섬 전체가 보이는 처음 모습으로 시작한다
   useEffect(() => { selectMyth(null) }, [selectMyth])
-
-  useEffect(() => {
-    if (isSupabaseReady) supabase.from('favorites').select('id').limit(1).then(({ error }) =>
-      setDb(error ? { state: 'fail', msg: error.message } : { state: 'ok', msg: '연결 OK' }))
-    ping()
-      .then((d) => setApi({ state: 'ok', msg: `OK · 공공데이터 키 ${d.hasDataKey ? '있음' : '없음'} · Claude 키 ${d.hasClaudeKey ? '있음' : '없음'}` }))
-      .catch(() => setApi({ state: 'fail', msg: 'npm run dev 가 아니라 vercel dev 로 실행했는지 확인' }))
-  }, [])
 
   return (
     <>
@@ -84,13 +69,6 @@ export default function Home() {
         </Col>
       </Row>
 
-      <h5 className="fw-bold mb-3"><i className="bi bi-clipboard-check me-2" />동작 체크</h5>
-      <Row xs={1} md={3} className="g-3">
-        <Col><Check title="React · 라우터" state="ok" msg="이 화면이 보이면 OK" /></Col>
-        <Col><Check title="Supabase" {...db} /></Col>
-        <Col><Check title="서버 함수 /api" {...api} /></Col>
-      </Row>
-
       <Card className="mt-4">
         <Card.Body className="d-flex align-items-center gap-3 flex-wrap">
           <i className="bi bi-person-circle fs-2 text-primary" />
@@ -106,17 +84,5 @@ export default function Home() {
         </Card.Body>
       </Card>
     </>
-  )
-}
-
-function Check({ title, state, msg }) {
-  const icon = { ok: 'check-circle-fill text-success', fail: 'x-circle-fill text-danger', wait: 'hourglass-split text-muted' }[state]
-  return (
-    <Card className="h-100">
-      <Card.Body>
-        <div className="fw-bold mb-1"><i className={`bi bi-${icon} me-2`} />{title}</div>
-        <div className="small text-body-secondary">{msg}</div>
-      </Card.Body>
-    </Card>
   )
 }

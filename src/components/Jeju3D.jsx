@@ -3,6 +3,15 @@ import { Canvas, useFrame, useThree } from '@react-three/fiber'
 import { Html, OrbitControls, Sparkles, Stars } from '@react-three/drei'
 import * as THREE from 'three'
 import { GRID, HALLA, colorAt, heightAt, heightMap, toXZ } from './terrain'
+import { useTimeMode } from '../lib/timeOfDay'
+import { Boats, Clouds, Fireflies, Gulls, Lamps, Moon, Sun } from './skyThings'
+
+// 시간대별 하늘·빛·바다 색. 새벽 = 보랏빛 하늘 + 동쪽의 해돋이, 아침 = 맑은 낮, 밤 = 달빛
+const THEME = {
+  night: { bg: '#070418', fog: [20, 46], hemi: ['#8ea6ff', '#1b2a1c', 0.55], ambient: 0.25, key: { pos: [-9, 13, 7], color: '#d7e0ff', i: 1.7 }, fill: { pos: [10, 5, -6], color: '#ffb98a', i: 0.35 }, stars: 4500, sea: '#1a6fb0', seaOpacity: 0.62, halla: 9 },
+  dawn: { bg: '#2a1747', fog: [16, 42], hemi: ['#ffb08a', '#2a2438', 0.65], ambient: 0.3, key: { pos: [14, 6, -3], color: '#ffae78', i: 1.7 }, fill: { pos: [-8, 8, 6], color: '#8fa0ff', i: 0.4 }, stars: 900, sea: '#2a5f9a', seaOpacity: 0.66, halla: 3 },
+  morning: { bg: '#8fd0ff', fog: [26, 64], hemi: ['#d6ecff', '#4a6a35', 1.0], ambient: 0.55, key: { pos: [8, 14, 6], color: '#fff1cf', i: 2.6 }, fill: { pos: [-10, 6, -6], color: '#bfe0ff', i: 0.5 }, stars: 0, sea: '#27a3d8', seaOpacity: 0.7, halla: 0 },
+}
 
 // 섬: 실제 해안선·한라산 높이 지도(terrain.js)를 정점마다 입히고, 높이별 색·바다 깊이 그라데이션을 칠한다
 function Island() {
@@ -76,19 +85,19 @@ function Abyss() {
 }
 
 // 바다: 반투명이라 아래 해저 그라데이션(얕은 청록 → 깊은 남색)이 비친다
-function Sea() {
+function Sea({ color, opacity }) {
   const ref = useRef()
   useFrame(({ clock }) => { ref.current.position.y = Math.sin(clock.elapsedTime * 0.7) * 0.012 })
   return (
     <mesh ref={ref} rotation={[-Math.PI / 2, 0, 0]} receiveShadow>
       <planeGeometry args={[80, 50]} />
-      <meshPhysicalMaterial color="#1a6fb0" transparent opacity={0.62} roughness={0.12} metalness={0.25} clearcoat={0.6} />
+      <meshPhysicalMaterial color={color} transparent opacity={opacity} roughness={0.12} metalness={0.25} clearcoat={0.6} />
     </mesh>
   )
 }
 
 // 백록담 위에 떠서 도는 신의 고리 + 반짝이는 빛 알갱이
-function Halo() {
+function Halo({ sparkles = true }) {
   const ref = useRef()
   useFrame((_, dt) => { ref.current.rotation.z += dt * 0.6 })
   return (
@@ -97,7 +106,7 @@ function Halo() {
         <torusGeometry args={[0.55, 0.025, 12, 64]} />
         <meshBasicMaterial color="#ffd166" />
       </mesh>
-      <Sparkles count={50} scale={[2.4, 1.8, 2.4]} position={[HALLA[0], 3, HALLA[1]]} size={3} speed={0.35} color="#ffd166" />
+      {sparkles && <Sparkles count={50} scale={[2.4, 1.8, 2.4]} position={[HALLA[0], 3, HALLA[1]]} size={3} speed={0.35} color="#ffd166" />}
     </>
   )
 }
@@ -175,7 +184,10 @@ function CameraRig({ focus }) {
 }
 
 // items: [{ id, name, lat, lng, color, size?, label? }]
-export default function Jeju3D({ items = [], selectedId, onSelect, height = 460, autoRotate = false }) {
+export default function Jeju3D({ items = [], selectedId, onSelect, height = 460, autoRotate = false, mode }) {
+  const auto = useTimeMode()
+  const T = THEME[mode ?? auto]            // mode 를 주지 않으면 지금 시각을 따른다
+  const m = mode ?? auto
   const pins = items.filter((m) => Number(m.lat) > 0 && Number(m.lng) > 0)
   const focus = pins.find((m) => m.id === selectedId)
   // 휠 확대는 지도를 클릭한 뒤에만: 그냥 지나가며 스크롤할 때 지도가 휠을 가로채지 않게
@@ -183,27 +195,26 @@ export default function Jeju3D({ items = [], selectedId, onSelect, height = 460,
   return (
     <div style={{ height }} onPointerDown={() => setZoomOn(true)} onPointerLeave={() => setZoomOn(false)}>
       <Canvas shadows camera={{ position: [0, 10, 13], fov: 45 }} style={{ height: '100%' }} dpr={[1, 2]}>
-        <color attach="background" args={['#070418']} />
-        <fog attach="fog" args={['#070418', 20, 46]} />
-        <hemisphereLight args={['#8ea6ff', '#1b2a1c', 0.55]} />
-        <ambientLight intensity={0.25} />
-        {/* 달빛: 그림자를 드리워 한라산·오름의 입체감을 만든다 */}
-        <directionalLight position={[-9, 13, 7]} intensity={1.7} color="#d7e0ff" castShadow
+        <color attach="background" args={[T.bg]} />
+        <fog attach="fog" args={[T.bg, T.fog[0], T.fog[1]]} />
+        <hemisphereLight args={T.hemi} />
+        <ambientLight intensity={T.ambient} />
+        {/* 달빛·햇빛: 그림자를 드리워 한라산·오름의 입체감을 만든다 */}
+        <directionalLight position={T.key.pos} intensity={T.key.i} color={T.key.color} castShadow
           shadow-mapSize={[2048, 2048]} shadow-bias={-0.0004} shadow-normalBias={0.03}
           shadow-camera-left={-12} shadow-camera-right={12} shadow-camera-top={9} shadow-camera-bottom={-9}
           shadow-camera-near={1} shadow-camera-far={40} />
-        <directionalLight position={[10, 5, -6]} intensity={0.35} color="#ffb98a" />
-        <pointLight position={[HALLA[0], 4, HALLA[1]]} intensity={9} color="#b388ff" distance={8} />
-        <Stars radius={70} depth={35} count={4500} factor={3.5} fade speed={1} />
-        <mesh position={[-16, 12, -18]}>
-          <sphereGeometry args={[1.7, 40, 40]} />
-          <meshBasicMaterial color="#fff6d6" fog={false} />
-        </mesh>
+        <directionalLight position={T.fill.pos} intensity={T.fill.i} color={T.fill.color} />
+        {T.halla > 0 && <pointLight position={[HALLA[0], 4, HALLA[1]]} intensity={T.halla} color="#b388ff" distance={8} />}
+        {T.stars > 0 && <Stars radius={70} depth={35} count={T.stars} factor={3.5} fade speed={1} />}
+        {m === 'night' && <><Moon /><Fireflies /></>}
+        {m === 'dawn' && <><Sun mode="dawn" /><Lamps /></>}
+        {m === 'morning' && <><Sun mode="morning" /><Clouds /><Gulls /><Boats /></>}
         <Abyss />
-        <Sea />
+        <Sea color={T.sea} opacity={T.seaOpacity} />
         <Island />
         <Oreums />
-        <Halo />
+        <Halo sparkles={m !== 'morning'} />
         {pins.map((m, i) => <Marker key={m.id} m={m} index={i} selected={m.id === selectedId} onSelect={onSelect} />)}
         <OrbitControls makeDefault enablePan={false} enableZoom={zoomOn} target={[0, 0.3, 0]}
           minDistance={3} maxDistance={22} maxPolarAngle={Math.PI / 2.15}

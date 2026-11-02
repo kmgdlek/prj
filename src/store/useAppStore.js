@@ -1,6 +1,6 @@
 import { create } from 'zustand'
 import { supabase } from '../lib/supabase'
-import { askAgent, fetchShopImages } from '../api/client'
+import { askAgent, fetchShopImages, ping } from '../api/client'
 import { productOf, salePrice } from '../../server/products'
 import { levelOf, totalSpent } from '../lib/level'
 import { STATUS } from '../lib/order'
@@ -47,6 +47,19 @@ export const useAppStore = create((set, get) => ({
   signOut: async () => {
     await supabase?.auth.signOut()
     get().toast('로그아웃했어요', 'secondary')
+  },
+
+  // 서버·DB 상태 — 메뉴 맨 아래 '동작 체크'와 이야기꾼 AI 의 온라인/오프라인 표시가 함께 쓴다
+  health: { api: 'wait', apiMsg: '', db: supabase ? 'wait' : 'fail', dbMsg: supabase ? '' : '.env.local 에 Supabase 값이 없어요', hasClaudeKey: false, hasDataKey: false, hasPixabayKey: false },
+  checkHealth: async () => {
+    let api = 'fail', apiMsg = '', info = {}
+    try { info = await ping(); api = 'ok' } catch (e) { apiMsg = e.message }
+    let db = 'fail', dbMsg = '.env.local 에 Supabase 값이 없어요'
+    if (supabase) {
+      const { error } = await supabase.from('favorites').select('id').limit(1)
+      db = error ? 'fail' : 'ok'; dbMsg = error ? error.message : ''
+    }
+    set({ health: { api, apiMsg, db, dbMsg, hasClaudeKey: Boolean(info.hasClaudeKey), hasDataKey: Boolean(info.hasDataKey), hasPixabayKey: Boolean(info.hasPixabayKey) } })
   },
 
   // ② 알림(토스트)
@@ -203,12 +216,13 @@ export const useAppStore = create((set, get) => ({
   chatLoading: false,
   sendMessage: async (text) => {
     const history = get().messages.map((m) => ({ role: m.role, content: m.text }))  // Claude 형식
-    set({ messages: [...get().messages, { role: 'user', text }], chatLoading: true })
+    set({ messages: [...get().messages, { role: 'user', text, at: Date.now() }], chatLoading: true })
     try {
       const { answer, steps } = await askAgent(text, history)
-      set({ messages: [...get().messages, { role: 'assistant', text: answer, steps }] })
+      set({ messages: [...get().messages, { role: 'assistant', text: answer, steps, at: Date.now() }] })
     } catch (e) {
       get().toast(e.message, 'danger')
+      get().checkHealth()                     // 실패하면 서버 상태를 다시 확인해 온라인/오프라인 표시를 갱신
     } finally {
       set({ chatLoading: false })
     }

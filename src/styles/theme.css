@@ -36,9 +36,6 @@ body { font-family: 'Pretendard', system-ui, sans-serif; }
 
 .myth-dot { width: 12px; height: 12px; border-radius: 50%; display: inline-block; box-shadow: 0 0 8px currentColor; }
 
-.chat-box .msg { max-width: 80%; padding: .6rem .9rem; border-radius: 1rem; margin-bottom: .5rem; white-space: pre-wrap; }
-.chat-box .msg.assistant { background: rgba(0, 0, 0, .06); }
-.chat-box .msg.user { background: var(--bs-primary); color: #fff; margin-left: auto; }
 
 /* 오른쪽 아래 둥근 이야기꾼 AI 버튼 — 부드럽게 떠오르며 등장 */
 .agent-fab {
@@ -80,7 +77,6 @@ body { font-family: 'Pretendard', system-ui, sans-serif; }
   display: flex; align-items: center; justify-content: space-between;
   padding: .8rem 1rem; border-bottom: 1px solid var(--bs-border-color); background: rgba(131, 56, 236, .18);
 }
-.chat-window .chat-box .msg { max-width: 90%; }
 
 /* 버튼 아이콘: 열리면 로봇이 아래 화살표로 부드럽게 바뀐다 */
 .agent-fab .bi { position: absolute; transition: opacity .25s, transform .3s; }
@@ -158,3 +154,47 @@ body { font-family: 'Pretendard', system-ui, sans-serif; }
 }
 .shortcut:hover { transform: translateX(3px); border-color: var(--bs-primary); box-shadow: 0 .4rem 1rem rgba(0, 0, 0, .08); color: var(--bs-body-color); }
 .shortcut > .bi:first-child { color: var(--bs-primary); }
+
+/* ── 이야기꾼 AI: 채팅앱 모양 ── */
+.agent-status { display: inline-flex; align-items: center; gap: .35rem; font-size: 12px; font-weight: 600; padding: .1rem .55rem; border-radius: 999px; border: 1px solid currentColor; line-height: 1.5; }
+.agent-status .agent-dot { width: 8px; height: 8px; border-radius: 50%; background: currentColor; display: inline-block; }
+.agent-status.on { color: #198754; }
+.agent-status.on .agent-dot { box-shadow: 0 0 0 0 rgba(25, 135, 84, .6); animation: dot-pulse 1.8s infinite; }
+.agent-status.off { color: #dc3545; }
+.agent-status.wait { color: var(--bs-secondary-color); }
+@keyframes dot-pulse { 70% { box-shadow: 0 0 0 7px rgba(25, 135, 84, 0); } 100% { box-shadow: 0 0 0 0 rgba(25, 135, 84, 0); } }
+
+.chat-offline { padding: .5rem .9rem; font-size: 13px; background: rgba(220, 53, 69, .1); color: #b02a37; border-bottom: 1px solid rgba(220, 53, 69, .25); }
+.chat-box { background: var(--bs-tertiary-bg); }
+.chat-row { display: flex; align-items: flex-end; gap: .5rem; margin-bottom: .75rem; }
+.chat-row.user { justify-content: flex-end; }
+.chat-avatar { flex: none; width: 32px; height: 32px; border-radius: 50%; display: flex; align-items: center; justify-content: center; background: var(--bs-primary); color: #fff; }
+.chat-col { max-width: 80%; display: flex; flex-direction: column; }
+.chat-row.user .chat-col { align-items: flex-end; }
+.chat-bubble { padding: .55rem .85rem; border-radius: 1.1rem; white-space: pre-wrap; word-break: break-word; box-shadow: 0 1px 2px rgba(0, 0, 0, .08); }
+.chat-row.assistant .chat-bubble { background: var(--bs-body-bg); border-bottom-left-radius: .3rem; }
+.chat-row.user .chat-bubble { background: var(--bs-primary); color: #fff; border-bottom-right-radius: .3rem; }
+.chat-time { font-size: 11px; color: var(--bs-secondary-color); margin: .15rem .35rem 0; }
+.typing-dots { display: inline-flex; gap: 4px; padding: .25rem 0; }
+.typing-dots i { width: 7px; height: 7px; border-radius: 50%; background: var(--bs-secondary-color); animation: typing 1.2s infinite ease-in-out; }
+.typing-dots i:nth-child(2) { animation-delay: .15s; }
+.typing-dots i:nth-child(3) { animation-delay: .3s; }
+@keyframes typing { 0%, 60%, 100% { opacity: .3; transform: translateY(0); } 30% { opacity: 1; transform: translateY(-4px); } }
+
+.chat-footer { border-top: 1px solid var(--bs-border-color); background: var(--bs-body-bg); }
+.chat-chips { display: flex; gap: .4rem; overflow-x: auto; padding: .6rem .75rem .2rem; scrollbar-width: thin; }
+.chat-chip { flex: none; white-space: nowrap; font-size: 13px; padding: .25rem .75rem; border-radius: 999px; cursor: pointer; background: var(--bs-body-bg); color: var(--bs-primary); border: 1px solid var(--bs-primary); transition: background .15s, color .15s; }
+.chat-chip:hover:not(:disabled) { background: var(--bs-primary); color: #fff; }
+.chat-chip:disabled { opacity: .45; cursor: not-allowed; }
+.chat-input { display: flex; align-items: flex-end; gap: .5rem; padding: .5rem .75rem .75rem; }
+.chat-input textarea { flex: 1; resize: none; border: 1px solid var(--bs-border-color); border-radius: 1.25rem; padding: .5rem .9rem; max-height: 110px; background: var(--bs-body-bg); color: var(--bs-body-color); }
+.chat-input textarea:focus { outline: 2px solid var(--bs-primary); outline-offset: -1px; }
+.chat-input .btn { border-radius: 50%; width: 40px; height: 40px; padding: 0; flex: none; }
+
+/* 메뉴 맨 아래 동작 체크 (작게) */
+.health-mini { display: flex; flex-wrap: wrap; align-items: center; gap: .25rem .75rem; margin-top: auto; padding-top: 1rem; border-top: 1px solid var(--bs-border-color); font-size: 11px; color: var(--bs-secondary-color); }
+.health-title { font-weight: 700; }
+.health-item { display: inline-flex; align-items: center; gap: .3rem; cursor: help; }
+.health-dot { width: 7px; height: 7px; border-radius: 50%; background: #adb5bd; display: inline-block; }
+.health-dot.ok { background: #198754; }
+.health-dot.fail { background: #dc3545; }
