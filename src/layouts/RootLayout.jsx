@@ -80,19 +80,24 @@ export default function RootLayout() {
         </Offcanvas.Header>
         <Offcanvas.Body className="d-flex flex-column">
           {/* 프로필: 로그인 상태면 내 정보와 로그아웃, 아니면 로그인 안내 */}
-          <div className="d-flex align-items-start gap-3 p-3 mb-3 rounded-3 bg-body-secondary">
-            <i className="bi bi-person-circle fs-1 text-primary" />
+          <div className="p-3 mb-3 rounded-3 bg-body-secondary">
             {user ? (
               <>
-                <div className="flex-grow-1 text-truncate">
-                  <div className="fw-bold text-truncate">{displayName(user)}</div>
-                  <div className="small text-body-secondary text-truncate mb-1">{user.email}</div>
-                  <LevelBadge withProgress />
+                <div className="d-flex align-items-center gap-3">
+                  <i className="bi bi-person-circle fs-1 text-primary" />
+                  <div className="flex-grow-1 min-w-0">
+                    <div className="fw-bold text-truncate">{displayName(user)}</div>
+                    <div className="small text-body-secondary text-truncate">{user.email}</div>
+                  </div>
+                  <Button size="sm" variant="outline-secondary" className="text-nowrap flex-shrink-0"
+                    onClick={() => { close(); signOut(); navigate('/') }}>로그아웃</Button>
                 </div>
-                <Button size="sm" variant="outline-secondary" onClick={() => { close(); signOut(); navigate('/') }}>로그아웃</Button>
+                {/* 등급은 카드 전체 폭을 써서 설명이 잘리지 않게 */}
+                <div className="mt-3"><LevelBadge withProgress /></div>
               </>
             ) : (
-              <>
+              <div className="d-flex align-items-center gap-3">
+                <i className="bi bi-person-circle fs-1 text-primary" />
                 <div className="flex-grow-1">
                   <div className="small text-body-secondary mb-2">로그인하면 별자리·장바구니가 저장돼요</div>
                   <div className="d-flex gap-2">
@@ -100,7 +105,7 @@ export default function RootLayout() {
                     <Button as={Link} to="/signup" size="sm" variant="outline-primary" className="text-nowrap" onClick={close}>회원가입</Button>
                   </div>
                 </div>
-              </>
+              </div>
             )}
           </div>
           <Nav className="flex-column">
