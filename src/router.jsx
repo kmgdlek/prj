@@ -13,6 +13,7 @@ import Shop from './pages/Shop'
 import ProductDetail from './pages/ProductDetail'
 import Cart from './pages/Cart'
 import Orders from './pages/Orders'
+import Benefits from './pages/Benefits'
 import MyPage from './pages/MyPage'
 import RequireAuth from './components/RequireAuth'
 import NotFound from './pages/NotFound'
@@ -33,6 +34,7 @@ export const NAV_ITEMS = [
   { to: '/places', label: '신화 속 장소', icon: 'compass', group: 'explore' },
   { to: '/heritage', label: '국가유산', icon: 'bank', group: 'explore' },
   { to: '/shop', label: '제주 장터', icon: 'bag-heart', group: 'shop' },
+  { to: '/benefits', label: '제주 혜택', icon: 'gift', group: 'shop' },
   { to: '/cart', label: '장바구니', icon: 'cart3', group: 'shop', auth: true },
   { to: '/orders', label: '주문 내역', icon: 'receipt', group: 'shop', auth: true },
   { to: '/agent', label: '이야기꾼 AI', icon: 'robot' },
@@ -53,6 +55,7 @@ export const router = createBrowserRouter([
       { path: 'heritage', element: <Heritage /> },
       { path: 'agent', element: <Agent /> },
       { path: 'shop', element: <Shop /> },
+      { path: 'benefits', element: <Benefits /> },
       { path: 'shop/:id', element: <ProductDetail /> },
       { path: 'cart', element: <RequireAuth><Cart /></RequireAuth> },
       { path: 'orders', element: <RequireAuth><Orders /></RequireAuth> },
