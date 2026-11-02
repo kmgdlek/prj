@@ -6,6 +6,7 @@ import { won } from '../lib/format'
 import { useAppStore } from '../store/useAppStore'
 import { MYTHS } from '../../server/myths'
 import { MAX_PER_ITEM, PRODUCTS, basePrice, discountPct, flashRate, liveStock, productOf, salePrice, surgePct, trendOf } from '../../server/products'
+import RollingNumber from '../components/RollingNumber'
 import PriceChart from '../components/PriceChart'
 import { Empty } from '../components/Status'
 import { FavButton } from '../components/ItemCard'
@@ -132,7 +133,7 @@ export default function ProductDetail() {
             )}
             <dt className="price-now-label">현재가</dt>
             <dd className="price-now">
-              {won(salePrice(p, slot))}
+              <RollingNumber text={won(salePrice(p, slot))} />
               {trendOf(p, slot) < 0 && <div className="trend-down">▼ 1분 전보다 {won(-trendOf(p, slot))} 내림</div>}
               {trendOf(p, slot) > 0 && <div className="trend-up">▲ 1분 전보다 {won(trendOf(p, slot))} 오름</div>}
             </dd>

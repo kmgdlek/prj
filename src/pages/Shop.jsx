@@ -1,3 +1,4 @@
+import RollingNumber from '../components/RollingNumber'
 import { useEffect, useState } from 'react'
 import { Link, useSearchParams } from 'react-router-dom'
 import { Alert, Badge, Button, Card, Col, Form, Row } from 'react-bootstrap'
@@ -116,7 +117,7 @@ export default function Shop() {
                           </div>
                         )}
                         {surgePct(p, slot) !== 0 && <div className={`small fw-bold ${surgePct(p, slot) > 0 ? 'text-danger' : 'text-primary'}`}>{surgePct(p, slot) > 0 ? '🔥 급등' : '💧 급락'} {surgePct(p, slot) > 0 ? '+' : ''}{surgePct(p, slot)}%</div>}
-                        <strong>{won(salePrice(p, slot))}</strong>
+                        <strong><RollingNumber text={won(salePrice(p, slot))} /></strong>
                         {trendOf(p, slot) < 0 && <span className="trend-down ms-1">▼{won(-trendOf(p, slot))}</span>}
                         {trendOf(p, slot) > 0 && <span className="trend-up ms-1">▲{won(trendOf(p, slot))}</span>}
                       </div>

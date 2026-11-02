@@ -347,3 +347,12 @@ body { font-family: 'Pretendard', system-ui, sans-serif; }
 [data-bs-theme="dark"] .btn-primary { --bs-btn-bg: #4a6a8a; --bs-btn-border-color: #4a6a8a; --bs-btn-hover-bg: #5b7fa6; --bs-btn-hover-border-color: #5b7fa6; --bs-btn-active-bg: #5b7fa6; --bs-btn-active-border-color: #5b7fa6; }
 [data-bs-theme="dark"] .chat-avatar, [data-bs-theme="dark"] .chat-row.user .chat-bubble { background: #4a6a8a; }
 [data-bs-theme="dark"] .tag-chip.on, [data-bs-theme="dark"] .tag-mini.on, [data-bs-theme="dark"] .order-tracker li.done .dot { background: #4a6a8a; border-color: #4a6a8a; }
+
+/* ── 시세 숫자 굴러 바뀌기: 옛 숫자는 아래로, 새 숫자는 위에서 ── */
+.rolling { white-space: nowrap; }
+.roll { position: relative; display: inline-block; overflow: hidden; vertical-align: bottom; }
+.roll-size { visibility: hidden; }
+.roll-inner { position: absolute; left: 0; top: 0; width: 100%; height: 200%; display: flex; flex-direction: column; animation: roll-down .55s cubic-bezier(.2, .8, .2, 1) both; }
+.roll-inner > span { height: 50%; display: block; text-align: center; }
+@keyframes roll-down { from { transform: translateY(-50%); } to { transform: translateY(0); } }
+@media (prefers-reduced-motion: reduce) { .roll-inner { animation-duration: .01s; } }
