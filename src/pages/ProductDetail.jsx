@@ -74,7 +74,7 @@ export default function ProductDetail() {
           {p.discount > 0 ? (
             <div className="mb-3">
               <div className="text-body-secondary text-decoration-line-through fs-5">{won(p.price)}</div>
-              <div className="text-danger fw-bold fs-4">{p.discount}% 할인</div>
+              <div className="text-danger small fw-bold">-{won(p.price - salePrice(p))} ({p.discount}%)</div>
               <div className="display-6 fw-bold">{won(salePrice(p))}</div>
             </div>
           ) : (
@@ -109,7 +109,7 @@ export default function ProductDetail() {
         <tbody>
           <tr><th style={{ width: 120 }} className="bg-body-tertiary">상품명</th><td>{p.name}</td></tr>
           <tr><th className="bg-body-tertiary">분류</th><td>{p.category}</td></tr>
-          <tr><th className="bg-body-tertiary">판매가</th><td>{p.discount > 0 ? <><s className="text-body-secondary me-2">{won(p.price)}</s>{won(salePrice(p))} ({p.discount}% 할인)</> : won(p.price)}</td></tr>
+          <tr><th className="bg-body-tertiary">판매가</th><td>{p.discount > 0 ? <><s className="text-body-secondary me-2">{won(p.price)}</s>{won(salePrice(p))} <span className="text-danger small">-{won(p.price - salePrice(p))} ({p.discount}%)</span></> : won(p.price)}</td></tr>
           <tr><th className="bg-body-tertiary">설명</th><td>{p.desc}</td></tr>
         </tbody>
       </Table>
