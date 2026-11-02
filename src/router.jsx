@@ -7,6 +7,7 @@ import Heritage from './pages/Heritage'
 import Agent from './pages/Agent'
 import My from './pages/My'
 import Login from './pages/Login'
+import Signup from './pages/Signup'
 import Shop from './pages/Shop'
 import Cart from './pages/Cart'
 import Orders from './pages/Orders'
@@ -42,6 +43,7 @@ export const router = createBrowserRouter([
       { path: 'cart', element: <RequireAuth><Cart /></RequireAuth> },
       { path: 'orders', element: <RequireAuth><Orders /></RequireAuth> },
       { path: 'login', element: <Login /> },
+      { path: 'signup', element: <Signup /> },
       { path: 'my', element: <RequireAuth><My /></RequireAuth> },
     ],
   },

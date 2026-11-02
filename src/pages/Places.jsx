@@ -41,7 +41,7 @@ export default function Places() {
       </Form>
 
       <ErrorAlert error={error} />
-      <div className="mb-4"><Scene height={240} items={pins} selectedId={selected} onSelect={(p) => setSelected(p.id)} /></div>
+      <div className="mb-4 scene-half"><Scene height={300} items={pins} selectedId={selected} onSelect={(p) => setSelected(p.id)} /></div>
       {loading ? <Loading /> : places.length === 0 ? <Empty /> : (
         <Row xs={1} sm={2} lg={3} className="g-3">
           {places.map((p) => (

@@ -35,7 +35,7 @@ export default function Myths() {
     <>
       <PageHeader icon="book" title="신화 도감" subtitle="탐라 신화 8편 — 이야기를 고르면 3D 섬이 그 장소로 날아갑니다" />
       <Row className="g-4">
-        <Col lg={4}>
+        <Col lg={6}>
           <ListGroup>
             {MYTHS.map((m) => (
               <ListGroup.Item key={m.id} action active={m.id === myth.id} onClick={() => selectMyth(m.id)}>
@@ -46,8 +46,8 @@ export default function Myths() {
             ))}
           </ListGroup>
         </Col>
-        <Col lg={8}>
-          <Scene height={240} items={MARKERS} selectedId={myth.id} onSelect={(m) => selectMyth(m.id)} />
+        <Col lg={6}>
+          <Scene height={320} items={MARKERS} selectedId={myth.id} onSelect={(m) => selectMyth(m.id)} />
           <div className="mt-3">
             <div className="d-flex align-items-center gap-2 mb-2">
               <h3 className="fw-bold mb-0">{myth.title}</h3>

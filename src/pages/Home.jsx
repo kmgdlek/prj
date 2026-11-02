@@ -42,22 +42,31 @@ export default function Home() {
         <WeatherBadge place="서귀포시" /> <WeatherBadge place="제주시" />
       </section>
 
-      <Scene height={260} items={MARKERS} selectedId={selectedMythId} onSelect={(m) => selectMyth(m.id)} autoRotate />
-      <div className="scene-info rounded-4 mt-2 mb-4 p-3">
-        {myth ? (
-          <>
-            <div className="d-flex justify-content-between align-items-start">
-              <h5 className="fw-bold mb-1"><span className="myth-dot me-2" style={{ background: myth.color, color: myth.color }} />{myth.title}</h5>
-              <Button size="sm" variant="link" className="p-0 text-body-secondary" aria-label="선택 해제 · 전체 보기" onClick={() => selectMyth(null)}><i className="bi bi-x-lg" /></Button>
-            </div>
-            <div className="small text-primary mb-1"><i className="bi bi-geo-alt me-1" />{myth.place}</div>
-            <p className="small mb-2">{myth.summary}</p>
-            <Button as={Link} to="/myths" size="sm" variant="outline-primary">이야기 전체 보기 <i className="bi bi-arrow-right" /></Button>
-          </>
-        ) : (
-          <div className="small"><i className="bi bi-hand-index me-2" />빛나는 구슬을 눌러 신화를 열어 보세요 · 드래그로 회전 · 지도를 클릭한 뒤 휠로 확대</div>
-        )}
-      </div>
+      <Row className="g-3 mb-4">
+        <Col md={6}>
+          <Scene height={320} items={MARKERS} selectedId={selectedMythId} onSelect={(m) => selectMyth(m.id)} autoRotate />
+        </Col>
+        <Col md={6}>
+          <div className="scene-info rounded-4 p-3 h-100">
+            {myth ? (
+              <>
+                <div className="d-flex justify-content-between align-items-start">
+                  <h5 className="fw-bold mb-1"><span className="myth-dot me-2" style={{ background: myth.color, color: myth.color }} />{myth.title}</h5>
+                  <Button size="sm" variant="link" className="p-0 text-body-secondary" aria-label="선택 해제 · 전체 보기" onClick={() => selectMyth(null)}><i className="bi bi-x-lg" /></Button>
+                </div>
+                <div className="small text-primary mb-2"><i className="bi bi-geo-alt me-1" />{myth.place}</div>
+                <p className="mb-2">{myth.summary}</p>
+                <Button as={Link} to="/myths" size="sm" variant="outline-primary">이야기 전체 보기 <i className="bi bi-arrow-right" /></Button>
+              </>
+            ) : (
+              <div className="d-flex flex-column justify-content-center h-100">
+                <h5 className="fw-bold"><i className="bi bi-hand-index me-2" />빛나는 구슬을 눌러 보세요</h5>
+                <p className="text-body-secondary mb-0">구슬을 누르면 그 신화가 열리고 지도가 그쪽으로 다가갑니다. 드래그로 회전하고, 지도를 클릭한 뒤 휠로 확대할 수 있어요. X를 누르면 전체 보기로 돌아옵니다.</p>
+              </div>
+            )}
+          </div>
+        </Col>
+      </Row>
 
       <h5 className="fw-bold mb-3"><i className="bi bi-clipboard-check me-2" />동작 체크</h5>
       <Row xs={1} md={3} className="g-3">
