@@ -9,6 +9,24 @@ import { MYTHS } from '../../server/myths'
 // 모두 terrain.js 의 높이 지도 위에 놓이고, 고정 난수라 누구에게나 같은 섬이 나온다.
 // 같은 모양이 수천 개라서 InstancedMesh(모양 하나 = 그리기 한 번)로 그린다. 마우스 판정은 꺼서(raycast 끔) 마커 클릭을 방해하지 않는다.
 const noRay = () => null
+
+// 바람(4D 체험): 모든 나무가 같은 값을 보고 흔들린다. uWind 가 0 이면 가만히 서 있다 (Jeju3D 가 매 프레임 갱신)
+export const windU = { uTime: { value: 0 }, uWind: { value: 0 } }
+// 나무(침엽수·활엽수·야자수·귤나무)는 위쪽일수록 많이 흔들린다. 흔들리는 박자는 나무마다 위치로 달리해 제각각으로
+function swayHook(shader) {
+  shader.uniforms.uTime = windU.uTime
+  shader.uniforms.uWind = windU.uWind
+  shader.vertexShader = shader.vertexShader
+    .replace('#include <common>', '#include <common>\nuniform float uTime;\nuniform float uWind;')
+    .replace('#include <begin_vertex>', `#include <begin_vertex>
+  #ifdef USE_INSTANCING
+    float ph = instanceMatrix[3].x * 2.3 + instanceMatrix[3].z * 1.7;
+  #else
+    float ph = 0.0;
+  #endif
+  transformed.x += sin(uTime * 2.2 + ph) * position.y * 0.16 * uWind;
+  transformed.z += cos(uTime * 1.7 + ph) * position.y * 0.08 * uWind;`)
+}
 const rngOf = (seed) => () => ((seed = (seed * 16807) % 2147483647) / 2147483647)
 
 // 모양 하나를 여러 부품(원기둥·원뿔·구)으로 만들고 부품마다 색을 칠해 한 덩어리로 합친다
@@ -51,7 +69,7 @@ const GEO = {
 }
 
 // 정해진 모양을 정해진 자리에 수백~수천 개 심는다. spots: [{ x, z, s, rot, tint }] (높이는 지형에서 읽는다)
-function Planted({ kind, spots, shadow = true, sink = 0.01 }) {
+function Planted({ kind, spots, shadow = true, sink = 0.01, sway = false }) {
   const ref = useRef()
   const geometry = useMemo(() => GEO[kind](), [kind])
   useLayoutEffect(() => {
@@ -71,7 +89,7 @@ function Planted({ kind, spots, shadow = true, sink = 0.01 }) {
   }, [spots, sink])
   return (
     <instancedMesh ref={ref} args={[geometry, undefined, Math.max(spots.length, 1)]} castShadow={shadow} receiveShadow raycast={noRay} frustumCulled={false}>
-      <meshStandardMaterial vertexColors roughness={0.9} />
+      <meshStandardMaterial vertexColors roughness={0.9} onBeforeCompile={sway ? swayHook : undefined} />
     </instancedMesh>
   )
 }
@@ -94,7 +112,7 @@ function Forest() {
   const conifers = useMemo(() => scatter(7, 900, (x, z, h, r) => h > 0.75 && h < 1.55 && nearHalla(x, z) > 0.7 && fbm(x * 2.4, z * 2.4) + r() * 0.25 > 0.68, (r) => 0.7 + r() * 0.55), [])
   const broad = useMemo(() => scatter(11, 700, (x, z, h, r) => h > 0.16 && h < 0.85 && fbm(x * 2.1 + 5, z * 2.1) + r() * 0.3 > 0.72, (r) => 0.65 + r() * 0.5), [])
   const palms = useMemo(() => scatter(13, 70, (x, z, h, r) => z > 0.4 && h > 0.06 && h < 0.2 && r() < 0.8, (r) => 0.8 + r() * 0.35), [])
-  return <><Planted kind="conifer" spots={conifers} /><Planted kind="broadleaf" spots={broad} /><Planted kind="palm" spots={palms} /></>
+  return <><Planted kind="conifer" spots={conifers} sway /><Planted kind="broadleaf" spots={broad} sway /><Planted kind="palm" spots={palms} sway /></>
 }
 
 // 감귤밭: 한라산 남쪽(서귀포 쪽) 낮은 땅에 줄 맞춰 심은 귤나무. 열매(주황)가 박혀 있다
@@ -110,7 +128,7 @@ function Orchards() {
     }
     return out
   }, [])
-  return <Planted kind="bush" spots={spots} />
+  return <Planted kind="bush" spots={spots} sway />
 }
 
 // 현무암 바위: 해안과 들판에 흩어진 검은 돌 (제주의 화산암)
@@ -137,7 +155,8 @@ function Turbine({ lat, lng, phase }) {
   const [x, z] = toXZ(lat, lng)
   const y = Math.max(heightAt(x, z), 0.02)
   const rotor = useRef()
-  useFrame(({ clock }) => { rotor.current.rotation.z = clock.elapsedTime * 1.4 + phase })
+  useFrame((_, dt) => { rotor.current.rotation.z += dt * (1.4 + windU.uWind.value * 1.8) })      // 바람이 세면 더 빨리 돈다
+  void phase
   return (
     <group position={[x, y, z]} raycast={noRay}>
       <mesh position={[0, 0.3, 0]} castShadow raycast={noRay}><cylinderGeometry args={[0.012, 0.022, 0.6, 8]} /><meshStandardMaterial color="#f1f3f5" roughness={0.5} /></mesh>

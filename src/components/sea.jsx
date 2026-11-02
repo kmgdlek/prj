@@ -13,22 +13,24 @@ const noRay = () => null
 // 높이(wave)와 기울기(waveGrad)는 같은 식이라 빛이 물결 모양대로 반짝인다.
 const WAVE_GLSL = `
 uniform float uTime;
+uniform float uAmp;
 float wave(vec2 p) {
-  return 0.040 * sin(p.x * 1.10 + uTime * 1.10) + 0.032 * sin(p.y * 1.60 - uTime * 0.90)
-       + 0.020 * sin((p.x + p.y) * 2.40 + uTime * 1.60) + 0.012 * sin((p.x - p.y) * 4.20 - uTime * 2.10);
+  return uAmp * (0.040 * sin(p.x * 1.10 + uTime * 1.10) + 0.032 * sin(p.y * 1.60 - uTime * 0.90)
+       + 0.020 * sin((p.x + p.y) * 2.40 + uTime * 1.60) + 0.012 * sin((p.x - p.y) * 4.20 - uTime * 2.10));
 }
 vec2 waveGrad(vec2 p) {
   float a = 0.040 * 1.10 * cos(p.x * 1.10 + uTime * 1.10), b = 0.032 * 1.60 * cos(p.y * 1.60 - uTime * 0.90);
   float c = 0.020 * 2.40 * cos((p.x + p.y) * 2.40 + uTime * 1.60), d = 0.012 * 4.20 * cos((p.x - p.y) * 4.20 - uTime * 2.10);
-  return vec2(a + c + d, b + c - d);
+  return uAmp * vec2(a + c + d, b + c - d);
 }`
-export function WavySea({ color, opacity }) {
-  const uniforms = useRef({ uTime: { value: 0 } })
+export function WavySea({ color, opacity, amp = 1 }) {
+  const uniforms = useRef({ uTime: { value: 0 }, uAmp: { value: 1 } })
   const geometry = useMemo(() => { const g = new THREE.PlaneGeometry(240, 150, 240, 150); g.rotateX(-Math.PI / 2); return g }, [])
   const material = useMemo(() => {
     const m = new THREE.MeshPhysicalMaterial({ color, transparent: true, opacity, roughness: 0.14, metalness: 0.25, clearcoat: 0.6 })
     m.onBeforeCompile = (shader) => {
       shader.uniforms.uTime = uniforms.current.uTime
+      shader.uniforms.uAmp = uniforms.current.uAmp
       shader.vertexShader = shader.vertexShader
         .replace('#include <common>', `#include <common>\n${WAVE_GLSL}`)
         .replace('#include <beginnormal_vertex>', '#include <beginnormal_vertex>\n  vec2 wg = waveGrad(position.xz);\n  objectNormal = normalize(vec3(-wg.x, 1.0, -wg.y));')
@@ -37,7 +39,11 @@ export function WavySea({ color, opacity }) {
     return m
   }, [])                                                                  // eslint-disable-line react-hooks/exhaustive-deps
   useEffect(() => { material.color.set(color); material.opacity = opacity }, [material, color, opacity])
-  useFrame(({ clock }) => { uniforms.current.uTime.value = clock.elapsedTime })
+  useFrame(({ clock }, dt) => {
+    uniforms.current.uTime.value = clock.elapsedTime
+    const u = uniforms.current.uAmp
+    u.value += (amp - u.value) * Math.min(1, dt * 1.5)                 // 날씨가 바뀌면 파도 높이가 천천히 따라간다
+  })
   return <mesh geometry={geometry} material={material} receiveShadow raycast={noRay} />
 }
 

@@ -7,7 +7,8 @@ import { useTimeMode } from '../lib/timeOfDay'
 import { weatherKind } from '../lib/weather'
 import { useAppStore } from '../store/useAppStore'
 import { Boats, Clouds, Fireflies, Gulls, Lamps, Moon, Precip, Sun } from './skyThings'
-import Landscape from './landscape'
+import Landscape, { windU } from './landscape'
+import { levelsOf } from '../lib/fx4d'
 import { Dolphins, Islets, Mainland, WavySea } from './sea'
 
 // 섬을 이 배율로 키워 보여 준다 (지형·오름·나무·마커가 모두 같은 비율로 커진다). 카메라 목표 같은 '월드 좌표'는 이 값을 곱해 쓴다
@@ -110,6 +111,44 @@ function Abyss() {
   )
 }
 
+// 4D 체험: 바람. ① 매 프레임 나무·풍력발전기가 보는 바람 값을 갱신하고 ② 바람줄(옆으로 흐르는 가는 선)을 날린다
+function Wind4D({ strength }) {
+  const ref = useRef()
+  const lines = useMemo(() => {
+    let seed = 41
+    const rnd = () => ((seed = (seed * 16807) % 2147483647) / 2147483647)
+    return Array.from({ length: 240 }, () => ({ x: (rnd() - 0.5) * 34, y: 0.6 + rnd() * 3.4, z: (rnd() - 0.5) * 20, v: 3 + rnd() * 4, len: 0.5 + rnd() * 0.7, ph: rnd() * 6.28 }))
+  }, [])
+  const dummy = useMemo(() => new THREE.Object3D(), [])
+  useFrame(({ clock }, dt) => {
+    windU.uTime.value = clock.elapsedTime
+    windU.uWind.value += (strength - windU.uWind.value) * Math.min(1, dt * 1.5)      // 날씨가 바뀌면 바람도 천천히 세어진다
+    const n = Math.min(lines.length, Math.round(strength > 0 ? 50 + strength * 70 : 0))
+    ref.current.count = n
+    for (let i = 0; i < n; i++) {
+      const l = lines[i]
+      l.x += dt * l.v * (0.4 + strength * 0.6)
+      if (l.x > 17) l.x = -17
+      dummy.position.set(l.x, l.y + Math.sin(clock.elapsedTime * 1.3 + l.ph) * 0.12, l.z)
+      dummy.scale.set(l.len * (0.5 + strength * 0.5), 1, 1)
+      dummy.updateMatrix()
+      ref.current.setMatrixAt(i, dummy.matrix)
+    }
+    ref.current.instanceMatrix.needsUpdate = true
+  })
+  return (
+    <instancedMesh ref={ref} args={[undefined, undefined, 240]} frustumCulled={false} raycast={() => null}>
+      <boxGeometry args={[1, 0.012, 0.012]} />
+      <meshBasicMaterial color="#ffffff" transparent opacity={0.4} depthWrite={false} />
+    </instancedMesh>
+  )
+}
+// 4D 를 끄면 바람 값을 0 으로 되돌려 나무가 다시 가만히 서게 한다 (Wind4D 가 없을 때)
+function WindOff() {
+  useFrame((_, dt) => { windU.uWind.value += (0 - windU.uWind.value) * Math.min(1, dt * 3) })
+  return null
+}
+
 // 백록담 위에 떠서 도는 신의 고리 + 반짝이는 빛 알갱이
 function Halo({ sparkles = true }) {
   const ref = useRef()
@@ -203,7 +242,7 @@ function CameraRig({ focus }) {
 }
 
 // items: [{ id, name, lat, lng, color, size?, label? }]
-export default function Jeju3D({ items = [], selectedId, onSelect, height = 460, autoRotate = false, mode, weather }) {
+export default function Jeju3D({ items = [], selectedId, onSelect, height = 460, autoRotate = false, mode, weather, fx = false, storm = false }) {
   const auto = useTimeMode()
   const m = mode ?? auto                   // mode 를 주지 않으면 지금 시각을 따른다
   const loadWeather = useAppStore((s) => s.loadWeather)
@@ -212,6 +251,7 @@ export default function Jeju3D({ items = [], selectedId, onSelect, height = 460,
   const w = weather ?? real                // weather 를 주지 않으면 지금 제주시의 실제 예보를 따른다
   const g = GLOOM[w] ?? 0
   const T = withWeather(THEME[m], w, m)
+  const lv = fx ? levelsOf(w, storm) : null          // 4D 체험을 켰을 때만: 바람·안개·파도 세기
   const dim = g >= 0.6                     // 짙게 흐리거나 비가 오면 해·달이 안 보인다
   const calm = w === 'clear' || w === 'cloudy'
   const pins = items.filter((m) => Number(m.lat) > 0 && Number(m.lng) > 0)
@@ -222,7 +262,7 @@ export default function Jeju3D({ items = [], selectedId, onSelect, height = 460,
     <div style={{ height }} onPointerDown={() => setZoomOn(true)} onPointerLeave={() => setZoomOn(false)}>
       <Canvas shadows camera={{ position: [0, 12, 15.6], fov: 45 }} style={{ height: '100%' }} dpr={[1, 2]}>
         <color attach="background" args={[T.bg]} />
-        <fog attach="fog" args={[T.bg, T.fog[0], T.fog[1]]} />
+        <fog attach="fog" args={[T.bg, T.fog[0] * (lv?.fog ?? 1), T.fog[1] * (lv?.fog ?? 1)]} />
         <hemisphereLight args={T.hemi} />
         <ambientLight intensity={T.ambient} />
         {/* 달빛·햇빛: 그림자를 드리워 한라산·오름의 입체감을 만든다 */}
@@ -242,7 +282,8 @@ export default function Jeju3D({ items = [], selectedId, onSelect, height = 460,
         )}
         {(w === 'rain' || w === 'snow') && <Precip kind={w} />}
         <Abyss />
-        <WavySea color={T.sea} opacity={T.seaOpacity} />
+        <WavySea color={T.sea} opacity={T.seaOpacity} amp={lv?.amp ?? 1} />
+        {lv ? <Wind4D strength={lv.wind} /> : <WindOff />}
         <group scale={WORLD}>
           <Island />
           <Oreums />
