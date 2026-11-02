@@ -16,7 +16,7 @@ export default function FavDetail({ fav, onHide }) {
   const selectMyth = useAppStore((s) => s.selectMyth)
   const myth = fav?.source === 'myth' ? MYTHS.find((m) => m.id === fav.item_id) : null
   const product = fav?.source === 'product' ? productOf(fav.item_id) : null
-  const keyword = product?.photo ?? myth?.keyword ?? fav?.title
+  const keyword = product?.photo ?? myth?.photo ?? fav?.title          // 신화·상품은 영어 검색어(정확), 장소·유산은 이름 그대로
   const [images, setImages] = useState([])
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
@@ -25,7 +25,7 @@ export default function FavDetail({ fav, onHide }) {
     if (!fav) return
     let alive = true
     setLoading(true); setError(''); setImages([])
-    fetchImages(keyword, product ? { lang: 'en', fallback: false, rows: 6 } : undefined)
+    fetchImages(keyword, product ? { lang: 'en', fallback: false, rows: 6 } : myth ? { lang: 'en', rows: 6 } : undefined)
       .then((r) => alive && setImages(r))
       .catch((e) => alive && setError(e.message))
       .finally(() => alive && setLoading(false))

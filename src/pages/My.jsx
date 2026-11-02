@@ -19,8 +19,8 @@ function useFavPhoto(f) {
   useEffect(() => {
     if (f.source === 'product' || photoCache.has(key)) { setUrl(photoCache.get(key) ?? ''); return }
     let alive = true
-    const keyword = f.source === 'myth' ? (MYTHS.find((m) => m.id === f.item_id)?.keyword ?? f.title) : f.title
-    fetchImages(keyword, { rows: 1 })
+    const myth = f.source === 'myth' ? MYTHS.find((m) => m.id === f.item_id) : null
+    fetchImages(myth?.photo ?? f.title, myth?.photo ? { lang: 'en', rows: 3 } : { rows: 3 })
       .then((r) => { const u = r[0]?.thumb ?? ''; photoCache.set(key, u); if (alive) setUrl(u) })
       .catch(() => {})
     return () => { alive = false }
