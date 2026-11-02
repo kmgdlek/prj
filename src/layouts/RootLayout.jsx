@@ -1,3 +1,4 @@
+import { useEffect } from 'react'
 import { NavLink, Outlet } from 'react-router-dom'
 import { Container, Nav, Navbar, Toast, ToastContainer } from 'react-bootstrap'
 import { NAV_ITEMS } from '../router'
@@ -6,6 +7,10 @@ import { useAppStore } from '../store/useAppStore'
 export default function RootLayout() {
   const toasts = useAppStore((s) => s.toasts)
   const nickname = useAppStore((s) => s.nickname)
+  const loadFavorites = useAppStore((s) => s.loadFavorites)
+
+  // 별 버튼이 어느 페이지에서든 저장 여부를 보여 주도록, 닉네임이 정해지면 즐겨찾기를 미리 불러온다
+  useEffect(() => { loadFavorites({ quiet: true }) }, [nickname, loadFavorites])
 
   return (
     <div className="d-flex flex-column min-vh-100">

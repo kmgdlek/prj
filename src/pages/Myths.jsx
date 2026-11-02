@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
-import { Button, Col, ListGroup, Row } from 'react-bootstrap'
+import { Col, ListGroup, Row } from 'react-bootstrap'
 import PageHeader from '../components/PageHeader'
-import ItemCard from '../components/ItemCard'
+import ItemCard, { FavButton } from '../components/ItemCard'
 import Scene from '../components/Scene'
 import { Empty, ErrorAlert, Loading } from '../components/Status'
 import { fetchPlaces } from '../api/client'
@@ -12,7 +12,7 @@ const MARKERS = MYTHS.map((m) => ({ id: m.id, name: m.title, lat: m.lat, lng: m.
 
 // 신화 도감 — 목록(왼쪽)과 3D 지도(오른쪽)가 store 의 selectedMythId 를 공유
 export default function Myths() {
-  const { selectedMythId, selectMyth, addFavorite } = useAppStore()
+  const { selectedMythId, selectMyth } = useAppStore()
   const myth = MYTHS.find((m) => m.id === selectedMythId) ?? MYTHS[0]
   const [places, setPlaces] = useState([])
   const [loading, setLoading] = useState(false)
@@ -51,9 +51,7 @@ export default function Myths() {
           <div className="mt-3">
             <div className="d-flex align-items-center gap-2 mb-2">
               <h3 className="fw-bold mb-0">{myth.title}</h3>
-              <Button size="sm" variant="outline-warning" onClick={() => addFavorite({ source: 'myth', id: myth.id, title: myth.title })}>
-                <i className="bi bi-star me-1" />별자리에 담기
-              </Button>
+              <FavButton fav={{ source: 'myth', id: myth.id, title: myth.title }} />
             </div>
             <p className="text-warning small"><i className="bi bi-geo-alt me-1" />{myth.place}</p>
             <p>{myth.story}</p>
@@ -68,7 +66,7 @@ export default function Myths() {
           {places.map((p) => (
             <Col key={p.id}>
               <ItemCard title={p.title} subtitle={p.addr} image={p.image}
-                onSave={() => addFavorite({ source: 'tour', id: p.id, title: p.title })} />
+                fav={{ source: 'tour', id: p.id, title: p.title }} />
             </Col>
           ))}
         </Row>

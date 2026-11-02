@@ -5,12 +5,10 @@ import ItemCard from '../components/ItemCard'
 import Scene from '../components/Scene'
 import { Empty, ErrorAlert, Loading } from '../components/Status'
 import { fetchPlaces } from '../api/client'
-import { useAppStore } from '../store/useAppStore'
 
 const TYPES = { 12: '관광지', 14: '문화시설', 15: '축제·행사', 39: '음식점' }
 
 export default function Places() {
-  const addFavorite = useAppStore((s) => s.addFavorite)
   const [keyword, setKeyword] = useState('한라산')
   const [type, setType] = useState('12')
   const [places, setPlaces] = useState([])
@@ -50,7 +48,7 @@ export default function Places() {
             <Col key={p.id}>
               <ItemCard title={p.title} subtitle={p.addr} image={p.image} badge={TYPES[p.type]}
                 active={p.id === selected} onClick={() => setSelected(p.id)}
-                onSave={() => addFavorite({ source: 'tour', id: p.id, title: p.title })} />
+                fav={{ source: 'tour', id: p.id, title: p.title }} />
             </Col>
           ))}
         </Row>

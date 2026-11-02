@@ -5,10 +5,8 @@ import ItemCard from '../components/ItemCard'
 import Scene from '../components/Scene'
 import { Empty, ErrorAlert, Loading } from '../components/Status'
 import { fetchHeritage } from '../api/client'
-import { useAppStore } from '../store/useAppStore'
 
 export default function Heritage() {
-  const addFavorite = useAppStore((s) => s.addFavorite)
   const [keyword, setKeyword] = useState('')
   const [list, setList] = useState([])
   const [selected, setSelected] = useState(null)
@@ -44,7 +42,7 @@ export default function Heritage() {
             <Col key={`${h.name}-${i}`}>
               <ItemCard title={h.name} subtitle={`${h.city ?? ''}`} badge={h.kind}
                 active={selected === `${h.name}-${i}`} onClick={() => setSelected(`${h.name}-${i}`)}
-                onSave={() => addFavorite({ source: 'heritage', id: h.name, title: h.name })} />
+                fav={{ source: 'heritage', id: h.name, title: h.name }} />
             </Col>
           ))}
         </Row>
