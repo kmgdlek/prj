@@ -96,7 +96,9 @@ grant execute on function give_stock(text, int) to authenticated;
 
 insert into stock (product_id, qty) values
   ('hallabong', 48), ('choco', 120), ('omegi', 36), ('dolharubang', 62), ('sora-magnet', 150),
-  ('baengnyeoncho', 28), ('candle', 24), ('ecobag', 80), ('greentea', 95)
+  ('baengnyeoncho', 28), ('candle', 24), ('ecobag', 80), ('greentea', 95),
+  ('cheonhyehyang', 40), ('citrus-jam', 55), ('jerky', 70), ('barley-cookie', 90), ('dried-orange', 85),
+  ('keychain', 130), ('pouch', 60), ('soap', 45), ('postcard', 100), ('mug', 35), ('coaster', 32)
 on conflict (product_id) do nothing;
 
 -- 쿠폰함: 사용자별. (user_id, source) 가 유일해서 같은 쿠폰이 두 번 발급되지 않는다

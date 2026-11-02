@@ -302,6 +302,7 @@ export const useAppStore = create((set, get) => ({
   // 주문을 취소·환불하면 재고와 쿠폰을 되돌린다 (적립금은 주문 상태로 계산해서 자동으로 돌아간다)
   restoreOrder: async (order) => {
     for (const i of order.items) {
+      if (get().stock[i.product_id] === undefined) continue          // DB 재고 행이 없는 상품은 되돌릴 것도 없다
       const r = await rpcSafe('give_stock', { p_id: i.product_id, p_qty: i.qty })
       if (!r.missing && !r.error) set({ stock: { ...get().stock, [i.product_id]: get().stockOf(i.product_id) + i.qty } })
     }
@@ -352,6 +353,7 @@ export const useAppStore = create((set, get) => ({
     // 재고 차감 — 하나라도 실패하면 이미 차감한 것을 되돌린다 (함수가 아직 없으면 건너뜀)
     const taken = []
     for (const l of lines) {
+      if (get().stock[l.p.id] === undefined) continue                 // DB 재고 행이 없는 상품(SQL 미실행)은 기본 재고만 쓴다
       const r = await rpcSafe('take_stock', { p_id: l.p.id, p_qty: l.qty })
       if (r.missing) break
       if (r.error || r.data === false) {

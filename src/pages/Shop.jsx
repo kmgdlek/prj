@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { Link } from 'react-router-dom'
+import { Link, useSearchParams } from 'react-router-dom'
 import { Alert, Badge, Button, Card, Col, Form, Row } from 'react-bootstrap'
 import PageHeader from '../components/PageHeader'
 import { Empty } from '../components/Status'
@@ -7,7 +7,7 @@ import { FavButton } from '../components/ItemCard'
 import { Stars, ratingOf } from '../components/StarRating'
 import { useAppStore } from '../store/useAppStore'
 import { won } from '../lib/format'
-import { CATEGORIES, PRODUCTS, salePrice } from '../../server/products'
+import { CATEGORIES, PRODUCTS, TAGS, salePrice } from '../../server/products'
 
 // 제주 특산품·기념품 — 담기 버튼은 store 의 장바구니에 연결
 export default function Shop() {
@@ -21,6 +21,9 @@ export default function Shop() {
   useEffect(() => { loadProductImages() }, [loadProductImages])
   const [category, setCategory] = useState('전체')
   const [keyword, setKeyword] = useState('')
+  const [params] = useSearchParams()
+  const [tags, setTags] = useState(() => params.getAll('tag').filter((t) => TAGS.includes(t)))   // 상세 화면의 태그를 누르면 /shop?tag=선물 로 들어온다
+  const toggleTag = (t) => setTags((cur) => (cur.includes(t) ? cur.filter((x) => x !== t) : [...cur, t]))
   const [sort, setSort] = useState('basic')
   const stockOf = (p) => stock[p.id] ?? p.stock
 
@@ -33,7 +36,8 @@ export default function Shop() {
   }
   const list = PRODUCTS
     .filter((p) => category === '전체' || p.category === category)
-    .filter((p) => !keyword || (p.name + p.desc).includes(keyword))
+    .filter((p) => !keyword || (p.name + p.desc + (p.tags ?? []).join(' ')).includes(keyword.replace(/^#/, '')))
+    .filter((p) => tags.every((t) => p.tags?.includes(t)))
     .sort(SORTS[sort])
 
   return (
@@ -52,7 +56,17 @@ export default function Shop() {
           <option value="basic">기본순</option><option value="low">낮은 가격순</option><option value="high">높은 가격순</option>
           <option value="discount">할인율순</option><option value="rating">별점순</option>
         </Form.Select>
-        <Form.Control size="sm" style={{ maxWidth: 200 }} placeholder="상품 검색" value={keyword} onChange={(e) => setKeyword(e.target.value)} />
+        <Form.Control size="sm" style={{ maxWidth: 200 }} placeholder="상품·태그 검색" value={keyword} onChange={(e) => setKeyword(e.target.value)} />
+      </div>
+
+      {/* 태그: 눌러서 걸러 보기 (여러 개 고르면 모두 가진 상품만) */}
+      <div className="d-flex flex-wrap gap-2 align-items-center mb-4 tag-row">
+        <span className="small text-body-secondary"><i className="bi bi-tags me-1" />태그</span>
+        {TAGS.map((t) => (
+          <button key={t} type="button" className={`tag-chip ${tags.includes(t) ? 'on' : ''}`} onClick={() => toggleTag(t)}>#{t}</button>
+        ))}
+        {tags.length > 0 && <button type="button" className="btn btn-link btn-sm p-0" onClick={() => setTags([])}>태그 지우기</button>}
+        <span className="ms-auto small text-body-secondary">{list.length}개 상품</span>
       </div>
 
       {list.length === 0 ? <Empty text="찾는 상품이 없어요" /> : (
@@ -74,7 +88,10 @@ export default function Shop() {
                     {left <= 0 && <span className="soldout">품절</span>}
                   </div>
                   <Card.Body className="d-flex flex-column">
-                    <Badge bg="primary" className="align-self-start mb-2">{p.category}</Badge>
+                    <div className="d-flex flex-wrap gap-1 mb-2">
+                      <Badge bg="primary">{p.category}</Badge>
+                      {(p.tags ?? []).map((t) => <span key={t} className={`tag-mini ${tags.includes(t) ? 'on' : ''}`}>#{t}</span>)}
+                    </div>
                     <Card.Title className="fs-6 fw-bold"><Link to={`/shop/${p.id}`} className="text-reset text-decoration-none">{p.name}</Link></Card.Title>
                     <Card.Text className="small text-body-secondary mb-1">{p.desc}</Card.Text>
                     <div className="small mb-2 d-flex align-items-center gap-2 flex-wrap">

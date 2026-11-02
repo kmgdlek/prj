@@ -293,3 +293,10 @@ body { font-family: 'Pretendard', system-ui, sans-serif; }
 .level-item { align-items: flex-start; }
 .level-item .level-dot { margin-top: .1rem; }
 .level-item:not(:last-child)::after { top: calc(.6rem + 36px); }
+
+/* 장터 태그 */
+.tag-chip { border: 1px solid var(--bs-border-color); background: var(--bs-body-bg); color: var(--bs-body-color); border-radius: 999px; padding: .15rem .75rem; font-size: .85rem; cursor: pointer; transition: background .15s, color .15s, border-color .15s; }
+.tag-chip:hover { border-color: var(--bs-primary); color: var(--bs-primary); }
+.tag-chip.on { background: var(--bs-primary); border-color: var(--bs-primary); color: #fff; }
+.tag-mini { font-size: .75rem; color: var(--bs-primary); background: rgba(var(--bs-primary-rgb), .08); border-radius: 999px; padding: .1rem .5rem; text-decoration: none; }
+.tag-mini.on { background: var(--bs-primary); color: #fff; }

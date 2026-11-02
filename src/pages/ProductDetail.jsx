@@ -77,7 +77,10 @@ export default function ProductDetail() {
         </Col>
 
         <Col md={6}>
-          <Badge bg="primary" className="mb-2">{p.category}</Badge>
+          <div className="d-flex flex-wrap gap-1 mb-2">
+            <Badge bg="primary">{p.category}</Badge>
+            {(p.tags ?? []).map((t) => <Link key={t} to={`/shop?tag=${encodeURIComponent(t)}`} className="tag-mini">#{t}</Link>)}
+          </div>
           <h2 className="fw-bold mb-1">{p.name}</h2>
           <a href="#reviews" className="d-inline-flex align-items-center gap-2 text-decoration-none mb-2">
             <Stars value={rating.avg} />
