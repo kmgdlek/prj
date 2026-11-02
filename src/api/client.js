@@ -34,8 +34,8 @@ export const fetchHeritage = (keyword = '') =>
   get(`/api/heritage?keyword=${encodeURIComponent(keyword)}`)
 
 export const fetchShopImages = () => get('/api/shop-images')
-export const fetchImages = (keyword = '') =>
-  get(`/api/pixabay?keyword=${encodeURIComponent(keyword)}`)
+export const fetchImages = (keyword = '', { lang = 'ko', fallback = true, rows = 6 } = {}) =>
+  get(`/api/pixabay?keyword=${encodeURIComponent(keyword)}&lang=${lang}&fallback=${fallback ? 1 : 0}&rows=${rows}`)
 
 // AI 에이전트
 export const askAgent = (message, history) => post('/api/agent', { message, history })

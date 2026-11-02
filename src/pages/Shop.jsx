@@ -45,14 +45,14 @@ export default function Shop() {
             return (
               <Col key={p.id}>
                 <Card className="h-100 item-card">
-                  {images[p.id]
-                    ? <a href={images[p.id].page} target="_blank" rel="noreferrer" title={`Pixabay · ${images[p.id].user}`}>
-                        <img src={images[p.id].url} alt={p.name} loading="lazy" className="product-photo" />
-                      </a>
-                    : <div className="product-tile" style={{ background: `linear-gradient(135deg, ${p.color}, #1a0b3d)` }}>{p.emoji}</div>}
+                  <Link to={`/shop/${p.id}`} aria-label={`${p.name} 상세 보기`}>
+                    {images[p.id]
+                      ? <img src={images[p.id].url} alt={p.name} loading="lazy" className="product-photo" />
+                      : <div className="product-tile" style={{ background: `linear-gradient(135deg, ${p.color}, #1a0b3d)` }}>{p.emoji}</div>}
+                  </Link>
                   <Card.Body className="d-flex flex-column">
                     <Badge bg="primary" className="align-self-start mb-2">{p.category}</Badge>
-                    <Card.Title className="fs-6 fw-bold">{p.name}</Card.Title>
+                    <Card.Title className="fs-6 fw-bold"><Link to={`/shop/${p.id}`} className="text-reset text-decoration-none">{p.name}</Link></Card.Title>
                     <Card.Text className="small text-body-secondary">{p.desc}</Card.Text>
                     <div className="d-flex align-items-center justify-content-between mt-auto">
                       <strong>{won(p.price)}</strong>
@@ -67,7 +67,7 @@ export default function Shop() {
           })}
         </Row>
       )}
-      <p className="small text-body-secondary mt-4 mb-0">※ 과제용 샘플 상품이며 실제 결제·배송은 이루어지지 않습니다. 사진 출처: Pixabay</p>
+      <p className="small text-body-secondary mt-4 mb-0">※ 과제용 샘플 상품이며 실제 결제·배송은 이루어지지 않습니다. 사진 출처: Pixabay · 상품을 누르면 상세 정보가 열려요</p>
     </>
   )
 }

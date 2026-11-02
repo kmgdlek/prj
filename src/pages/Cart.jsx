@@ -39,7 +39,7 @@ export default function Cart() {
                   ? <img src={productImages[p.id].url} alt={p.name} className="cart-thumb" />
                   : <span className="fs-2">{p.emoji}</span>}
                 <div className="flex-grow-1">
-                  <div className="fw-bold">{p.name}</div>
+                  <Link to={`/shop/${p.id}`} className="fw-bold text-reset text-decoration-none">{p.name}</Link>
                   <div className="small text-body-secondary">{won(p.price)}</div>
                 </div>
                 <div className="d-flex align-items-center gap-2">

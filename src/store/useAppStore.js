@@ -135,12 +135,13 @@ export const useAppStore = create((set, get) => ({
       : await supabase.from('cart_items').delete().eq('user_id', user.id).eq('product_id', productId)
     if (error) { set({ cart: before }); get().toast(error.message, 'danger') }
   },
-  addToCart: async (productId) => {
+  addToCart: async (productId, n = 1) => {
     const { user, cart } = get()
-    if (!user) return get().toast('로그인하면 장바구니에 담을 수 있어요', 'warning')
-    const qty = (cart.find((c) => c.product_id === productId)?.qty ?? 0) + 1
+    if (!user) { get().toast('로그인하면 장바구니에 담을 수 있어요', 'warning'); return false }
+    const qty = (cart.find((c) => c.product_id === productId)?.qty ?? 0) + n
     await get().setCartQty(productId, qty)
     get().toast(`${productOf(productId)?.name ?? '상품'}을(를) 담았어요`)
+    return true
   },
 
   // 제주 장터 상품 사진(Pixabay) — 한 번만 불러와 장터·장바구니가 함께 쓴다. 실패하면 이모지 타일로 보인다
