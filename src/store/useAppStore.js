@@ -48,6 +48,7 @@ export const useAppStore = create((set, get) => ({
     get().loadCart()
     get().loadChat()
     get().loadAdmin()
+    get().loadPointGrants()
     get().claimInvite().then(() => get().loadInvites())
   },
   initAuth: async () => {
@@ -64,7 +65,7 @@ export const useAppStore = create((set, get) => ({
       const changed = user?.id !== get().user?.id
       set({ user })
       if (!changed) return
-      set({ favorites: [], cart: [], orders: [], coupons: [], messages: [], invites: [], isAdmin: false })
+      set({ favorites: [], cart: [], orders: [], coupons: [], messages: [], invites: [], pointGrants: [], isAdmin: false })
       get().loadNotifs()     // 다른 사람의 데이터가 남지 않게 비움
       if (user) get().loadUserData()
     })
@@ -267,6 +268,22 @@ export const useAppStore = create((set, get) => ({
     set({ notifs: next }); safeLS.set(notifKey(get().user), next)
   },
   clearNotifs: () => { set({ notifs: [] }); safeLS.set(notifKey(get().user), []) },
+
+  // ⑰ 적립금 지급 — 관리자가 주는 적립금(shop_point_grants). 잔액 = 주문 적립 + 지급 − 사용. 테이블이 아직 없으면 조용히 건너뜀
+  pointGrants: [],
+  loadPointGrants: async () => {
+    const { user } = get()
+    if (!supabase || !user) return
+    const { data, error } = await supabase.from('shop_point_grants').select('*').eq('user_id', user.id).order('created_at', { ascending: false })
+    if (!error) set({ pointGrants: data })
+  },
+  grantPoints: async (amount, reason = '관리자 지급') => {
+    const { user, isAdmin } = get()
+    if (!isAdmin) throw new Error('관리자만 지급할 수 있어요')
+    const { data, error } = await supabase.from('shop_point_grants').insert({ user_id: user.id, amount, reason }).select().single()
+    if (error) throw error
+    set({ pointGrants: [data, ...get().pointGrants] })
+  },
 
   // ⑭ 관리자 — shop_admins 에 내 id 가 있으면 관리자. 관리자만 시세를 직접 정할 수 있다 (RLS 가 DB 에서 막음)
   isAdmin: false,
@@ -517,7 +534,7 @@ export const useAppStore = create((set, get) => ({
     if (short) { get().toast(`${short.p.name}: ${get().limitMessage(short.p.id)}`, 'warning'); return false }
 
     const coupon = get().coupons.find((c) => c.id === couponId) ?? null
-    const calc = calcCheckout({ lines, spent: totalSpent(orders), coupon, pointsWanted: pointsUse, pointsBalance: pointsSummary(orders).balance })
+    const calc = calcCheckout({ lines, spent: totalSpent(orders), coupon, pointsWanted: pointsUse, pointsBalance: pointsSummary(orders, Date.now(), get().pointGrants).balance })
 
     // 재고 차감 — 하나라도 실패하면 이미 차감한 것을 되돌린다 (함수가 아직 없으면 건너뜀)
     const taken = []

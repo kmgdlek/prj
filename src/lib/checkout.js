@@ -28,13 +28,14 @@ export function calcCheckout({ lines, spent, coupon, pointsWanted = 0, pointsBal
 }
 
 // 적립금: 배송완료된 주문의 적립분 − 취소·환불하지 않은 주문에서 쓴 적립금. 아직 배송 전인 적립분은 '적립 예정'
-export function pointsSummary(orders, now = Date.now()) {
+export function pointsSummary(orders, now = Date.now(), grants = []) {
   let earned = 0, pending = 0, used = 0
+  const granted = grants.reduce((s, g) => s + Number(g.amount), 0)          // 관리자가 지급한 적립금
   for (const o of orders) {
     if (statusOf(o) !== STATUS.placed) continue          // 취소·환불 주문은 적립도 사용도 없던 일로
     used += o.points_used ?? 0
     if (isDelivered(o, now)) earned += o.points_earned ?? 0
     else pending += o.points_earned ?? 0
   }
-  return { balance: Math.max(0, earned - used), pending, earned, used }
+  return { balance: Math.max(0, earned + granted - used), pending, earned, used, granted }
 }

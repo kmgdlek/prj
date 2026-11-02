@@ -15,7 +15,7 @@ import { STATUS, STEPS, stageOf, statusOf } from '../lib/order'
 import { couponState, couponText } from '../lib/coupon'
 import { pointsSummary } from '../lib/checkout'
 import { getRecent } from '../lib/recent'
-import { won } from '../lib/format'
+import { won, wonCompact } from '../lib/format'
 import { GAPS, PREF_GROUPS } from '../lib/notify'
 import { KINDS } from '../../server/myths'
 
@@ -34,7 +34,8 @@ export default function MyPage() {
   useEffect(() => { loadOrders(); loadCoupons(); loadProductImages() }, [loadOrders, loadCoupons, loadProductImages])
   useEffect(() => { const t = setInterval(() => setNow(Date.now()), 15000); return () => clearInterval(t) }, [])
 
-  const pts = pointsSummary(orders, now)
+  const pointGrants = useAppStore((s) => s.pointGrants)
+  const pts = pointsSummary(orders, now, pointGrants)
   const available = coupons.filter((c) => couponState(c, now) === 'available').length
   const wish = favorites.filter((f) => f.source === 'product')
 
@@ -55,7 +56,7 @@ export default function MyPage() {
           </Col>
           <Col md={6} lg={5}>
             <Row className="g-2 text-center">
-              <Col xs={3}><Tile label="적립금" value={won(pts.balance)} onClick={() => setParams({ tab: 'points' })} /></Col>
+              <Col xs={3}><Tile label="적립금" value={wonCompact(pts.balance)} onClick={() => setParams({ tab: 'points' })} /></Col>
               <Col xs={3}><Tile label="쿠폰" value={`${available}장`} onClick={() => setParams({ tab: 'coupons' })} /></Col>
               <Col xs={3}><Tile label="찜" value={`${wish.length}개`} onClick={() => setParams({ tab: 'wish' })} /></Col>
               <Col xs={3}><Tile label="후기" value={`${reviews.filter((r) => r.user_id === user.id).length}개`} onClick={() => setParams({ tab: 'reviews' })} /></Col>
@@ -73,7 +74,7 @@ export default function MyPage() {
       {tab === 'summary' && <Summary orders={orders} now={now} />}
       {tab === 'orders' && <Summary orders={orders} now={now} />}
       {tab === 'coupons' && <Coupons />}
-      {tab === 'points' && <Points orders={orders} pts={pts} now={now} />}
+      {tab === 'points' && <Points orders={orders} pts={pts} now={now} grants={pointGrants} />}
       {tab === 'wish' && <ProductGrid ids={wish.map((f) => f.item_id)} empty="찜한 상품이 없어요. 장터에서 하트를 눌러 보세요." />}
       {tab === 'recent' && <ProductGrid ids={getRecent()} empty="최근 본 상품이 없어요." />}
       {tab === 'reviews' && <MyReviews />}
@@ -178,19 +179,19 @@ function Coupons() {
   )
 }
 
-function Points({ orders, pts, now }) {
+function Points({ orders, pts, now, grants }) {
   const history = useMemo(() => {
-    const rows = []
+    const rows = grants.map((g) => ({ at: g.created_at, label: g.reason, amount: Number(g.amount) }))
     orders.filter((o) => statusOf(o) === STATUS.placed).forEach((o) => {
       if (o.points_used > 0) rows.push({ at: o.created_at, label: `주문 #${o.id} 사용`, amount: -o.points_used })
       if (o.points_earned > 0) rows.push({ at: o.created_at, label: `주문 #${o.id} ${stageOf(o, now) === 3 ? '적립' : '적립 예정'}`, amount: o.points_earned, pending: stageOf(o, now) !== 3 })
     })
     return rows.sort((a, b) => new Date(b.at) - new Date(a.at))
-  }, [orders, now])
+  }, [orders, now, grants])
   return (
     <>
       <Row className="g-3 mb-3">
-        <Col xs={6} md={3}><Card><Card.Body><div className="small text-body-secondary">사용 가능</div><div className="fs-4 fw-bold">{won(pts.balance)}</div></Card.Body></Card></Col>
+        <Col xs={6} md={3}><Card><Card.Body><div className="small text-body-secondary">사용 가능</div><div className="fs-4 fw-bold">{pts.balance >= 100000000 ? wonCompact(pts.balance) : won(pts.balance)}</div>{pts.balance >= 100000000 && <div className="small text-body-secondary">{won(pts.balance)}</div>}</Card.Body></Card></Col>
         <Col xs={6} md={3}><Card><Card.Body><div className="small text-body-secondary">적립 예정</div><div className="fs-4 fw-bold text-body-secondary">{won(pts.pending)}</div></Card.Body></Card></Col>
       </Row>
       <p className="small text-body-secondary">배송완료된 주문의 적립금이 사용 가능해져요. 취소·반품/환불한 주문은 적립도 사용도 없던 일로 돌아가요. 적립률은 등급에 따라 1~5%예요.</p>

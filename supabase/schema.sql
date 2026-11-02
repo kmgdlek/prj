@@ -233,5 +233,21 @@ drop policy if exists "shop_invites read" on shop_invites;
 create policy "shop_invites insert own" on shop_invites for insert with check (auth.uid() = invitee);
 create policy "shop_invites read" on shop_invites for select using (auth.uid() = invitee or inviter_code = upper(substr(auth.uid()::text, 1, 8)));
 
+-- ⑮ 적립금 지급(관리자가 주는 적립금): 내 것만 읽고, 쓰기는 관리자만 (is_shop_admin). 주문 적립·사용과 합쳐 적립금 잔액이 된다
+--   SQL Editor 에서 직접 줄 수도 있다:
+--   insert into shop_point_grants (user_id, amount, reason) select id, 1000000000, '관리자 지급' from auth.users where email = '내 이메일';
+create table if not exists shop_point_grants (
+  id         bigint generated always as identity primary key,
+  user_id    uuid not null references auth.users(id) on delete cascade,
+  amount     bigint not null check (amount <> 0),
+  reason     text not null default '관리자 지급',
+  created_at timestamptz not null default now()
+);
+alter table shop_point_grants enable row level security;
+drop policy if exists "point_grants read own" on shop_point_grants;
+drop policy if exists "point_grants admin insert" on shop_point_grants;
+create policy "point_grants read own"     on shop_point_grants for select using (auth.uid() = user_id);
+create policy "point_grants admin insert" on shop_point_grants for insert with check (is_shop_admin());
+
 -- 새 컬럼·정책을 API 가 바로 인식하도록 스키마 캐시를 새로고침
 notify pgrst, 'reload schema';

@@ -7,7 +7,7 @@ import AdminBadge from './AdminBadge'
 import LevelBadge from './LevelBadge'
 import Avatar from './Avatar'
 import { pointsSummary } from '../lib/checkout'
-import { won } from '../lib/format'
+import { wonCompact } from '../lib/format'
 
 const ICON = { 맑음: 'sun', 구름많음: 'cloud-sun', 흐림: 'clouds' }
 const PLACES = ['제주시', '서귀포시']
@@ -36,7 +36,8 @@ export default function SideCard() {
   const cartCount = useAppStore((s) => s.cart.reduce((n, c) => n + c.qty, 0))
   const orders = useAppStore((s) => s.orders)
   useAppStore((s) => s.slot)                             // 1분마다 다시 그려서, 배송이 끝나 적립금이 생기는 순간을 따라간다
-  const pts = pointsSummary(orders)
+  const grants = useAppStore((s) => s.pointGrants)
+  const pts = pointsSummary(orders, Date.now(), grants)
   const [open, setOpen] = useState(true)
 
   return (
@@ -61,7 +62,7 @@ export default function SideCard() {
                   </div>
                   <div className="small text-body-secondary text-truncate">{user.email}</div>
                   <Link to="/mypage?tab=points" className="d-block text-body-secondary text-decoration-none mb-1" style={{ fontSize: '.72rem' }} title="적립금 내역 보기">
-                    <i className="bi bi-coin me-1" />적립금 <b className="text-body">{won(pts.balance)}</b>{pts.pending > 0 && <span> · 예정 {won(pts.pending)}</span>}
+                    <i className="bi bi-coin me-1" />적립금 <b className="text-body">{wonCompact(pts.balance)}</b>{pts.pending > 0 && <span> · 예정 {wonCompact(pts.pending)}</span>}
                   </Link>
                   <LevelBadge part="name" withProgress />
                 </div>

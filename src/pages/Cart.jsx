@@ -22,7 +22,8 @@ export default function Cart() {
   const lines = cart.map((c) => ({ ...c, p: productOf(c.product_id) })).filter((l) => l.p)
   const usable = coupons.filter((c) => couponState(c) === 'available')
   const coupon = usable.find((c) => String(c.id) === couponId) ?? null
-  const pts = pointsSummary(orders)
+  const pointGrants = useAppStore((s) => s.pointGrants)
+  const pts = pointsSummary(orders, Date.now(), pointGrants)
   const calc = calcCheckout({ lines, spent: totalSpent(orders), coupon, pointsWanted: Number(pointsInput) || 0, pointsBalance: pts.balance })
   const L = calc.level
 

@@ -48,7 +48,7 @@
 | 🚚 주문 진행 | 결제완료 → 상품준비중 → 배송중 → 배송완료 단계 표시. 취소는 배송 전, 반품/환불은 배송 후, 배송 후 후기·별점 작성 |
 | 🤝 친구 초대 | 내 초대 링크(`/signup?invite=코드`)와 그 링크가 담긴 QR 을 만들어 복사·공유·저장. 친구가 링크로 가입하고 처음 로그인하면 친구는 5,000원 쿠폰, 나는 친구 1명당 3,000원 쿠폰(5명까지)과 3명 달성 10% 쿠폰을 받음. 가입 화면에는 '추천 코드(선택)' 입력란이 있고, 초대 링크로 오면 미리 채워짐. 초대 기록은 Supabase `shop_invites`(RLS) |
 | 🔔 알림 | 로그인했을 때만. 메뉴 막대의 종 버튼 → 알림창. 추천 물건(타임특가·급락), 추천 장소(날씨에 맞춘 신화 장소, 6시간마다), 찜한 상품의 가격 하락·재고 부족, 시세 급등락, 주문 상태(상품 준비 중·배송 시작·배송 완료) 소식을 모아 보여주고 누르면 해당 상품·지도로 이동. 마이페이지 '알림 설정'에서 알림 끄기/켜기와 세부 항목(종류별·장소 분류·알림 간격·팝업)을 고르면 바로 저장(로그인하면 계정에도 저장) |
-| 🛠️ 시세 관리(관리자) | 관리자 등급(`shop_admins`)만 상품별 시세를 직접 정하고(10분~3시간) 되돌릴 수 있음. 정한 가격은 모든 접속자에게 15초 안에 반영. 쓰기 권한은 DB의 RLS(`is_shop_admin()`)가 막고, 메뉴·페이지는 관리자에게만 보임 |
+| 🛠️ 시세 관리(관리자) | 관리자 등급(`shop_admins`)만 상품별 시세를 직접 정하고(10분~3시간) 되돌릴 수 있음. 정한 가격은 모든 접속자에게 15초 안에 반영. 쓰기 권한은 DB의 RLS(`is_shop_admin()`)가 막고, 메뉴·페이지는 관리자에게만 보임. 같은 화면에서 관리자가 내 계정에 적립금을 지급·회수(`shop_point_grants`, 기록이 적립금 내역에 남고 결제에 그대로 쓰임) |
 | 🎁 제주 혜택 | 탐나는전(지역사랑상품권) 같은 제주 지역 혜택 안내 + 장터 혜택(타임특가·쿠폰·찜) + 등급별 혜택을 한 페이지에. 지역 혜택 문구는 예시이므로 공식 안내 확인 필요 |
 | 🏅 등급·쿠폰 | 누적 구매액으로 일반·실버·골드·VIP·VVIP. 등급 달성 쿠폰 자동 지급, 쿠폰 코드 등록 |
 | 👤 마이페이지 | 프로필 사진·닉네임·비밀번호 변경, 주문·배송 현황, 쿠폰함, 적립금, 찜한 상품, 최근 본 상품, 내 후기, 고객센터(FAQ) |
@@ -172,7 +172,7 @@ vercel dev                     # 화면 + /api 서버 함수 → http://localhos
 
 ### Supabase 준비
 
-1. 프로젝트 생성 후 SQL Editor 에서 [`supabase/schema.sql`](supabase/schema.sql) 실행 (favorites · cart_items · orders · shop_stock · shop_coupons · shop_reviews · shop_chat_messages · shop_admins · shop_price_override · shop_invites 테이블, 재고 함수, 프로필 사진 저장소, RLS. 여러 번 실행해도 안전)
+1. 프로젝트 생성 후 SQL Editor 에서 [`supabase/schema.sql`](supabase/schema.sql) 실행 (favorites · cart_items · orders · shop_stock · shop_coupons · shop_reviews · shop_chat_messages · shop_admins · shop_price_override · shop_invites · shop_point_grants 테이블, 재고 함수, 프로필 사진 저장소, RLS. 여러 번 실행해도 안전)
 2. Authentication → Providers → Email 에서 Confirm email 을 끄면 가입 즉시 로그인됩니다(수업용). 켜 두면 메일 인증 후 로그인
 3. Authentication → URL Configuration 에서 **Site URL** 을 배포 주소(`https://prj-kappa-nine.vercel.app`)로 바꾸고, Redirect URLs 에 `https://prj-kappa-nine.vercel.app/**` 를 추가 (가입 완료 페이지 `/welcome` 으로 돌아오려면 필요. 안 하면 가입 인증 메일의 링크가 다른 사이트로 돌아간다)
 4. 첫 화면의 동작 체크 카드가 모두 초록색이면 연결 성공

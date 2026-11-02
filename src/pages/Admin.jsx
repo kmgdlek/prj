@@ -1,8 +1,8 @@
 import { useState } from 'react'
-import { Alert, Badge, Button, Form, Table } from 'react-bootstrap'
+import { Alert, Badge, Button, Card, Form, Table } from 'react-bootstrap'
 import PageHeader from '../components/PageHeader'
 import { PRODUCTS, basePrice, isSudden, salePrice, surgePct } from '../../server/products'
-import { won } from '../lib/format'
+import { won, wonCompact } from '../lib/format'
 import { useAppStore } from '../store/useAppStore'
 
 const DURATIONS = [{ m: 10, label: '10분' }, { m: 30, label: '30분' }, { m: 60, label: '1시간' }, { m: 180, label: '3시간' }]
@@ -10,7 +10,8 @@ const hhmm = (t) => new Date(t).toLocaleTimeString('ko-KR', { hour: '2-digit', m
 
 // 관리자 전용 — 상품별 지금 시세를 직접 정한다. 정한 가격은 모든 접속자에게 15초 안에 반영되고, 정한 시간이 지나면 원래 시세로 돌아간다
 export default function Admin() {
-  const { overrideRows, setPriceOverride, clearPriceOverride, toast } = useAppStore()
+  const { overrideRows, setPriceOverride, clearPriceOverride, grantPoints, pointGrants, toast } = useAppStore()
+  const [pts, setPts] = useState('1000000000')                // 지급할 적립금
   const slot = useAppStore((s) => s.slot)
   useAppStore((s) => s.priceVer)
   const [input, setInput] = useState({})      // { [id]: { price, minutes } }
@@ -22,6 +23,12 @@ export default function Admin() {
   async function run(id, fn, okMsg) {
     setBusy(id)
     try { await fn(); toast(okMsg) } catch (e) { toast(e.message, 'danger') } finally { setBusy('') }
+  }
+  async function give(amount) {
+    const n = Math.round(Number(amount))
+    if (!Number.isFinite(n) || n === 0 || Math.abs(n) > 9e15) return toast('0이 아닌 금액을 넣어 주세요', 'warning')
+    setBusy('points')
+    try { await grantPoints(n); toast(`적립금 ${n > 0 ? '' : '-'}${wonCompact(Math.abs(n))}을 ${n > 0 ? '지급' : '회수'}했어요`) } catch (e) { toast(e.message, 'danger') } finally { setBusy('') }
   }
   function apply(p) {
     const { price, minutes } = get(p.id), n = Math.round(Number(price))
@@ -35,6 +42,16 @@ export default function Admin() {
       <Alert variant="info" className="small">
         가격을 넣고 <b>적용</b>을 누르면 선택한 시간 동안 그 가격으로 팔려요. 시간이 지나거나 <b>되돌리기</b>를 누르면 원래 시세(타임특가·급등락)로 돌아가요.
       </Alert>
+      <Card className="mb-4"><Card.Body>
+        <h6 className="fw-bold mb-1"><i className="bi bi-coin me-1 text-primary" />내 적립금 지급</h6>
+        <p className="small text-body-secondary mb-2">관리자만 쓸 수 있어요. 지급한 적립금은 마이페이지 적립금 내역에 남고, 결제할 때 그대로 쓸 수 있어요. (지금까지 지급 {pointGrants.length}번, 합계 {wonCompact(pointGrants.reduce((s, g) => s + Number(g.amount), 0))})</p>
+        <div className="d-flex gap-2 flex-wrap align-items-center">
+          <Form.Control type="number" step="1000" style={{ maxWidth: 220 }} value={pts} onChange={(e) => setPts(e.target.value)} aria-label="지급할 적립금" />
+          {[['10억', 1000000000], ['1억', 100000000], ['100만', 1000000]].map(([label, v]) => <Button key={label} size="sm" variant="outline-secondary" onClick={() => setPts(String(v))}>{label}</Button>)}
+          <Button disabled={busy === 'points'} onClick={() => give(pts)}>지급하기</Button>
+        </div>
+        <div className="small text-body-secondary mt-1">= {Number(pts) ? wonCompact(Number(pts)) : '-'} (마이너스 금액은 회수)</div>
+      </Card.Body></Card>
       <div className="table-responsive">
         <Table hover align="middle" className="small">
           <thead><tr><th>상품</th><th className="text-end">일반판매가</th><th className="text-end">지금 시세</th><th style={{ minWidth: 330 }}>직접 정하기</th></tr></thead>
