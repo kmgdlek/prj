@@ -105,6 +105,9 @@ export default function RootLayout() {
                       <span className="fw-bold text-truncate">{displayName(user)}</span>
                     </div>
                     <div className="small text-body-secondary text-truncate">{user.email}</div>
+                    <Button as={Link} to="/mypage" size="sm" variant="outline-primary" className="mt-1 py-0 text-nowrap" onClick={close}>
+                      <i className="bi bi-person-circle me-1" />마이페이지
+                    </Button>
                   </div>
                   <Button size="sm" variant="outline-secondary" className="text-nowrap flex-shrink-0"
                     onClick={() => { close(); signOut(); navigate('/') }}>로그아웃</Button>
