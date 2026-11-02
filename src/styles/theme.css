@@ -11,6 +11,7 @@ body { font-family: 'Pretendard', system-ui, sans-serif; }
 
 /* 3D 마커 위에 뜨는 이름표 */
 .marker-label {
+  cursor: pointer;
   font-size: 12px; font-weight: 600; white-space: nowrap; color: #fff;
   background: rgba(15, 8, 40, .75); border: 1px solid rgba(255, 255, 255, .25);
   padding: 2px 8px; border-radius: 999px; backdrop-filter: blur(4px);
@@ -38,3 +39,24 @@ body { font-family: 'Pretendard', system-ui, sans-serif; }
 .chat-box .msg { max-width: 80%; padding: .6rem .9rem; border-radius: 1rem; margin-bottom: .5rem; white-space: pre-wrap; }
 .chat-box .msg.assistant { background: var(--bs-secondary-bg); }
 .chat-box .msg.user { background: var(--bs-primary); color: #fff; margin-left: auto; }
+
+/* 오른쪽 아래 둥근 이야기꾼 AI 버튼 — 부드럽게 떠오르며 등장 */
+.agent-fab {
+  position: fixed; right: 24px; bottom: 24px; z-index: 1030;
+  width: 64px; height: 64px; border-radius: 50%; border: 0;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 1.8rem; color: #1a0b3d; text-decoration: none;
+  background: linear-gradient(135deg, #ffd166, #ff7eb6);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, .45), 0 0 24px rgba(255, 209, 102, .45);
+  animation: fab-in .7s cubic-bezier(.2, .9, .3, 1.2) .6s backwards;   /* backwards: 지연 동안 시작 상태 유지, 끝난 뒤엔 hover 가 자유롭게 */
+  transition: transform .2s, box-shadow .2s;
+}
+.agent-fab:hover { transform: translateY(-3px) scale(1.06); box-shadow: 0 12px 28px rgba(0, 0, 0, .5), 0 0 32px rgba(255, 209, 102, .7); color: #1a0b3d; }
+.agent-fab .fab-tip {
+  position: absolute; right: 76px; white-space: nowrap; font-size: 14px; font-weight: 700;
+  background: rgba(15, 8, 40, .9); color: #fff; padding: 6px 12px; border-radius: 999px;
+  opacity: 0; transform: translateX(8px); transition: opacity .2s, transform .2s; pointer-events: none;
+}
+.agent-fab:hover .fab-tip { opacity: 1; transform: none; }
+@keyframes fab-in { from { opacity: 0; transform: translateY(24px) scale(.6); } }
+@media (prefers-reduced-motion: reduce) { .agent-fab { animation-duration: .01s; animation-delay: 0s; } }

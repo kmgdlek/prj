@@ -127,9 +127,10 @@ function Marker({ m, index, selected, onSelect }) {
         <meshBasicMaterial color={m.color} transparent side={THREE.DoubleSide} />
       </mesh>
       {(m.label !== false || selected) && (
-        <Html position={[0, 0.95 + (index % 3) * 0.5 + (selected ? 0.2 : 0), 0]} center distanceFactor={9}
-          zIndexRange={selected ? [40, 30] : [10, 0]} style={{ pointerEvents: 'none' }}>
-          <div className={`marker-label ${selected ? 'on' : ''}`}>{m.name}</div>
+        <Html position={[0, 0.8 + (index % 2) * 0.4, 0]} center distanceFactor={9}
+          zIndexRange={selected ? [40, 30] : [10, 0]}>
+          <div className={`marker-label ${selected ? 'on' : ''}`} role="button"
+            onClick={(e) => { e.stopPropagation(); onSelect?.(m) }}>{m.name}</div>
         </Html>
       )}
     </group>
