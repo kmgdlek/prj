@@ -36,6 +36,7 @@ export const useAppStore = create((set, get) => ({
     get().loadCoupons()
     get().loadFavorites({ quiet: true })
     get().loadCart()
+    get().loadChat()
   },
   initAuth: async () => {
     if (authStarted) return
@@ -50,7 +51,7 @@ export const useAppStore = create((set, get) => ({
       const changed = user?.id !== get().user?.id
       set({ user })
       if (!changed) return
-      set({ favorites: [], cart: [], orders: [], coupons: [] })     // 다른 사람의 데이터가 남지 않게 비움
+      set({ favorites: [], cart: [], orders: [], coupons: [], messages: [] })     // 다른 사람의 데이터가 남지 않게 비움
       if (user) get().loadUserData()
     })
   },
@@ -416,12 +417,32 @@ export const useAppStore = create((set, get) => ({
   // ⑪ 에이전트 대화 — 페이지를 옮겨도 대화가 남도록 store 에 둡니다
   messages: [],          // { role: 'user' | 'assistant', text, steps, actions }
   chatLoading: false,
+  // 로그인했으면 대화를 Supabase(shop_chat_messages)에 저장해 두고, 다음에 로그인하면 이어서 본다. 테이블이 없으면 조용히 건너뜀
+  loadChat: async () => {
+    if (!supabase || !get().user) return
+    const { data, error } = await supabase.from('shop_chat_messages').select('*').order('created_at', { ascending: true }).limit(200)
+    if (error) return
+    const saved = data.map((r) => ({ role: r.role, text: r.text, steps: r.steps ?? undefined, actions: r.actions ?? [], at: new Date(r.created_at).getTime() }))
+    set({ messages: [...saved, ...get().messages.filter((m) => !saved.some((x) => x.at === m.at))] })
+  },
+  saveChat: async (m) => {
+    if (!supabase || !get().user) return
+    await supabase.from('shop_chat_messages').insert({ role: m.role, text: m.text, steps: m.steps ?? null, actions: m.actions ?? null })
+  },
+  clearChat: async () => {
+    set({ messages: [] })
+    if (supabase && get().user) await supabase.from('shop_chat_messages').delete().eq('user_id', get().user.id)
+  },
   sendMessage: async (text) => {
     const history = get().messages.map((m) => ({ role: m.role, content: m.text }))  // Claude 형식
-    set({ messages: [...get().messages, { role: 'user', text, at: Date.now() }], chatLoading: true })
+    const mine = { role: 'user', text, at: Date.now() }
+    set({ messages: [...get().messages, mine], chatLoading: true })
+    get().saveChat(mine)
     try {
       const { answer, steps, actions = [] } = await askAgent(text, history)
-      set({ messages: [...get().messages, { role: 'assistant', text: answer, steps, actions, at: Date.now() }] })
+      const reply = { role: 'assistant', text: answer, steps, actions, at: Date.now() }
+      set({ messages: [...get().messages, reply] })
+      get().saveChat(reply)
       const map = actions.find((a) => a.type === 'map')
       if (map) set({ pendingMap: map.mythId })             // AI 가 지도를 움직이라고 했다 → 레이아웃이 /map 으로 이동
     } catch (e) {

@@ -185,7 +185,7 @@ body { font-family: 'Pretendard', system-ui, sans-serif; }
 
 .chat-footer { border-top: 1px solid var(--bs-border-color); background: var(--bs-body-bg); }
 .chat-chips { display: flex; gap: .4rem; overflow-x: auto; padding: .6rem .75rem .2rem; scrollbar-width: thin; }
-.chat-chip { flex: none; white-space: nowrap; font-size: 13px; padding: .25rem .75rem; border-radius: 999px; cursor: pointer; background: var(--bs-body-bg); color: var(--bs-primary); border: 1px solid var(--bs-primary); transition: background .15s, color .15s; }
+.chat-chip { flex: none; white-space: nowrap; font-size: 13px; padding: .25rem .75rem; border-radius: 999px; cursor: pointer; background: var(--bs-body-bg); color: var(--bs-primary-text-emphasis); border: 1px solid var(--bs-primary-text-emphasis); transition: background .15s, color .15s; }
 .chat-chip:hover:not(:disabled) { background: var(--bs-primary); color: #fff; }
 .chat-chip:disabled { opacity: .45; cursor: not-allowed; }
 .chat-input { display: flex; align-items: flex-end; gap: .5rem; padding: .5rem .75rem .75rem; }
@@ -298,9 +298,9 @@ body { font-family: 'Pretendard', system-ui, sans-serif; }
 
 /* 장터 태그 */
 .tag-chip { border: 1px solid var(--bs-border-color); background: var(--bs-body-bg); color: var(--bs-body-color); border-radius: 999px; padding: .15rem .75rem; font-size: .85rem; cursor: pointer; transition: background .15s, color .15s, border-color .15s; }
-.tag-chip:hover { border-color: var(--bs-primary); color: var(--bs-primary); }
+.tag-chip:hover { border-color: var(--bs-primary-text-emphasis); color: var(--bs-primary-text-emphasis); }
 .tag-chip.on { background: var(--bs-primary); border-color: var(--bs-primary); color: #fff; }
-.tag-mini { font-size: .75rem; color: var(--bs-primary); background: rgba(var(--bs-primary-rgb), .08); border-radius: 999px; padding: .1rem .5rem; text-decoration: none; }
+.tag-mini { font-size: .75rem; color: var(--bs-primary-text-emphasis); background: rgba(var(--bs-primary-rgb), .08); border-radius: 999px; padding: .1rem .5rem; text-decoration: none; }
 .tag-mini.on { background: var(--bs-primary); color: #fff; }
 
 /* 10분 타임특가 */
@@ -339,3 +339,11 @@ body { font-family: 'Pretendard', system-ui, sans-serif; }
 
 /* 신화 도감 목록: 장소가 많아져서 목록만 스크롤 */
 .myth-list { max-height: 640px; overflow-y: auto; }
+
+/* ── 다크 모드 보정: Bootstrap 이 못 바꾸는 고정 색 ── */
+[data-bs-theme="dark"] .wish-btn { background: rgba(33, 37, 41, .85); }
+[data-bs-theme="dark"] .text-primary { color: var(--bs-primary-text-emphasis) !important; }
+[data-bs-theme="dark"] .btn-outline-primary { --bs-btn-color: var(--bs-primary-text-emphasis); --bs-btn-border-color: var(--bs-primary-text-emphasis); --bs-btn-hover-bg: var(--bs-primary-text-emphasis); --bs-btn-hover-border-color: var(--bs-primary-text-emphasis); --bs-btn-hover-color: #1a1d20; }
+[data-bs-theme="dark"] .btn-primary { --bs-btn-bg: #4a6a8a; --bs-btn-border-color: #4a6a8a; --bs-btn-hover-bg: #5b7fa6; --bs-btn-hover-border-color: #5b7fa6; --bs-btn-active-bg: #5b7fa6; --bs-btn-active-border-color: #5b7fa6; }
+[data-bs-theme="dark"] .chat-avatar, [data-bs-theme="dark"] .chat-row.user .chat-bubble { background: #4a6a8a; }
+[data-bs-theme="dark"] .tag-chip.on, [data-bs-theme="dark"] .tag-mini.on, [data-bs-theme="dark"] .order-tracker li.done .dot { background: #4a6a8a; border-color: #4a6a8a; }

@@ -24,6 +24,8 @@ export default function ChatPanel() {
   const online = useAgentOnline()
   const navigate = useNavigate()
   const selectMyth = useAppStore((s) => s.selectMyth)
+  const user = useAppStore((s) => s.user)
+  const clearChat = useAppStore((s) => s.clearChat)
   const [input, setInput] = useState('')
   const bottom = useRef(null)
   const box = useRef(null)
@@ -58,6 +60,16 @@ export default function ChatPanel() {
         </div>
       )}
 
+      <div className="chat-note small text-body-secondary d-flex align-items-center gap-2 px-3 py-1">
+        <i className={`bi ${user ? 'bi-cloud-check' : 'bi-info-circle'}`} />
+        <span className="flex-grow-1">{user ? '대화가 내 계정에 저장돼요' : '로그인하면 대화가 저장돼요'}</span>
+        {messages.length > 0 && (
+          <button type="button" className="btn btn-link btn-sm p-0 text-body-secondary"
+            onClick={() => { if (window.confirm('대화 기록을 모두 지울까요?')) clearChat() }}>
+            <i className="bi bi-trash me-1" />지우기
+          </button>
+        )}
+      </div>
       <div className="chat-box flex-grow-1 overflow-auto p-3">
         <Bubble role="assistant" at={null}>안녕하세요, 탐라 신화 이야기꾼이에요. 신화·장소·날씨·국가유산·제주 특산품까지 물어보세요.</Bubble>
         {messages.map((m, i) => (

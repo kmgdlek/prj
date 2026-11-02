@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { Link, NavLink, Outlet, ScrollRestoration, useLocation, useNavigate } from 'react-router-dom'
 import { Badge, Button, Container, Navbar, Offcanvas, Toast, ToastContainer } from 'react-bootstrap'
 import ChatPanel from '../components/ChatPanel'
+import { useTheme } from '../lib/theme'
 import { NAV_GROUPS, NAV_ITEMS } from '../router'
 import LevelBadge from '../components/LevelBadge'
 import SideCard from '../components/SideCard'
@@ -53,6 +54,7 @@ function BrandLogo() {
 }
 
 export default function RootLayout() {
+  const [theme, toggleTheme] = useTheme()
   const toasts = useAppStore((s) => s.toasts)
   const user = useAppStore((s) => s.user)
   const cartCount = useAppStore((s) => s.cart.reduce((n, c) => n + c.qty, 0))
@@ -92,6 +94,9 @@ export default function RootLayout() {
             <Button as={Link} to="/cart" variant="outline-light" className="border-0 fs-4 py-0 px-2 position-relative" aria-label={`장바구니 ${cartCount}개`}>
               <i className="bi bi-cart3" />
               {cartCount > 0 && <Badge bg="warning" text="dark" pill className="position-absolute top-0 start-100 translate-middle fs-6">{cartCount}</Badge>}
+            </Button>
+            <Button variant="outline-light" className="border-0 fs-5 py-0 px-2" aria-label={theme === 'dark' ? '라이트 모드로' : '다크 모드로'} title={theme === 'dark' ? '라이트 모드' : '다크 모드'} onClick={toggleTheme}>
+              <i className={`bi bi-${theme === 'dark' ? 'sun' : 'moon-stars'}`} />
             </Button>
             <Button variant="outline-light" className="border-0 fs-3 py-0 px-2" aria-label="메뉴 열기" onClick={() => setMenuOpen(true)}>
               <i className="bi bi-list" />

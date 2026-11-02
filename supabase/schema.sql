@@ -165,5 +165,20 @@ create policy "avatars update own" on storage.objects for update to authenticate
 create policy "avatars delete own" on storage.objects for delete to authenticated
   using (bucket_id = 'avatars' and (storage.foldername(name))[1] = auth.uid()::text);
 
+-- ⑫ 이야기꾼 AI 대화 기록 (내 대화만 보고·쓰고·지울 수 있다)
+create table if not exists shop_chat_messages (
+  id bigint generated always as identity primary key,
+  user_id uuid not null default auth.uid() references auth.users(id) on delete cascade,
+  role text not null check (role in ('user', 'assistant')),
+  text text not null,
+  steps jsonb,
+  actions jsonb,
+  created_at timestamptz not null default now()
+);
+create index if not exists shop_chat_user_time on shop_chat_messages (user_id, created_at);
+alter table shop_chat_messages enable row level security;
+drop policy if exists "shop_chat own" on shop_chat_messages;
+create policy "shop_chat own" on shop_chat_messages for all using (auth.uid() = user_id) with check (auth.uid() = user_id);
+
 -- 새 컬럼·정책을 API 가 바로 인식하도록 스키마 캐시를 새로고침
 notify pgrst, 'reload schema';
