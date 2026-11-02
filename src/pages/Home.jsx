@@ -43,7 +43,7 @@ export default function Home() {
         <Badge bg="warning" text="dark" className="mb-2">제주 콘텐츠·문화 IP</Badge>
         <h1 className="fw-bold display-5 hero-title">설문대할망의 섬, 탐라신화 3D</h1>
         <p className="lead text-body-secondary">
-          치마폭의 흙으로 한라산을 쌓은 여신과 1만 8천 신의 이야기를, 날씨와 시간에 따라 숨 쉬는 3D 섬 위에서 만나 보세요.
+          치마폭의 흙으로 한라산을 쌓은 여신과 1만 8천 신의 이야기를, 날씨와 시간에 따라 숨 쉬는 3D 섬 위에서 만나 보세요.<br />
           신화 {MYTHS.length}곳을 눌러 보고, 이야기꾼 AI에게 물어보고, 제주 장터에서 오르내리는 시세로 쇼핑까지.
         </p>
         <div className="d-flex flex-wrap gap-2 mb-2">
