@@ -71,18 +71,16 @@ export default function ProductDetail() {
           <Badge bg="primary" className="mb-2">{p.category}</Badge>
           <h2 className="fw-bold">{p.name}</h2>
           <p className="text-body-secondary">{p.desc}</p>
-          {p.discount > 0 ? (
-            <div className="mb-3">
-              {/* 왼쪽에 항목 이름을 붙인 가격 표 */}
-              <dl className="price-rows mb-2">
+          {/* 왼쪽에 항목 이름을 붙인 가격 표: 일반판매가 → 할인가(깎인 금액) → 현재가(최종) */}
+          <dl className="price-rows mb-3">
+            {p.discount > 0 && (
+              <>
                 <dt>일반판매가</dt><dd className="text-body-secondary text-decoration-line-through">{won(p.price)}</dd>
                 <dt>할인가</dt><dd className="text-danger fw-bold">-{won(p.price - salePrice(p))} ({p.discount}%)</dd>
-              </dl>
-              <div className="display-6 fw-bold">{won(salePrice(p))}</div>
-            </div>
-          ) : (
-            <div className="display-6 fw-bold mb-3">{won(p.price)}</div>
-          )}
+              </>
+            )}
+            <dt className="price-now-label">현재가</dt><dd className="price-now">{won(salePrice(p))}</dd>
+          </dl>
 
           <Card className="mb-3"><Card.Body className="small">
             <div className="d-flex gap-2"><i className="bi bi-truck" /> 과제용 샘플 상품이라 실제 배송은 이루어지지 않아요</div>
