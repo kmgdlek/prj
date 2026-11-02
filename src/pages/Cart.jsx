@@ -60,7 +60,7 @@ export default function Cart() {
             {/* 원가 → 할인가(깎인 금액) → 합계(결제 금액) */}
             <dl className="price-rows mb-0">
               <dt>원가</dt><dd>{won(original)}</dd>
-              <dt>할인가</dt><dd className={discount > 0 ? 'text-danger fw-bold' : 'text-body-secondary'}>{discount > 0 ? `-${won(discount)} (${Math.round((discount / original) * 100)}%)` : '-'}</dd>
+              <dt>할인가</dt><dd className={`small ${discount > 0 ? 'text-danger' : 'text-body-secondary'}`}>{discount > 0 ? `-${won(discount)} (${Math.round((discount / original) * 100)}%)` : '-'}</dd>
               <dt className="price-now-label">합계</dt><dd className="price-now-sm">{won(total)}</dd>
             </dl>
             <Button onClick={order} disabled={busy}>{busy ? '주문 중...' : '주문하기'}</Button>
