@@ -29,6 +29,7 @@ export default function ProductDetail() {
   const inCart = useAppStore((s) => s.cart.find((c) => c.product_id === id)?.qty ?? 0)
   const [images, setImages] = useState([])
   const [shown, setShown] = useState(0)
+  const [paused, setPaused] = useState(false)          // 사진 위에 마우스가 있으면 자동 넘김을 잠시 멈춘다
   const [qty, setQty] = useState(1)
 
   // 상품이 바뀌면 사진·수량을 처음으로 (같은 컴포넌트가 다른 상품으로 다시 쓰일 때)
@@ -40,6 +41,13 @@ export default function ProductDetail() {
     fetchImages(p.photo, { lang: 'en', fallback: false, rows: 5 }).then((r) => alive && setImages(r)).catch(() => {})
     return () => { alive = false }
   }, [p])
+
+  // 사진을 2초마다 다음 장으로 (마지막 다음은 처음으로). 직접 넘기면 shown 이 바뀌어 타이머가 새로 시작된다
+  useEffect(() => {
+    if (images.length < 2 || paused) return
+    const t = setTimeout(() => setShown((i) => (i + 1) % images.length), 2000)
+    return () => clearTimeout(t)
+  }, [images.length, paused, shown])
 
   if (!p) return (
     <>
@@ -64,10 +72,10 @@ export default function ProductDetail() {
       <nav className="small mb-3"><Link to="/shop">제주 장터</Link> <i className="bi bi-chevron-right" /> {p.category} <i className="bi bi-chevron-right" /> {p.name}</nav>
 
       <Row className="g-4">
-        <Col md={6}>
+        <Col md={6} onMouseEnter={() => setPaused(true)} onMouseLeave={() => setPaused(false)}>
           {big
             ? <a href={big.page} target="_blank" rel="noreferrer" title={`Pixabay · ${big.user}`}>
-                <img src={big.large || big.thumb} alt={p.name} className="detail-photo" />
+                <img key={big.id} src={big.large || big.thumb} alt={p.name} className="detail-photo photo-swap" />
               </a>
             : <div className="detail-photo d-flex align-items-center justify-content-center display-1"
                 style={{ background: `linear-gradient(135deg, ${p.color}, #1a0b3d)` }}>{p.emoji}</div>}
@@ -78,7 +86,7 @@ export default function ProductDetail() {
               ))}
             </div>
           )}
-          {images.length > 0 && <div className="small text-body-secondary mt-1">사진 출처: Pixabay</div>}
+          {images.length > 0 && <div className="small text-body-secondary mt-1">사진 출처: Pixabay{images.length > 1 && !paused && ' · 2초마다 자동으로 넘어가요'}</div>}
         </Col>
 
         <Col md={6}>

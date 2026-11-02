@@ -322,3 +322,8 @@ body { font-family: 'Pretendard', system-ui, sans-serif; }
 .menu-group-title .en { font-size: .8rem; font-weight: 800; letter-spacing: .14em; color: var(--bs-primary); }
 .menu-group-title .ko { font-size: .8rem; color: var(--bs-secondary-color); }
 .menu-group > .menu-row:first-of-type { border-top: 1px solid var(--bs-border-color); }
+
+/* 상품 사진이 넘어갈 때 부드럽게 나타남 */
+.photo-swap { animation: photo-fade .5s ease; }
+@keyframes photo-fade { from { opacity: .25; } }
+.detail-thumb { transition: opacity .15s, border-color .15s; }
