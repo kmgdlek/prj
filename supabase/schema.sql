@@ -35,8 +35,13 @@ create table if not exists orders (
   user_id    uuid not null default auth.uid() references auth.users(id) on delete cascade,
   total      int  not null,
   items      jsonb not null,
+  status     text not null default '주문완료',   -- '주문완료' | '주문취소' | '반품·환불 접수'
+  refund_reason text,
   created_at timestamptz not null default now()
 );
+-- 예전에 만든 orders 테이블이면 컬럼 추가
+alter table orders add column if not exists status text not null default '주문완료';
+alter table orders add column if not exists refund_reason text;
 
 -- ④ 보안(RLS): 내 행만 보고·쓰고·지울 수 있다
 alter table favorites  enable row level security;
@@ -50,8 +55,12 @@ drop policy if exists "favorites own"           on favorites;
 drop policy if exists "cart own"                on cart_items;
 drop policy if exists "orders own read"         on orders;
 drop policy if exists "orders own insert"       on orders;
+drop policy if exists "orders own update"       on orders;
+drop policy if exists "orders own delete"       on orders;
 
 create policy "favorites own"     on favorites  for all using (auth.uid() = user_id) with check (auth.uid() = user_id);
 create policy "cart own"          on cart_items for all using (auth.uid() = user_id) with check (auth.uid() = user_id);
 create policy "orders own read"   on orders     for select using (auth.uid() = user_id);
 create policy "orders own insert" on orders     for insert with check (auth.uid() = user_id);
+create policy "orders own update" on orders     for update using (auth.uid() = user_id) with check (auth.uid() = user_id);
+create policy "orders own delete" on orders     for delete using (auth.uid() = user_id);

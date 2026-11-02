@@ -3,6 +3,7 @@ import { supabase } from '../lib/supabase'
 import { askAgent, fetchShopImages } from '../api/client'
 import { productOf } from '../../server/products'
 import { levelOf, totalSpent } from '../lib/level'
+import { STATUS } from '../lib/order'
 
 const pendingFav = new Set()   // 저장·삭제가 진행 중인 항목 키 (연타 방지)
 let authStarted = false        // StrictMode 에서 구독이 두 번 걸리지 않게
@@ -159,6 +160,25 @@ export const useAppStore = create((set, get) => ({
     const { data, error } = await supabase.from('orders').select('*').eq('user_id', user.id)
       .order('created_at', { ascending: false }).limit(200)
     if (!error) set({ orders: data })
+  },
+  // 주문 상태 변경 — 화면에 먼저 반영하고 DB 가 거절하면 되돌린다
+  updateOrder: async (id, patch, doneMessage) => {
+    const before = get().orders
+    set({ orders: before.map((o) => (o.id === id ? { ...o, ...patch } : o)) })
+    const { error } = await supabase.from('orders').update(patch).eq('id', id)
+    if (error) { set({ orders: before }); get().toast(error.message, 'danger'); return false }
+    get().toast(doneMessage)
+    return true
+  },
+  cancelOrder: (id) => get().updateOrder(id, { status: STATUS.cancelled }, '주문을 취소했어요'),
+  requestRefund: (id, reason) => get().updateOrder(id, { status: STATUS.refund, refund_reason: reason }, '반품·환불을 접수했어요'),
+  deleteOrder: async (id) => {
+    const before = get().orders
+    set({ orders: before.filter((o) => o.id !== id) })
+    const { error } = await supabase.from('orders').delete().eq('id', id)
+    if (error) { set({ orders: before }); get().toast(error.message, 'danger'); return false }
+    get().toast('주문 내역을 삭제했어요', 'secondary')
+    return true
   },
   checkout: async () => {
     const { user, cart } = get()

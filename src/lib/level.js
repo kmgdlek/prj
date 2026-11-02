@@ -1,3 +1,5 @@
+import { STATUS, statusOf } from './order'
+
 // 누적 구매액에 따른 등급 (쇼핑몰에서 흔히 쓰는 일반·실버·골드·VIP·VVIP) — 주문 내역(orders)의 합계로 계산한다 (화면용 게임 요소, 서버가 검증하지는 않음)
 export const LEVELS = [
   { lv: 1, name: '일반', min: 0, color: 'secondary' },
@@ -14,4 +16,6 @@ export function levelOf(spent = 0) {
   return { ...current, next, progress, spent, remain: next ? next.min - spent : 0 }
 }
 
-export const totalSpent = (orders) => orders.reduce((sum, o) => sum + o.total, 0)
+// 취소·반품/환불한 주문은 구매액에 넣지 않는다
+export const totalSpent = (orders) =>
+  orders.filter((o) => statusOf(o) === STATUS.placed).reduce((sum, o) => sum + o.total, 0)
