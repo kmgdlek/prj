@@ -64,3 +64,6 @@ create policy "orders own read"   on orders     for select using (auth.uid() = u
 create policy "orders own insert" on orders     for insert with check (auth.uid() = user_id);
 create policy "orders own update" on orders     for update using (auth.uid() = user_id) with check (auth.uid() = user_id);
 create policy "orders own delete" on orders     for delete using (auth.uid() = user_id);
+
+-- 새 컬럼·정책을 API 가 바로 인식하도록 스키마 캐시를 새로고침
+notify pgrst, 'reload schema';
