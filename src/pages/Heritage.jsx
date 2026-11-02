@@ -40,7 +40,7 @@ export default function Heritage() {
         <Row xs={1} sm={2} lg={3} className="g-3">
           {list.map((h, i) => (
             <Col key={`${h.name}-${i}`}>
-              <ItemCard title={h.name} subtitle={`${h.city ?? ''}`} badge={h.kind}
+              <ItemCard title={h.name} subtitle={`${h.city ?? ''}`} image={h.image} badge={h.kind}
                 active={selected === `${h.name}-${i}`} onClick={() => setSelected(`${h.name}-${i}`)}
                 fav={{ source: 'heritage', id: h.name, title: h.name }} />
             </Col>
