@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { Link, NavLink, Outlet, ScrollRestoration, useLocation, useNavigate } from 'react-router-dom'
-import { Badge, Button, Container, Navbar, Offcanvas, Toast, ToastContainer } from 'react-bootstrap'
+import { Badge, Button, Container, Navbar, Offcanvas } from 'react-bootstrap'
 import AdminBadge from '../components/AdminBadge'
 import NotificationBell from '../components/NotificationBell'
 import ChatPanel from '../components/ChatPanel'
@@ -61,9 +61,12 @@ function BrandLogo() {
   return <img src="/logo.png" alt="" className="brand-logo" onError={() => setFailed(true)} />
 }
 
+const TOAST_ICON = { success: 'check-circle-fill', danger: 'exclamation-triangle-fill', warning: 'exclamation-circle-fill', info: 'info-circle-fill', secondary: 'bell-fill', primary: 'info-circle-fill' }
+
 export default function RootLayout() {
   const [theme, toggleTheme] = useTheme()
   const toasts = useAppStore((s) => s.toasts)
+  const dismissToast = useAppStore((s) => s.dismissToast)
   const user = useAppStore((s) => s.user)
   const isAdmin = useAppStore((s) => s.isAdmin)
   const cartCount = useAppStore((s) => s.cart.reduce((n, c) => n + c.qty, 0))
@@ -207,14 +210,16 @@ export default function RootLayout() {
       <SideCard />
       <AgentWindow />
 
-      {/* 오른쪽 아래 AI 버튼과 겹치지 않도록 알림은 아래 가운데에 */}
-      <ToastContainer position="bottom-center" className="p-3 position-fixed">
+      {/* 알림: 맥북처럼 오른쪽 위에서 미끄러져 들어왔다가 나간다. 누르면 바로 닫힘 */}
+      <div className="toast-stack" aria-live="polite">
         {toasts.map((t) => (
-          <Toast key={t.id} bg={t.variant}>
-            <Toast.Body className="text-white">{t.message}</Toast.Body>
-          </Toast>
+          <button type="button" key={t.id} className={`notif-toast ${t.variant} ${t.leaving ? 'leaving' : ''}`} onClick={() => dismissToast(t.id)}>
+            <i className={`bi bi-${TOAST_ICON[t.variant] ?? 'info-circle-fill'}`} />
+            <span className="flex-grow-1 text-start"><span key={t.count} className="toast-msg">{t.message}</span></span>
+            {t.count > 1 && <span className="toast-count">×{t.count}</span>}
+          </button>
         ))}
-      </ToastContainer>
+      </div>
     </div>
   )
 }

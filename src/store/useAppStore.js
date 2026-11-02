@@ -14,6 +14,8 @@ const safeLS = {
   get: (k) => { try { return JSON.parse(localStorage.getItem(k)) } catch { return null } },
   set: (k, v) => { try { localStorage.setItem(k, JSON.stringify(v)) } catch { /* 저장 못 해도 이번 접속엔 동작 */ } },
 }
+const toastTimers = new Map()   // 알림 id → 사라질 때까지의 타이머 (같은 알림이 또 오면 시간을 다시 잰다)
+function armToast(id, fn) { clearTimeout(toastTimers.get(id)); toastTimers.set(id, setTimeout(() => { toastTimers.delete(id); fn() }, 2800)) }
 const notifKey = (user) => `tamra-notifs:${user?.id ?? 'guest'}`
 let lastOverrideLoad = 0
 let authStarted = false        // StrictMode 에서 구독이 두 번 걸리지 않게
@@ -126,11 +128,28 @@ export const useAppStore = create((set, get) => ({
   },
 
   // ② 알림(토스트)
+  // 알림(토스트): 오른쪽 위에서 미끄러져 들어왔다가 잠시 뒤 오른쪽으로 나간다.
+  // 같은 문장이 이미 떠 있으면 새로 쌓지 않고 ×N 으로 세면서 시간만 늘린다 (장바구니를 연타해도 한 장). 한 번에 최대 3장
   toasts: [],
   toast: (message, variant = 'success') => {
+    const live = get().toasts.find((t) => !t.leaving && t.message === message && t.variant === variant)
+    if (live) {
+      set({ toasts: get().toasts.map((t) => (t === live ? { ...t, count: t.count + 1 } : t)) })
+      armToast(live.id, () => get().dismissToast(live.id))
+      return
+    }
     const id = Date.now() + Math.random()
-    set({ toasts: [...get().toasts, { id, message, variant }] })
-    setTimeout(() => set({ toasts: get().toasts.filter((t) => t.id !== id) }), 2500)
+    let list = [...get().toasts, { id, message, variant, count: 1, leaving: false }]
+    const shown = list.filter((t) => !t.leaving)
+    if (shown.length > 3) { const oldest = shown[0].id; list = list.map((t) => (t.id === oldest ? { ...t, leaving: true } : t)); setTimeout(() => set({ toasts: get().toasts.filter((t) => t.id !== oldest) }), 350) }
+    set({ toasts: list })
+    armToast(id, () => get().dismissToast(id))
+  },
+  // 오른쪽으로 나가는 애니메이션(0.3초)을 보여 준 뒤 지운다
+  dismissToast: (id) => {
+    if (!get().toasts.some((t) => t.id === id && !t.leaving)) return
+    set({ toasts: get().toasts.map((t) => (t.id === id ? { ...t, leaving: true } : t)) })
+    setTimeout(() => set({ toasts: get().toasts.filter((t) => t.id !== id) }), 350)
   },
 
   // ③ 선택한 신화 — 홈·지도·신화 페이지의 3D 지도와 목록이 같은 선택을 공유
