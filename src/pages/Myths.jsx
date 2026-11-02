@@ -53,7 +53,7 @@ export default function Myths() {
               <h3 className="fw-bold mb-0">{myth.title}</h3>
               <FavButton fav={{ source: 'myth', id: myth.id, title: myth.title }} />
             </div>
-            <p className="text-warning small"><i className="bi bi-geo-alt me-1" />{myth.place}</p>
+            <p className="text-primary small"><i className="bi bi-geo-alt me-1" />{myth.place}</p>
             <p>{myth.story}</p>
           </div>
         </Col>

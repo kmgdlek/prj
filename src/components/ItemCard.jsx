@@ -6,7 +6,7 @@ export function FavButton({ fav, size = 'sm', className = '', label = true }) {
   const toggle = useAppStore((s) => s.toggleFavorite)
   const saved = useAppStore((s) => s.favorites.some((f) => f.source === fav.source && f.item_id === String(fav.id)))
   return (
-    <Button size={size} variant={saved ? 'warning' : 'outline-warning'} className={className}
+    <Button size={size} variant={saved ? 'warning' : 'outline-dark'} className={className}
       onClick={(e) => { e.stopPropagation(); toggle(fav) }}>
       <i className={`bi bi-star${saved ? '-fill' : ''} ${label ? 'me-1' : ''}`} />{label && (saved ? '저장됨' : '즐겨찾기')}
     </Button>

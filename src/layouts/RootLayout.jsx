@@ -23,7 +23,7 @@ function AgentWindow() {
     <>
       <section className={`chat-window ${open ? 'open' : ''}`} role="dialog" aria-label="이야기꾼 AI" aria-hidden={!open}>
         <header className="chat-window-head">
-          <span className="fw-bold"><i className="bi bi-robot me-2 text-warning" />이야기꾼 AI</span>
+          <span className="fw-bold"><i className="bi bi-robot me-2 text-primary" />이야기꾼 AI</span>
           <Button variant="link" className="p-0 text-body-secondary" aria-label="닫기" onClick={() => setOpen(false)}>
             <i className="bi bi-x-lg" />
           </Button>
@@ -53,7 +53,7 @@ export default function RootLayout() {
 
   return (
     <div className="d-flex flex-column min-vh-100">
-      <Navbar bg="dark" data-bs-theme="dark" sticky="top" className="border-bottom border-primary-subtle">
+      <Navbar bg="primary" data-bs-theme="dark" sticky="top">
         <Container>
           <Navbar.Brand as={NavLink} to="/" className="fw-bold">
             <i className="bi bi-moon-stars-fill me-2 text-warning" />탐라신화 3D
@@ -65,14 +65,14 @@ export default function RootLayout() {
         </Container>
       </Navbar>
 
-      <Offcanvas show={menuOpen} onHide={close} placement="end" data-bs-theme="dark">
+      <Offcanvas show={menuOpen} onHide={close} placement="end">
         <Offcanvas.Header closeButton>
           <Offcanvas.Title className="fw-bold">메뉴</Offcanvas.Title>
         </Offcanvas.Header>
         <Offcanvas.Body className="d-flex flex-column">
           {/* 프로필: 닉네임이 메뉴 안에 있다 (즐겨찾기를 구분하는 이름) */}
           <div className="d-flex align-items-center gap-3 p-3 mb-3 rounded-3 bg-body-secondary">
-            <i className="bi bi-person-circle fs-1 text-warning" />
+            <i className="bi bi-person-circle fs-1 text-primary" />
             <div className="flex-grow-1">
               <div className="small text-body-secondary">{nickname ? '내 닉네임' : '닉네임을 정해 주세요'}</div>
               <Form.Control size="sm" placeholder="닉네임" value={nickname} onChange={(e) => setNickname(e.target.value)} />
@@ -94,7 +94,7 @@ export default function RootLayout() {
         </Container>
       </main>
 
-      <footer className="py-3 border-top border-secondary-subtle">
+      <footer className="py-3 border-top">
         <Container className="small text-body-secondary">
           제주대 청년도약 부트캠프 1기 · 탐라신화 3D · 데이터 출처: 한국관광공사 · 기상청 · 국가유산청 (공공데이터포털)
         </Container>

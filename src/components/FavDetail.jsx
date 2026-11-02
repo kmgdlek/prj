@@ -42,9 +42,9 @@ export default function FavDetail({ fav, onHide }) {
           <Modal.Body>
             {myth && (
               <>
-                <p className="text-warning small mb-1"><i className="bi bi-geo-alt me-1" />{myth.place}</p>
+                <p className="text-primary small mb-1"><i className="bi bi-geo-alt me-1" />{myth.place}</p>
                 <p>{myth.story}</p>
-                <Button size="sm" variant="outline-warning" className="mb-3"
+                <Button size="sm" variant="outline-primary" className="mb-3"
                   onClick={() => { selectMyth(myth.id); navigate('/myths') }}>
                   <i className="bi bi-globe-asia-australia me-1" />3D 섬에서 보기
                 </Button>
