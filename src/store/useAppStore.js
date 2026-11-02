@@ -1,6 +1,6 @@
 import { create } from 'zustand'
 import { supabase } from '../lib/supabase'
-import { askAgent } from '../api/client'
+import { askAgent, fetchShopImages } from '../api/client'
 import { productOf } from '../../server/products'
 import { levelOf, totalSpent } from '../lib/level'
 
@@ -141,6 +141,13 @@ export const useAppStore = create((set, get) => ({
     const qty = (cart.find((c) => c.product_id === productId)?.qty ?? 0) + 1
     await get().setCartQty(productId, qty)
     get().toast(`${productOf(productId)?.name ?? '상품'}을(를) 담았어요`)
+  },
+
+  // 제주 장터 상품 사진(Pixabay) — 한 번만 불러와 장터·장바구니가 함께 쓴다. 실패하면 이모지 타일로 보인다
+  productImages: {},
+  loadProductImages: async () => {
+    if (Object.keys(get().productImages).length) return
+    try { set({ productImages: await fetchShopImages() }) } catch { /* 사진 없이도 동작 */ }
   },
 
   // ⑥ 주문 — 주문 당시의 상품·가격을 그대로 저장하고 장바구니를 비운다 (실제 결제는 연동하지 않음)

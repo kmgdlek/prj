@@ -33,6 +33,7 @@ export const fetchWeather = (place = '제주시') =>
 export const fetchHeritage = (keyword = '') =>
   get(`/api/heritage?keyword=${encodeURIComponent(keyword)}`)
 
+export const fetchShopImages = () => get('/api/shop-images')
 export const fetchImages = (keyword = '') =>
   get(`/api/pixabay?keyword=${encodeURIComponent(keyword)}`)
 

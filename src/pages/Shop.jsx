@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { Alert, Badge, Button, Card, Col, Form, Row } from 'react-bootstrap'
 import PageHeader from '../components/PageHeader'
@@ -12,6 +12,9 @@ export default function Shop() {
   const user = useAppStore((s) => s.user)
   const addToCart = useAppStore((s) => s.addToCart)
   const cart = useAppStore((s) => s.cart)
+  const images = useAppStore((s) => s.productImages)
+  const loadProductImages = useAppStore((s) => s.loadProductImages)
+  useEffect(() => { loadProductImages() }, [loadProductImages])
   const [category, setCategory] = useState('전체')
   const [keyword, setKeyword] = useState('')
 
@@ -42,7 +45,11 @@ export default function Shop() {
             return (
               <Col key={p.id}>
                 <Card className="h-100 item-card">
-                  <div className="product-tile" style={{ background: `linear-gradient(135deg, ${p.color}, #1a0b3d)` }}>{p.emoji}</div>
+                  {images[p.id]
+                    ? <a href={images[p.id].page} target="_blank" rel="noreferrer" title={`Pixabay · ${images[p.id].user}`}>
+                        <img src={images[p.id].url} alt={p.name} loading="lazy" className="product-photo" />
+                      </a>
+                    : <div className="product-tile" style={{ background: `linear-gradient(135deg, ${p.color}, #1a0b3d)` }}>{p.emoji}</div>}
                   <Card.Body className="d-flex flex-column">
                     <Badge bg="primary" className="align-self-start mb-2">{p.category}</Badge>
                     <Card.Title className="fs-6 fw-bold">{p.name}</Card.Title>
@@ -60,7 +67,7 @@ export default function Shop() {
           })}
         </Row>
       )}
-      <p className="small text-body-secondary mt-4 mb-0">※ 과제용 샘플 상품이며 실제 결제·배송은 이루어지지 않습니다.</p>
+      <p className="small text-body-secondary mt-4 mb-0">※ 과제용 샘플 상품이며 실제 결제·배송은 이루어지지 않습니다. 사진 출처: Pixabay</p>
     </>
   )
 }

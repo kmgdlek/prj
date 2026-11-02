@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { Alert, Button, Card, ListGroup } from 'react-bootstrap'
 import PageHeader from '../components/PageHeader'
@@ -9,7 +9,8 @@ import { won } from '../lib/format'
 
 // 장바구니 + 주문 내역 (로그인 필요 — router 의 RequireAuth 가 막아 준다)
 export default function Cart() {
-  const { cart, cartLoading, setCartQty, checkout } = useAppStore()
+  const { cart, cartLoading, setCartQty, checkout, productImages, loadProductImages } = useAppStore()
+  useEffect(() => { loadProductImages() }, [loadProductImages])
   const [busy, setBusy] = useState(false)
   const [done, setDone] = useState(false)
 
@@ -34,7 +35,9 @@ export default function Cart() {
           <ListGroup variant="flush">
             {lines.map(({ p, qty }) => (
               <ListGroup.Item key={p.id} className="d-flex align-items-center gap-3 flex-wrap">
-                <span className="fs-2">{p.emoji}</span>
+                {productImages[p.id]
+                  ? <img src={productImages[p.id].url} alt={p.name} className="cart-thumb" />
+                  : <span className="fs-2">{p.emoji}</span>}
                 <div className="flex-grow-1">
                   <div className="fw-bold">{p.name}</div>
                   <div className="small text-body-secondary">{won(p.price)}</div>
