@@ -1,0 +1,39 @@
+/* 테마 위에 덧입히는 우리 앱 스타일 — 색은 Bootstrap 변수(--bs-*)를 써서 테마를 바꿔도 어울리게 */
+body { font-family: 'Pretendard', system-ui, sans-serif; }
+
+.scene { border: 1px solid var(--bs-border-color); box-shadow: 0 0 40px rgba(131, 56, 236, .25); position: relative; background: #0b0620; }
+
+.hero-title {
+  background: linear-gradient(90deg, #ffd166, #ff7eb6 50%, #8ecae6);
+  -webkit-background-clip: text; background-clip: text; color: transparent;
+}
+
+/* 3D 마커 위에 뜨는 이름표 */
+.marker-label {
+  font-size: 12px; font-weight: 600; white-space: nowrap; color: #fff;
+  background: rgba(15, 8, 40, .75); border: 1px solid rgba(255, 255, 255, .25);
+  padding: 2px 8px; border-radius: 999px; backdrop-filter: blur(4px);
+}
+.marker-label.on { background: #ffd166; color: #1a0b3d; border-color: #ffd166; }
+
+/* 3D 위에 겹쳐 보이는 설명 카드 */
+.scene-overlay {
+  position: absolute; left: 12px; right: 12px; bottom: 12px; max-width: 460px;
+  background: rgba(15, 8, 40, .82); backdrop-filter: blur(8px);
+  border: 1px solid var(--bs-border-color); border-radius: 1rem; padding: 1rem;
+}
+
+.item-card { transition: transform .15s, box-shadow .15s; }
+.item-card:hover { transform: translateY(-3px); box-shadow: 0 .5rem 1.2rem rgba(131, 56, 236, .35); }
+.item-card.active { outline: 2px solid #ffd166; }
+.item-card-img { height: 160px; object-fit: cover; }
+.placeholder-img {
+  display: flex; align-items: center; justify-content: center;
+  background: var(--bs-secondary-bg); color: var(--bs-secondary-color); font-size: 2rem;
+}
+
+.myth-dot { width: 12px; height: 12px; border-radius: 50%; display: inline-block; box-shadow: 0 0 8px currentColor; }
+
+.chat-box .msg { max-width: 80%; padding: .6rem .9rem; border-radius: 1rem; margin-bottom: .5rem; white-space: pre-wrap; }
+.chat-box .msg.assistant { background: var(--bs-secondary-bg); }
+.chat-box .msg.user { background: var(--bs-primary); color: #fff; margin-left: auto; }
