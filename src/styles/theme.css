@@ -422,3 +422,9 @@ body { font-family: 'Pretendard', system-ui, sans-serif; }
 
 /* 신화 도감 목록의 좋아요 하트: 선택된(파란) 줄에서도 보이게 */
 .myth-list .active .myth-like.btn-outline-danger { --bs-btn-color: #fff; --bs-btn-border-color: rgba(255, 255, 255, .7); --bs-btn-hover-bg: #dc3545; --bs-btn-hover-border-color: #dc3545; }
+
+/* ── 가상 결제창 ── */
+.pay-amount { padding: .8rem 1rem; border-radius: .9rem; background: var(--bs-tertiary-bg); }
+.pay-card { padding: 1rem 1.1rem; border-radius: 1rem; color: #fff; background: linear-gradient(135deg, #3b1f8e, #1a0b3d); box-shadow: 0 6px 18px rgba(26, 11, 61, .35); }
+.pay-card-no { font-size: 1.35rem; letter-spacing: .12em; font-weight: 700; margin: .6rem 0 .8rem; font-variant-numeric: tabular-nums; }
+.pay-box { display: flex; align-items: center; gap: .9rem; padding: 1rem; border: 1px dashed var(--bs-border-color); border-radius: .9rem; }

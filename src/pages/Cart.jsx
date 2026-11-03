@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { Alert, Badge, Button, Card, Col, Form, InputGroup, ListGroup, Row } from 'react-bootstrap'
 import PageHeader from '../components/PageHeader'
+import FakePayModal from '../components/FakePayModal'
 import { Empty, Loading } from '../components/Status'
 import { useAppStore } from '../store/useAppStore'
 import { discountPct, productOf, salePrice } from '../../server/products'
@@ -27,13 +28,20 @@ export default function Cart() {
   const calc = calcCheckout({ lines, spent: totalSpent(orders), coupon, pointsWanted: Number(pointsInput) || 0, pointsBalance: pts.balance })
   const L = calc.level
 
-  async function order() {
+  // 가상 결제창: 승인 연출(약 2초) 뒤에 실제 주문을 저장한다. '실패 보여 주기'를 켜면 주문을 만들지 않고 실패 화면만 보여 준다
+  const [payOpen, setPayOpen] = useState(false)
+  async function pay({ fail }) {
+    await new Promise((ok) => setTimeout(ok, 1800))
+    if (fail) return { ok: false, reason: '카드 한도를 넘었어요 (발표용 가상 실패)' }
     setBusy(true)
     const ok = await checkout({ couponId: coupon?.id ?? null, pointsUse: calc.pointsUsed })
-    setDone(Boolean(ok))
-    if (ok) { setCouponId(''); setPointsInput('') }
     setBusy(false)
+    if (!ok) return { ok: false, reason: '주문을 저장하지 못했어요. 재고나 쿠폰을 확인해 주세요' }
+    setDone(true); setCouponId(''); setPointsInput('')
+    return { ok: true }
   }
+  const firstName = lines[0]?.p.name
+  const summary = lines.length > 1 ? `${firstName} 외 ${lines.length - 1}건` : firstName ?? ''
 
   return (
     <>
@@ -113,13 +121,15 @@ export default function Cart() {
                   <span className="price-now-sm">{won(calc.total)}</span>
                 </div>
                 <div className="small text-body-secondary text-end mb-3">적립 예정 {won(calc.earn)} ({L.earn}%)</div>
-                <Button className="w-100" onClick={order} disabled={busy}>{busy ? '주문 중...' : `${won(calc.total)} 주문하기`}</Button>
-                <p className="small text-body-secondary mt-2 mb-0">※ 실제 결제는 연동하지 않아요. 주문하면 주문 내역만 저장됩니다.</p>
+                <Button className="w-100" onClick={() => setPayOpen(true)} disabled={busy}><i className="bi bi-credit-card me-2" />{won(calc.total)} 결제하기</Button>
+                <p className="small text-body-secondary mt-2 mb-0">※ 가상 결제창이 열려요. 실제로 결제되지 않고, 결제하면 주문 내역만 저장됩니다.</p>
               </Card.Body>
             </Card>
           </Col>
         </Row>
       )}
+
+      <FakePayModal show={payOpen} amount={calc.total} summary={summary} onClose={() => setPayOpen(false)} onPay={pay} />
     </>
   )
 }
