@@ -4,10 +4,29 @@ import { searchHeritage } from '../server/heritage.js';
 import { findMyth, getMythStory } from '../server/myths.js';
 import { searchProducts } from '../server/products.js';
 
-// 모델 이름은 자주 바뀌고 옛 모델은 새 사용자에게 막힌다. 기본값을 쓰다가 "models/새이름 을 쓰라"는 404 를 받으면 그 이름으로 한 번 다시 시도하고, 이 서버가 켜져 있는 동안 기억한다.
-// 직접 정하려면 GEMINI_MODEL 환경변수 (예: gemini-3.8-flash)
+// ── 모델 고르기 ─────────────────────────────────────────────────
+// 모델 이름은 자주 바뀌고, 옛 모델은 새 사용자에게 막히고, 새 모델은 몰려서 응답이 느리거나 끊긴다. 그래서
+//  ① 기본 모델(GEMINI_MODEL 또는 gemini-3.8-flash)로 시작하되 호출마다 시간 제한(12초)을 두고,
+//  ② 못 쓰거나(404·429·503) 시간이 넘으면 이 키로 쓸 수 있는 다른 flash 모델을 Google 에 물어 찾아서(가벼운 lite 먼저) 차례로 넘어가고,
+//  ③ 잘 되는 모델을 이 서버가 켜져 있는 동안 기억한다. 한 요청은 25초 안에 끝낸다.
 let learnedModel = null;
+let modelList = null;
 const GEMINI_MODEL = () => learnedModel || process.env.GEMINI_MODEL || 'gemini-3.8-flash';
+const CALL_TIMEOUT = 12000, TOTAL_BUDGET = 25000;
+const API = 'https://generativelanguage.googleapis.com/v1beta';
+
+async function discoverModels() {
+  if (modelList) return modelList;
+  try {
+    const r = await fetch(`${API}/models?pageSize=200`, { headers: { 'x-goog-api-key': process.env.GEMINI_API_KEY }, signal: AbortSignal.timeout(6000) });
+    const data = await r.json();
+    modelList = (data.models ?? [])
+      .filter((m) => m.supportedGenerationMethods?.includes('generateContent') && /flash/.test(m.name) && !/image|tts|audio|live|native|robotics|computer|embedding|vision|exp/.test(m.name))
+      .map((m) => m.name.replace(/^models\//, ''))
+      .sort((a, b) => (/lite/.test(b) - /lite/.test(a)) || (a < b ? 1 : -1));   // lite 먼저, 그다음 이름이 큰(새) 것부터
+  } catch { modelList = []; }
+  return modelList;
+}
 
 // ① 도구 설명서: 모델은 이 설명만 보고 "어떤 도구를 언제 쓸지" 결정한다
 const tools = [
@@ -99,31 +118,45 @@ async function execTool(name, input, steps, actions) {
 // ③ 에이전트 루프(Gemini function calling): 생각 → 도구 호출 → 결과 확인 → (반복) → 최종 답
 const geminiTools = [{ functionDeclarations: tools.map((t) => ({ name: t.name, description: t.description, parameters: t.input_schema })) }];
 
-// 무료 사용량은 분당 호출 수가 적어 429(많음)·503(바쁨)이 가끔 나므로, 한 번은 2초 뒤에 다시 시도한다
-async function callGemini(body) {
-  for (let attempt = 0; ; attempt++) {
-    const url = `https://generativelanguage.googleapis.com/v1beta/models/${GEMINI_MODEL()}:generateContent`;   // 모델을 바꿔 다시 시도할 수 있으니 매번 만든다
-    const r = await fetch(url, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json', 'x-goog-api-key': process.env.GEMINI_API_KEY },
-      body: JSON.stringify(body),
-    });
-    const data = await r.json().catch(() => ({}));
-    if (r.ok) return data;
-    if ((r.status === 429 || r.status === 503) && attempt === 0) { await new Promise((ok) => setTimeout(ok, 2000)); continue; }
-    const suggested = r.status === 404 && /use models\/([A-Za-z0-9._-]+)/.exec(data.error?.message ?? '')?.[1];   // 단종된 모델이면 오류 문구가 새 모델을 알려 준다
-    if (suggested && suggested !== GEMINI_MODEL() && attempt === 0) { learnedModel = suggested; continue; }
-    throw Object.assign(new Error(data.error?.message ?? r.statusText), { status: r.status });
+// 모델 한 번 호출. 안 되면 다른 모델로 넘어간다 (st: 이 요청의 상태 — 지금 모델, 시도한 모델, 마감 시각)
+async function callGemini(body, st) {
+  let lastErr;
+  for (let n = 0; n < 6; n++) {
+    const left = st.deadline - Date.now();
+    if (left < 1500) break;
+    try {
+      const r = await fetch(`${API}/models/${st.model}:generateContent`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'x-goog-api-key': process.env.GEMINI_API_KEY },
+        body: JSON.stringify(body),
+        signal: AbortSignal.timeout(Math.min(CALL_TIMEOUT, left)),
+      });
+      const data = await r.json().catch(() => ({}));
+      if (r.ok) { if (st.model !== GEMINI_MODEL()) learnedModel = st.model; return data; }
+      lastErr = Object.assign(new Error(data.error?.message ?? r.statusText), { status: r.status });
+      const suggested = r.status === 404 && /use models\/([A-Za-z0-9._-]+)/.exec(lastErr.message)?.[1];   // 단종된 모델이면 오류 문구가 새 모델을 알려 준다
+      if (suggested && !st.tried.has(suggested)) { st.tried.add(st.model); st.model = suggested; continue; }
+      if (![404, 429, 500, 503].includes(r.status)) throw lastErr;                                          // 키 오류 같은 건 모델을 바꿔도 소용없다
+    } catch (e) {
+      if (e.name !== 'TimeoutError' && e.name !== 'AbortError') throw e;
+      lastErr = Object.assign(new Error('AI 응답이 늦어요'), { status: 504 });
+    }
+    st.tried.add(st.model);
+    const next = (await discoverModels()).find((m) => !st.tried.has(m));
+    if (!next) break;
+    st.model = next;
   }
+  throw lastErr ?? Object.assign(new Error('AI 응답이 늦어요'), { status: 504 });
 }
 
 async function runAgent({ message, history }, steps, actions) {
+  const st = { model: GEMINI_MODEL(), tried: new Set(), deadline: Date.now() + TOTAL_BUDGET };
   // 대화는 Gemini 형식(role: user | model, parts)으로. 첫 칸은 반드시 사용자 말이어야 해서, 앞쪽의 모델 말은 뺀다
   const past = history.slice(-10).map((m) => ({ role: m.role === 'assistant' ? 'model' : 'user', parts: [{ text: String(m.content ?? '') }] }));
   while (past.length && past[0].role !== 'user') past.shift();
   const contents = [...past, { role: 'user', parts: [{ text: message }] }];
   for (let turn = 0; turn < 5; turn++) {
-    const data = await callGemini({ systemInstruction: { parts: [{ text: SYSTEM }] }, contents, tools: geminiTools, generationConfig: { maxOutputTokens: 4096 } });
+    const data = await callGemini({ systemInstruction: { parts: [{ text: SYSTEM }] }, contents, tools: geminiTools, generationConfig: { maxOutputTokens: 4096 } }, st);
     const cand = data.candidates?.[0];
     const parts = cand?.content?.parts ?? [];
     const calls = parts.filter((p) => p.functionCall);
@@ -156,6 +189,7 @@ export default async function handler(req, res) {
   } catch (e) {
     const keyBad = e.status === 401 || e.status === 403 || (e.status === 400 && /api key/i.test(e.message));
     const msg = e.status === 429 ? '무료 사용량을 잠깐 넘었어요. 1분 뒤 다시 시도하세요.'
+      : e.status === 503 || e.status === 504 ? 'AI가 지금 많이 바빠요. 잠시 뒤 다시 물어봐 주세요.'
       : keyBad ? 'Gemini API 키가 올바르지 않아요'
       : e.message;
     res.status(e.status ?? 500).json({ error: msg });
