@@ -428,3 +428,8 @@ body { font-family: 'Pretendard', system-ui, sans-serif; }
 .pay-card { padding: 1rem 1.1rem; border-radius: 1rem; color: #fff; background: linear-gradient(135deg, #3b1f8e, #1a0b3d); box-shadow: 0 6px 18px rgba(26, 11, 61, .35); }
 .pay-card-no { font-size: 1.35rem; letter-spacing: .12em; font-weight: 700; margin: .6rem 0 .8rem; font-variant-numeric: tabular-nums; }
 .pay-box { display: flex; align-items: center; gap: .9rem; padding: 1rem; border: 1px dashed var(--bs-border-color); border-radius: .9rem; }
+
+/* 주문 상품 표: 사진이 칸을 넘지 않게 고정하고, 좁은 화면에선 표를 가로로 스크롤 */
+.order-items .cart-thumb, .order-items .order-emoji { flex: 0 0 56px; max-width: 56px; }
+.order-item-name { min-width: 11rem; }
+.order-item-name > div { min-width: 0; overflow-wrap: anywhere; }

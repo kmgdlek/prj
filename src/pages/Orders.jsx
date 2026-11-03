@@ -77,7 +77,7 @@ export default function Orders() {
                   {live && <div className="mb-4 px-sm-4"><OrderTracker stage={stage} /></div>}
                   {status === STATUS.refund && <p className="small text-body-secondary">반품·환불 사유: {o.refund_reason ?? '-'}</p>}
 
-                  <Table size="sm" className="mb-3 align-middle">
+                  <Table size="sm" responsive className="mb-3 align-middle order-items">
                     <thead><tr><th>상품</th><th className="text-end">단가</th><th className="text-end">수량</th><th className="text-end">금액</th></tr></thead>
                     <tbody>
                       {o.items.map((i) => {
@@ -86,7 +86,7 @@ export default function Orders() {
                         return (
                           <tr key={i.product_id}>
                             <td>
-                              <div className="d-flex align-items-center gap-2">
+                              <div className="d-flex align-items-center gap-2 order-item-name">
                                 {img ? <img src={img.url} alt={i.name} className="cart-thumb" /> : <span className="order-emoji">{p?.emoji ?? '📦'}</span>}
                                 <div>
                                   {p ? <Link to={`/shop/${p.id}`} className="text-reset">{i.name}</Link> : i.name}
