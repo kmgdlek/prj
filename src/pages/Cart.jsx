@@ -100,8 +100,10 @@ export default function Cart() {
                 <Form.Label className="small fw-bold mt-3 mb-1"><i className="bi bi-coin me-1" />적립금 <span className="text-body-secondary fw-normal">(보유 {won(pts.balance)})</span></Form.Label>
                 <InputGroup size="sm">
                   <Form.Control type="number" min={0} step={100} value={pointsInput} placeholder="0" onChange={(e) => setPointsInput(e.target.value)} />
-                  <Button variant="outline-secondary" onClick={() => setPointsInput(String(Math.min(pts.balance, calc.original)))}>전액 사용</Button>
+                  <Button variant="outline-secondary" onClick={() => setPointsInput(String(calc.pointsMax))}>최대 사용</Button>
                 </InputGroup>
+                <div className="small text-body-secondary mt-1">한 번에 상품금액의 50%까지 쓸 수 있어요 (이번 주문 최대 {won(calc.pointsMax)})</div>
+                {Number(pointsInput) > calc.pointsMax && <div className="small text-danger">최대 {won(calc.pointsMax)}까지만 적용돼요</div>}
                 {pts.pending > 0 && <div className="small text-body-secondary mt-1">배송완료되면 {won(pts.pending)}이 적립돼요</div>}
 
                 <hr />

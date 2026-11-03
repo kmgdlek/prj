@@ -5,6 +5,8 @@ import { salePrice } from '../../server/products'
 
 const floor10 = (n) => Math.floor(n / 10) * 10
 
+export const POINTS_CAP = 0.5   // 한 번에 적립금으로 낼 수 있는 상한 (상품금액 대비)
+
 // 결제 금액 계산 (장바구니·주문이 같은 식을 쓴다)
 //   원가 → 상품 할인 → 등급 추가 할인 → 쿠폰 → 적립금 → 배송비 → 최종 결제금액, 그리고 적립 예정 포인트
 export function calcCheckout({ lines, spent, coupon, pointsWanted = 0, pointsBalance = 0 }) {
@@ -16,11 +18,12 @@ export function calcCheckout({ lines, spent, coupon, pointsWanted = 0, pointsBal
   const subtotal = afterSale - gradeDiscount
   const couponOff = couponDiscount(coupon, subtotal)
   const goods = subtotal - couponOff
-  const pointsUsed = Math.max(0, Math.min(pointsWanted, pointsBalance, goods))     // 적립금은 상품금액까지만 (배송비 제외)
+  const pointsMax = Math.min(pointsBalance, Math.floor(goods * POINTS_CAP))        // 적립금은 상품금액(할인·쿠폰 후)의 50%까지만, 배송비 제외
+  const pointsUsed = Math.max(0, Math.min(pointsWanted, pointsMax))
   const shipping = lines.length === 0 || subtotal >= L.freeShip ? 0 : SHIPPING_FEE
   const paidGoods = goods - pointsUsed
   return {
-    level: L, original, productDiscount, gradeDiscount, subtotal, couponOff, pointsUsed, shipping,
+    level: L, original, productDiscount, gradeDiscount, subtotal, couponOff, pointsUsed, pointsMax, shipping,
     total: paidGoods + shipping,
     earn: Math.floor((paidGoods * L.earn) / 100),
     couponMinMiss: Boolean(coupon) && couponOff === 0,
