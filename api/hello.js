@@ -5,7 +5,7 @@ export default function handler(req, res) {
     ok: true,
     time: new Date().toISOString(),
     hasDataKey: Boolean(process.env.DATA_GO_KR_KEY),
-    hasAiKey: Boolean(process.env.OPENAI_API_KEY),   // 이야기꾼 AI(OpenAI) 키가 있는지
+    hasAiKey: Boolean(process.env.GEMINI_API_KEY),   // 이야기꾼 AI(Gemini) 키가 있는지
     hasPixabayKey: Boolean(process.env.PIXABAY_KEY),
   });
 }

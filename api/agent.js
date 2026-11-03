@@ -4,7 +4,7 @@ import { searchHeritage } from '../server/heritage.js';
 import { findMyth, getMythStory } from '../server/myths.js';
 import { searchProducts } from '../server/products.js';
 
-const OPENAI_MODEL = () => process.env.OPENAI_MODEL || 'gpt-4o-mini';   // 계정에서 쓸 수 있는 모델 이름으로 OPENAI_MODEL 환경변수를 바꾸면 된다
+const GEMINI_MODEL = () => process.env.GEMINI_MODEL || 'gemini-2.5-flash';   // 무료로 쓸 수 있는 다른 모델(예: gemini-2.5-flash-lite)로 GEMINI_MODEL 환경변수를 바꿀 수 있다
 
 // ① 도구 설명서: 모델은 이 설명만 보고 "어떤 도구를 언제 쓸지" 결정한다
 const tools = [
@@ -93,27 +93,47 @@ async function execTool(name, input, steps, actions) {
   return result;
 }
 
-// ③ 에이전트 루프(OpenAI function calling): 생각 → 도구 호출 → 결과 확인 → (반복) → 최종 답
-const openaiTools = tools.map((t) => ({ type: 'function', function: { name: t.name, description: t.description, parameters: t.input_schema } }));
-async function runAgent({ message, history }, steps, actions) {
-  const messages = [{ role: 'system', content: SYSTEM }, ...history.slice(-10), { role: 'user', content: message }]; // 최근 10개만 보내 비용 절약
-  for (let turn = 0; turn < 5; turn++) {
-    const r = await fetch('https://api.openai.com/v1/chat/completions', {
+// ③ 에이전트 루프(Gemini function calling): 생각 → 도구 호출 → 결과 확인 → (반복) → 최종 답
+const geminiTools = [{ functionDeclarations: tools.map((t) => ({ name: t.name, description: t.description, parameters: t.input_schema })) }];
+
+// 무료 사용량은 분당 호출 수가 적어 429(많음)·503(바쁨)이 가끔 나므로, 한 번은 2초 뒤에 다시 시도한다
+async function callGemini(body) {
+  const url = `https://generativelanguage.googleapis.com/v1beta/models/${GEMINI_MODEL()}:generateContent`;
+  for (let attempt = 0; ; attempt++) {
+    const r = await fetch(url, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${process.env.OPENAI_API_KEY}` },
-      body: JSON.stringify({ model: OPENAI_MODEL(), messages, tools: openaiTools, max_completion_tokens: 1024 }),
+      headers: { 'Content-Type': 'application/json', 'x-goog-api-key': process.env.GEMINI_API_KEY },
+      body: JSON.stringify(body),
     });
     const data = await r.json().catch(() => ({}));
-    if (!r.ok) throw Object.assign(new Error(data.error?.message ?? r.statusText), { status: r.status });
-    const msg = data.choices?.[0]?.message;
-    if (!msg?.tool_calls?.length) return msg?.content ?? '';
-    messages.push(msg); // 도구 호출 요청을 대화에 기록
-    for (const c of msg.tool_calls) {
-      let input = {};
-      try { input = JSON.parse(c.function.arguments || '{}'); } catch { /* 인자가 깨졌으면 빈 인자로 */ }
-      const result = await execTool(c.function.name, input, steps, actions);
-      messages.push({ role: 'tool', tool_call_id: c.id, content: JSON.stringify(result) }); // 도구 결과를 돌려줌
+    if (r.ok) return data;
+    if ((r.status === 429 || r.status === 503) && attempt === 0) { await new Promise((ok) => setTimeout(ok, 2000)); continue; }
+    throw Object.assign(new Error(data.error?.message ?? r.statusText), { status: r.status });
+  }
+}
+
+async function runAgent({ message, history }, steps, actions) {
+  // 대화는 Gemini 형식(role: user | model, parts)으로. 첫 칸은 반드시 사용자 말이어야 해서, 앞쪽의 모델 말은 뺀다
+  const past = history.slice(-10).map((m) => ({ role: m.role === 'assistant' ? 'model' : 'user', parts: [{ text: String(m.content ?? '') }] }));
+  while (past.length && past[0].role !== 'user') past.shift();
+  const contents = [...past, { role: 'user', parts: [{ text: message }] }];
+  for (let turn = 0; turn < 5; turn++) {
+    const data = await callGemini({ systemInstruction: { parts: [{ text: SYSTEM }] }, contents, tools: geminiTools, generationConfig: { maxOutputTokens: 4096 } });
+    const cand = data.candidates?.[0];
+    const parts = cand?.content?.parts ?? [];
+    const calls = parts.filter((p) => p.functionCall);
+    if (!calls.length) {
+      const text = parts.map((p) => p.text).filter(Boolean).join('\n');
+      if (!text && data.promptFeedback?.blockReason) throw new Error('이 질문에는 답할 수 없어요. 다르게 물어봐 주세요.');
+      return text;
     }
+    contents.push(cand.content); // 모델의 도구 호출 요청을 대화에 그대로 기록 (모델이 붙인 서명 포함)
+    const responses = [];
+    for (const p of calls) {
+      const result = await execTool(p.functionCall.name, p.functionCall.args ?? {}, steps, actions);
+      responses.push({ functionResponse: { name: p.functionCall.name, response: { result } } });
+    }
+    contents.push({ role: 'user', parts: responses }); // 도구 결과를 돌려줌
   }
   return null;
 }
@@ -121,7 +141,7 @@ async function runAgent({ message, history }, steps, actions) {
 export default async function handler(req, res) {
   if (req.method !== 'POST') return res.status(405).json({ error: 'POST only' });
   const { message, history = [] } = req.body ?? {};
-  if (!process.env.OPENAI_API_KEY) return res.status(500).json({ error: 'OPENAI_API_KEY 가 설정되지 않았어요' });
+  if (!process.env.GEMINI_API_KEY) return res.status(500).json({ error: 'GEMINI_API_KEY 가 설정되지 않았어요' });
   const steps = []; // 화면에 "에이전트가 무엇을 했는지" 보여주기용
   const actions = []; // 화면이 실제로 실행할 동작 (예: 3D 지도 이동)
 
@@ -129,8 +149,9 @@ export default async function handler(req, res) {
     const answer = await runAgent({ message, history }, steps, actions);
     res.status(200).json({ answer: answer ?? '도구 호출이 너무 많아 중단했어요. 질문을 좁혀 주세요.', steps, actions });
   } catch (e) {
-    const msg = e.status === 429 ? '사용량이 많아요. 1분 뒤 다시 시도하세요.'
-      : e.status === 401 ? 'OpenAI API 키가 올바르지 않아요'
+    const keyBad = e.status === 401 || e.status === 403 || (e.status === 400 && /api key/i.test(e.message));
+    const msg = e.status === 429 ? '무료 사용량을 잠깐 넘었어요. 1분 뒤 다시 시도하세요.'
+      : keyBad ? 'Gemini API 키가 올바르지 않아요'
       : e.message;
     res.status(e.status ?? 500).json({ error: msg });
   }

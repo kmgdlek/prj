@@ -9,7 +9,7 @@
 ![Three.js](https://img.shields.io/badge/Three.js-3D-000000?logo=threedotjs&logoColor=white)
 ![Bootstrap](https://img.shields.io/badge/Bootstrap-vapor-7952B3?logo=bootstrap&logoColor=white)
 ![Supabase](https://img.shields.io/badge/Supabase-DB-3FCF8E?logo=supabase&logoColor=white)
-![OpenAI](https://img.shields.io/badge/OpenAI-AI_Agent-412991)
+![Gemini](https://img.shields.io/badge/Gemini-AI_Agent-4285F4)
 ![Vercel](https://img.shields.io/badge/Deploy-Vercel-000000?logo=vercel&logoColor=white)
 
 제주대 청년도약 부트캠프 1기 · 제주 콘텐츠·문화 IP 프로젝트
@@ -41,7 +41,7 @@
 | 📖 신화 도감 | 신화·전설 26곳 목록(오른쪽, 이 칸만 스크롤) ↔ 3D 지도(왼쪽)가 같은 선택을 공유. 고르면 카메라가 그 장소로 날아가고, 주변 관광지를 TourAPI 로 찾아옴 |
 | 📍 신화 속 장소 | 한국관광공사 TourAPI 검색 결과가 3D 섬 위에 구슬로 표시 |
 | 🏛️ 국가유산 | 국가유산청 오픈API 로 제주의 유산을 검색, 좌표를 3D 에 표시 |
-| 🤖 이야기꾼 AI | OpenAI 에이전트가 신화·관광·날씨·유산 **6개 도구**(신화·지도 이동·관광·날씨·유산·상품)를 스스로 골라 호출하고, 어떤 도구를 썼는지 화면에 공개 |
+| 🤖 이야기꾼 AI | Gemini 에이전트가 신화·관광·날씨·유산 **6개 도구**(신화·지도 이동·관광·날씨·유산·상품)를 스스로 골라 호출하고, 어떤 도구를 썼는지 화면에 공개 |
 | 🔐 로그인·회원가입 | Supabase Auth(이메일+비밀번호). 별자리·장바구니·주문이 내 계정에만 보이도록 RLS 로 보호 가입하면 메일 인증 안내(다시 보내기 포함), 인증 링크를 누르면 가입 완료 페이지(`/welcome`)로 도착 |
 | 🛍️ 제주 장터 | 제주 특산품·기념품 20종(태그·정렬·별점·찜). 가격은 1분마다, 재고는 10분마다 바뀌는 타임특가에, 드물게 서서히 오르내리고 아주 드물게 급등(최대 +300%)·급락(최대 -95%)(일반판매가를 넘기도 함, 아래 '시세 규칙'). 시세가 바뀌면 바뀐 자리의 숫자가 위에서 아래로 굴러 바뀌고, 상품 상세에 사진 슬라이더·후기·이어진 신화와 1분봉 차트(최고가 빨간 화살표 · 최저가 파란 화살표 · 일반판매가 회색 선) |
 | 🧾 장바구니·결제 | 쿠폰 · 적립금 · 등급 혜택(추가 할인·적립률·무료배송 기준) · 배송비를 계산하는 결제 요약. 주문하면 재고가 줄고 취소하면 돌아옴 (실제 결제 없음) |
@@ -77,16 +77,16 @@ flowchart LR
   F --> W[기상청 단기예보]
   F --> H[국가유산청]
   F --> M[(myths.js)]
-  F <-->|tool use 루프| C[🤖 OpenAI]
+  F <-->|tool use 루프| C[🤖 Gemini]
 ```
 
-- 키는 서버에만. 공공데이터·OpenAI 키는 `/api` 안에서만 쓰고, 브라우저에는 `VITE_` 값(Supabase anon)만 내려갑니다.
+- 키는 서버에만. 공공데이터·Gemini 키는 `/api` 안에서만 쓰고, 브라우저에는 `VITE_` 값(Supabase anon)만 내려갑니다.
 - 사진은 서버가 중계. Pixabay 사진을 브라우저가 직접 받으면 요청이 몰릴 때 429 로 깨져서, `/api/img` 가 대신 받아(재시도 포함) 하루 CDN 캐시합니다. 그래도 깨지면 화면이 두 번 다시 불러옵니다.
 - `server/` 공용. 화면용 API(`api/tour.js`)와 에이전트(`api/agent.js`)가 같은 함수를 재사용합니다.
 
 ### 🧪 에이전트 테스트 질문 4개
 
-배포 사이트(`/api/agent`)에 실제로 물어본 결과입니다 (2026-11-02, Claude 모델로 돌린 결과). 이후 OpenAI 로 바꿨으니 같은 질문으로 다시 돌려 결과를 갱신하세요. 도구는 질문에 맞춰 에이전트가 스스로 골랐습니다.
+배포 사이트(`/api/agent`)에 실제로 물어본 결과입니다 (2026-11-02, Claude 모델로 돌린 결과). 이후 Gemini 로 바꿨으니 같은 질문으로 다시 돌려 결과를 갱신하세요. 도구는 질문에 맞춰 에이전트가 스스로 골랐습니다.
 
 | # | 질문 | 실제 사용한 도구 | 답변 요약 |
 |---|---|---|---|
@@ -124,7 +124,7 @@ insert into shop_admins (user_id) select id from auth.users where email = '관�
 
 ### 이야기꾼 AI 모델
 
-에이전트는 OpenAI(function calling)로 동작합니다. 서버 환경변수 `OPENAI_API_KEY` 가 필요하고, 모델은 `OPENAI_MODEL`(기본 `gpt-4o-mini`)로 바꿉니다. 키나 모델 이름이 맞지 않으면 채팅창이 오프라인으로 보이거나 오류를 알려 줍니다.
+에이전트는 Google **Gemini**(function calling, 무료 사용량)로 동작합니다. [Google AI Studio](https://aistudio.google.com/apikey)에서 무료 키를 받아 서버 환경변수 `GEMINI_API_KEY` 로 넣고, 모델은 `GEMINI_MODEL`(기본 `gemini-2.5-flash`)로 바꿉니다. 무료 사용량은 분당 호출 수가 적어서 가끔 '사용량이 많아요'가 나올 수 있고(한 번은 자동으로 다시 시도), 그럴 땐 `gemini-2.5-flash-lite` 같은 더 가벼운 모델로 바꾸면 여유가 있습니다.
 
 ### 에이전트 루프
 
@@ -173,8 +173,8 @@ vercel dev                     # 화면 + /api 서버 함수 → http://localhos
 |---|---|
 | `VITE_SUPABASE_URL` / `VITE_SUPABASE_ANON_KEY` | Supabase 프로젝트 (브라우저 공개 가능) |
 | `DATA_GO_KR_KEY` | 공공데이터포털 Decoding 키 (서버 전용) |
-| `OPENAI_API_KEY` | OpenAI 키 (서버 전용, 절대 커밋 금지) |
-| `OPENAI_MODEL` | (선택) 이야기꾼 AI 가 쓸 모델 이름 (기본 `gpt-4o-mini`) |
+| `GEMINI_API_KEY` | Gemini 키 (서버 전용, 절대 커밋 금지. Google AI Studio 에서 무료로 발급) |
+| `GEMINI_MODEL` | (선택) 이야기꾼 AI 가 쓸 모델 이름 (기본 `gemini-2.5-flash`) |
 | `PIXABAY_KEY` | Pixabay 무료 키 (서버 전용) |
 
 ### Supabase 준비
