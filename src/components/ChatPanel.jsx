@@ -74,12 +74,6 @@ export default function ChatPanel() {
         <Bubble role="assistant" at={null}>안녕하세요, 탐라 신화 이야기꾼이에요. 신화·장소·날씨·국가유산·제주 특산품까지 물어보세요.</Bubble>
         {messages.map((m, i) => (
           <Bubble key={i} role={m.role} at={m.at}>
-            {m.steps?.length > 0 && (
-              <div className="small text-info mb-1">
-                <i className="bi bi-tools me-1" />
-                {m.steps.map((s) => `${s.tool}(${JSON.stringify(s.args)}) → ${s.count}건`).join(' · ')}
-              </div>
-            )}
             {m.text}
             {m.actions?.filter((a) => a.type === 'map').map((a) => (
               <div key={a.mythId} className="mt-2">
