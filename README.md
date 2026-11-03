@@ -122,6 +122,18 @@ insert into shop_admins (user_id) select id from auth.users where email = '관�
 
 로그인하면 메뉴 '내 정보'에 시세 관리가 나타납니다. 가격을 되돌려도 기록은 남아서(`until` 을 지금으로 줄임), 이미 지나간 시간의 차트는 정한 가격 그대로 보입니다. (해제: `delete from shop_admins where user_id = ...`)
 
+### 이야기꾼 AI 모델 바꾸기 (Claude ↔ OpenAI)
+
+에이전트 루프와 도구 6개는 그대로이고, 모델을 부르는 부분만 `api/agent.js` 안에서 둘로 나뉩니다. 서버 환경변수로 고릅니다.
+
+| 환경변수 | 효과 |
+|---|---|
+| (아무것도 없음) | 키가 있는 쪽을 씀. 둘 다 있으면 **Claude** |
+| `AI_PROVIDER=claude` | Claude (`ANTHROPIC_API_KEY` 필요) |
+| `AI_PROVIDER=openai` | OpenAI (`OPENAI_API_KEY` 필요, 모델은 `OPENAI_MODEL`) |
+
+바꾼 뒤 Vercel 에서 다시 배포하면 됩니다. 어느 쪽을 쓰는지는 첫 화면의 '동작 체크'(서버 /api)와 채팅창 상태에 나옵니다. 아래 테스트 질문 4개는 Claude 로 돌린 결과입니다.
+
 ### 에이전트 루프
 
 ```
@@ -171,6 +183,7 @@ vercel dev                     # 화면 + /api 서버 함수 → http://localhos
 | `VITE_SUPABASE_URL` / `VITE_SUPABASE_ANON_KEY` | Supabase 프로젝트 (브라우저 공개 가능) |
 | `DATA_GO_KR_KEY` | 공공데이터포털 Decoding 키 (서버 전용) |
 | `ANTHROPIC_API_KEY` | Claude 키 (서버 전용, 절대 커밋 금지) |
+| `OPENAI_API_KEY` · `AI_PROVIDER` · `OPENAI_MODEL` | (선택) 이야기꾼 AI 를 OpenAI 로 바꿀 때. `AI_PROVIDER=openai` 로 고르고, 모델은 `OPENAI_MODEL`(기본 `gpt-4o-mini`) |
 | `PIXABAY_KEY` | Pixabay 무료 키 (서버 전용) |
 
 ### Supabase 준비

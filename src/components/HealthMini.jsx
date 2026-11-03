@@ -12,7 +12,7 @@ export default function HealthMini() {
     { label: 'Supabase', state: health.db, msg: health.db === 'ok' ? '연결 OK' : health.dbMsg },
     { label: '서버 /api', state: health.api,
       msg: health.api === 'ok'
-        ? `OK · 공공데이터 키 ${health.hasDataKey ? '있음' : '없음'} · Claude 키 ${health.hasClaudeKey ? '있음' : '없음'} · Pixabay 키 ${health.hasPixabayKey ? '있음' : '없음'}`
+        ? `OK · 공공데이터 키 ${health.hasDataKey ? '있음' : '없음'} · AI(${health.aiProvider === 'openai' ? 'OpenAI' : 'Claude'}) 키 ${health.hasAiKey ? '있음' : '없음'} · Pixabay 키 ${health.hasPixabayKey ? '있음' : '없음'}`
         : health.apiMsg || 'vercel dev 로 실행했는지 확인' },
   ]
   return (

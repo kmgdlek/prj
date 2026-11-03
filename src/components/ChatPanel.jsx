@@ -55,7 +55,7 @@ export default function ChatPanel() {
     <div className="chat-panel d-flex flex-column h-100">
       {online === false && (
         <div className="chat-offline">
-          <i className="bi bi-wifi-off me-2" />AI가 오프라인이에요. 서버나 Claude 키를 확인해 주세요.
+          <i className="bi bi-wifi-off me-2" />AI가 오프라인이에요. 서버나 AI 키를 확인해 주세요.
           <Button size="sm" variant="link" className="p-0 ms-2" onClick={checkHealth}>다시 확인</Button>
         </div>
       )}

@@ -122,7 +122,7 @@ export const useAppStore = create((set, get) => ({
   },
 
   // 서버·DB 상태 — 메뉴 맨 아래 '동작 체크'와 이야기꾼 AI 의 온라인/오프라인 표시가 함께 쓴다
-  health: { api: 'wait', apiMsg: '', db: supabase ? 'wait' : 'fail', dbMsg: supabase ? '' : '.env.local 에 Supabase 값이 없어요', hasClaudeKey: false, hasDataKey: false, hasPixabayKey: false },
+  health: { api: 'wait', apiMsg: '', db: supabase ? 'wait' : 'fail', dbMsg: supabase ? '' : '.env.local 에 Supabase 값이 없어요', hasClaudeKey: false, hasAiKey: false, aiProvider: 'claude', hasDataKey: false, hasPixabayKey: false },
   checkHealth: async () => {
     let api = 'fail', apiMsg = '', info = {}
     try { info = await ping(); api = 'ok' } catch (e) { apiMsg = e.message }
@@ -131,7 +131,7 @@ export const useAppStore = create((set, get) => ({
       const { error } = await supabase.from('favorites').select('id').limit(1)
       db = error ? 'fail' : 'ok'; dbMsg = error ? error.message : ''
     }
-    set({ health: { api, apiMsg, db, dbMsg, hasClaudeKey: Boolean(info.hasClaudeKey), hasDataKey: Boolean(info.hasDataKey), hasPixabayKey: Boolean(info.hasPixabayKey) } })
+    set({ health: { api, apiMsg, db, dbMsg, hasClaudeKey: Boolean(info.hasClaudeKey), hasAiKey: Boolean(info.hasAiKey ?? info.hasClaudeKey), aiProvider: info.aiProvider ?? 'claude', hasDataKey: Boolean(info.hasDataKey), hasPixabayKey: Boolean(info.hasPixabayKey) } })
   },
 
   // ② 알림(토스트)
