@@ -124,7 +124,7 @@ insert into shop_admins (user_id) select id from auth.users where email = '관�
 
 ### 이야기꾼 AI 모델
 
-에이전트는 Google **Gemini**(function calling, 무료 사용량)로 동작합니다. [Google AI Studio](https://aistudio.google.com/apikey)에서 무료 키를 받아 서버 환경변수 `GEMINI_API_KEY` 로 넣고, 모델은 `GEMINI_MODEL`(기본 `gemini-2.5-flash`)로 바꿉니다. 무료 사용량은 분당 호출 수가 적어서 가끔 '사용량이 많아요'가 나올 수 있고(한 번은 자동으로 다시 시도), 그럴 땐 `gemini-2.5-flash-lite` 같은 더 가벼운 모델로 바꾸면 여유가 있습니다.
+에이전트는 Google **Gemini**(function calling, 무료 사용량)로 동작합니다. [Google AI Studio](https://aistudio.google.com/apikey)에서 무료 키를 받아 서버 환경변수 `GEMINI_API_KEY` 로 넣고, 모델은 `GEMINI_MODEL`(기본 `gemini-3.8-flash`)로 바꿉니다. 모델 이름은 자주 바뀌어서, 옛 모델이 막히면 Google 이 오류 문구로 알려 주는 새 모델로 서버가 한 번 자동으로 다시 시도합니다. 무료 사용량은 분당 호출 수가 적어서 가끔 '사용량이 많아요'가 나올 수 있고(한 번은 자동으로 다시 시도), 그럴 땐 더 가벼운 `flash-lite` 계열 모델로 바꾸면 여유가 있습니다.
 
 ### 에이전트 루프
 
@@ -174,7 +174,7 @@ vercel dev                     # 화면 + /api 서버 함수 → http://localhos
 | `VITE_SUPABASE_URL` / `VITE_SUPABASE_ANON_KEY` | Supabase 프로젝트 (브라우저 공개 가능) |
 | `DATA_GO_KR_KEY` | 공공데이터포털 Decoding 키 (서버 전용) |
 | `GEMINI_API_KEY` | Gemini 키 (서버 전용, 절대 커밋 금지. Google AI Studio 에서 무료로 발급) |
-| `GEMINI_MODEL` | (선택) 이야기꾼 AI 가 쓸 모델 이름 (기본 `gemini-2.5-flash`) |
+| `GEMINI_MODEL` | (선택) 이야기꾼 AI 가 쓸 모델 이름 (기본 `gemini-3.8-flash`) |
 | `PIXABAY_KEY` | Pixabay 무료 키 (서버 전용) |
 
 ### Supabase 준비

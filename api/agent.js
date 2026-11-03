@@ -4,7 +4,10 @@ import { searchHeritage } from '../server/heritage.js';
 import { findMyth, getMythStory } from '../server/myths.js';
 import { searchProducts } from '../server/products.js';
 
-const GEMINI_MODEL = () => process.env.GEMINI_MODEL || 'gemini-2.5-flash';   // 무료로 쓸 수 있는 다른 모델(예: gemini-2.5-flash-lite)로 GEMINI_MODEL 환경변수를 바꿀 수 있다
+// 모델 이름은 자주 바뀌고 옛 모델은 새 사용자에게 막힌다. 기본값을 쓰다가 "models/새이름 을 쓰라"는 404 를 받으면 그 이름으로 한 번 다시 시도하고, 이 서버가 켜져 있는 동안 기억한다.
+// 직접 정하려면 GEMINI_MODEL 환경변수 (예: gemini-3.8-flash)
+let learnedModel = null;
+const GEMINI_MODEL = () => learnedModel || process.env.GEMINI_MODEL || 'gemini-3.8-flash';
 
 // ① 도구 설명서: 모델은 이 설명만 보고 "어떤 도구를 언제 쓸지" 결정한다
 const tools = [
@@ -98,8 +101,8 @@ const geminiTools = [{ functionDeclarations: tools.map((t) => ({ name: t.name, d
 
 // 무료 사용량은 분당 호출 수가 적어 429(많음)·503(바쁨)이 가끔 나므로, 한 번은 2초 뒤에 다시 시도한다
 async function callGemini(body) {
-  const url = `https://generativelanguage.googleapis.com/v1beta/models/${GEMINI_MODEL()}:generateContent`;
   for (let attempt = 0; ; attempt++) {
+    const url = `https://generativelanguage.googleapis.com/v1beta/models/${GEMINI_MODEL()}:generateContent`;   // 모델을 바꿔 다시 시도할 수 있으니 매번 만든다
     const r = await fetch(url, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', 'x-goog-api-key': process.env.GEMINI_API_KEY },
@@ -108,6 +111,8 @@ async function callGemini(body) {
     const data = await r.json().catch(() => ({}));
     if (r.ok) return data;
     if ((r.status === 429 || r.status === 503) && attempt === 0) { await new Promise((ok) => setTimeout(ok, 2000)); continue; }
+    const suggested = r.status === 404 && /use models\/([A-Za-z0-9._-]+)/.exec(data.error?.message ?? '')?.[1];   // 단종된 모델이면 오류 문구가 새 모델을 알려 준다
+    if (suggested && suggested !== GEMINI_MODEL() && attempt === 0) { learnedModel = suggested; continue; }
     throw Object.assign(new Error(data.error?.message ?? r.statusText), { status: r.status });
   }
 }

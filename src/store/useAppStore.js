@@ -23,6 +23,7 @@ const SEEN_MAX = 600
 let lastOverrideLoad = 0
 let lastGrantLoad = 0
 let lastDemandLoad = 0
+let demandMissing = false     // 수요 기록 테이블이 아직 없으면(SQL 미실행) 이번 접속에서는 다시 묻지 않는다 (콘솔에 404 가 계속 쌓이지 않게)
 let authStarted = false        // StrictMode 에서 구독이 두 번 걸리지 않게
 
 // 화면에 보여 줄 이름: 가입 때 적은 닉네임, 없으면 이메일 앞부분
@@ -309,11 +310,11 @@ export const useAppStore = create((set, get) => ({
 
   // ⑱ 수요(주식처럼) — 최근 6시간의 구매·취소·환불 기록(shop_demand)을 불러와 시세 계산에 넣는다. 테이블이 아직 없으면 조용히 건너뜀
   loadDemand: async () => {
-    if (!supabase) return
+    if (!supabase || demandMissing) return
     lastDemandLoad = Date.now()
     const since = new Date(Date.now() - 6 * 3600000).toISOString()
     const { data, error } = await supabase.from('shop_demand').select('product_id, qty, created_at').gte('created_at', since).order('created_at', { ascending: true })
-    if (error) return
+    if (error) { if (error.code === 'PGRST205' || error.code === '42P01' || /could not find|does not exist/i.test(error.message)) demandMissing = true; return }
     const map = {}
     for (const r of data) (map[r.product_id] ??= []).push({ qty: r.qty, t: new Date(r.created_at).getTime() })
     setDemandEvents(map)
