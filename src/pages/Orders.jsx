@@ -9,7 +9,7 @@ import { Empty } from '../components/Status'
 import { useAppStore } from '../store/useAppStore'
 import { totalSpent } from '../lib/level'
 import { REFUND_REASONS, STATUS, STEPS, canCancel, canDelete, canRefund, stageOf, statusOf } from '../lib/order'
-import { won } from '../lib/format'
+import { won, wonCompact } from '../lib/format'
 import { productOf } from '../../server/products'
 
 // 주문 내역 — 배송 진행 단계 · 결제 내역 · 상품 사진 · 후기 쓰기 · 주문 취소(배송 전) · 반품/환불(배송 후) · 삭제(끝난 주문)
@@ -67,7 +67,10 @@ export default function Orders() {
                       ? <Badge bg={stage === 3 ? 'success' : 'primary'} className="align-self-start">{STEPS[stage]}</Badge>
                       : <Badge bg={status === STATUS.refund ? 'warning' : 'secondary'} text={status === STATUS.refund ? 'dark' : undefined} className="align-self-start">{status}</Badge>}
                     <span className="text-body-secondary small">{new Date(o.created_at).toLocaleString('ko-KR')}</span>
-                    <strong className={`ms-sm-auto ${live ? '' : 'text-decoration-line-through text-body-secondary'}`}>{won(o.total)}</strong>
+                    <div className={`ms-sm-auto text-sm-end lh-sm ${live ? '' : 'text-body-secondary'}`}>
+                      <strong className={live ? '' : 'text-decoration-line-through'}>{won(o.total)}</strong>
+                      {o.points_used > 0 && <div className="small text-body-secondary">{o.total === 0 ? '적립금으로 전액 결제' : '적립금'} {wonCompact(o.points_used)} 사용</div>}
+                    </div>
                   </div>
                 </Accordion.Header>
                 <Accordion.Body>
