@@ -62,7 +62,7 @@ export default function SideCard() {
                   </div>
                   <div className="small text-body-secondary text-truncate">{user.email}</div>
                   <Link to="/mypage?tab=points" className="d-block text-body-secondary text-decoration-none mb-1" style={{ fontSize: '.72rem' }} title="적립금 내역 보기">
-                    <i className="bi bi-coin me-1" />적립금 <b className="text-body">{wonCompact(pts.balance)}</b>{pts.pending > 0 && <span> · 예정 {wonCompact(pts.pending)}</span>}
+                    <i className="bi bi-coin me-1" />적립금 <b className="text-body">{wonCompact(pts.balance)}</b>{pts.pending > 0 && <div>예정 {wonCompact(pts.pending)}</div>}
                   </Link>
                   <LevelBadge part="name" withProgress />
                 </div>
