@@ -34,10 +34,10 @@ export default function Login() {
   }
 
   return (
-    <div className="mx-auto" style={{ maxWidth: 440 }}>
+    <div className="mx-auto auth-wrap" style={{ maxWidth: 440 }}>
       <PageHeader icon="box-arrow-in-right" title="로그인" subtitle="별자리·장바구니·주문이 내 계정에 저장돼요" />
       {!isSupabaseReady && <Alert variant="warning">Supabase 설정(.env.local)이 없어 로그인할 수 없어요</Alert>}
-      <Card>
+      <Card className="auth-card">
         <Card.Body>
           <Form onSubmit={onSubmit}>
             <Form.Group className="mb-3">
