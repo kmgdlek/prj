@@ -419,11 +419,3 @@ body { font-family: 'Pretendard', system-ui, sans-serif; }
 .notif-del { position: absolute; top: .4rem; right: .45rem; width: 24px; height: 24px; border: 0; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: .72rem; color: var(--bs-secondary-color); background: transparent; }
 .notif-del:hover { background: var(--bs-secondary-bg); color: var(--bs-body-color); }
 .notif-li .notif-item { padding-right: 2rem; }
-
-/* ── 4D 체험: 번개 번쩍임 · 천둥 때 화면 흔들림 ── */
-.fx-flash { position: absolute; inset: 0; z-index: 4; pointer-events: none; background: #fff; border-radius: inherit; opacity: 0; animation: fx-flash .55s ease-out; }
-@keyframes fx-flash { 0% { opacity: 0; } 6% { opacity: .4; } 16% { opacity: .02; } 26% { opacity: .28; } 100% { opacity: 0; } }      /* 장면 자체가 3D 로 번쩍이므로 화면 덮개는 은은하게 */
-.fx-shake { animation: fx-shake .7s linear; }
-@keyframes fx-shake { 0%, 100% { transform: translate(0, 0); } 10% { transform: translate(-5px, 3px); } 20% { transform: translate(5px, -3px); } 30% { transform: translate(-4px, -2px); } 40% { transform: translate(4px, 3px); } 55% { transform: translate(-3px, 2px); } 70% { transform: translate(2px, -2px); } 85% { transform: translate(-1px, 1px); } }
-@media (prefers-reduced-motion: reduce) { .fx-flash { animation-duration: .01s; } .fx-shake { animation: none; } }
-.map-full-controls .btn-outline-warning { --bs-btn-color: #ffe08a; --bs-btn-border-color: rgba(255, 224, 138, .5); --bs-btn-hover-bg: #ffc107; --bs-btn-hover-color: #212529; }
