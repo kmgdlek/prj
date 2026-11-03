@@ -9,7 +9,7 @@ export async function searchTour({ keyword = '', contentTypeId = '12', rows = 10
     _type: 'json',
     numOfRows: String(rows),
     pageNo: '1',
-    areaCode: '39', // 39 = 제주
+    lDongRegnCd: '50', // 50 = 제주특별자치도(법정동 코드). 이 서비스(KorService2)는 예전 areaCode=39 로는 결과 일부만 준다 (문화시설 9곳 vs 97곳)
   });
   if (contentTypeId) params.set('contentTypeId', contentTypeId);
   const op = keyword ? 'searchKeyword2' : 'areaBasedList2';
