@@ -51,7 +51,7 @@ export default function Admin() {
     <>
       <PageHeader icon="sliders" title="시세 관리" subtitle="관리자만 볼 수 있어요. 정한 가격은 모든 사용자에게 바로 적용돼요" />
       <Alert variant="info" className="small">
-        가격을 넣고 <b>적용</b>을 누르면 선택한 시간 동안 그 가격으로 팔려요. 시간이 지나거나 <b>되돌리기</b>를 누르면 원래 시세(타임특가·급등락)로 돌아가요.
+        가격을 넣고 <b>적용</b>을 누르면 그 가격이 <b>출발점</b>이 돼요. 그 뒤로는 시세가 움직이는 만큼 알아서 오르내리고(타임특가·급등락·구매 수요), 선택한 시간이 지나거나 <b>되돌리기</b>를 누르면 원래 시세로 돌아가요.
       </Alert>
       <Card className="mb-4"><Card.Body>
         <h6 className="fw-bold mb-1"><i className="bi bi-coin me-1 text-primary" />적립금 지급</h6>

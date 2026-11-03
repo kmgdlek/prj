@@ -169,17 +169,26 @@ export const demandLabel = (p, slot = slotOf()) => {
   return pct > 0 ? `🛒 구매가 몰려 ${t}` : `↩ 취소·환불로 ${t}`
 }
 
-// 지금 팔리는 가격 (장바구니·주문·화면 모두 이 값을 쓴다)
-export const salePrice = (p, slot = slotOf()) => {
-  const o = overrideOf(p, slot)
-  if (o) return o.price
+// 관리자가 정하지 않았을 때의 시세 (타임특가·급등락·수요)
+const marketPrice = (p, slot) => {
   const base = basePrice(p), f = surgeFactor(p, slot)
   const flash = flashPrice(p, slot)
   const w = Math.min(1, Math.abs(f - 1) / 0.1)                                // 큰 변동이 진행될수록 타임특가 잡음을 서서히 끈다 (10% 벗어나면 완전히 끔. 가격이 튀지 않게)
   const market = flash * (1 - w) + base * f * w
   const dm = demandFactor(p, slot)
-  const priced = dm < 1 ? Math.max(market * dm, Math.min(market, p.price)) : market * dm      // 수요로 내릴 때는 정가 밑으로 안 간다 (이미 정가 밑이면 더 내리지 않는다)
-  return Math.max(10, Math.floor(priced / 10) * 10)
+  return dm < 1 ? Math.max(market * dm, Math.min(market, p.price)) : market * dm      // 수요로 내릴 때는 정가 밑으로 안 간다 (이미 정가 밑이면 더 내리지 않는다)
+}
+
+// 지금 팔리는 가격 (장바구니·주문·화면 모두 이 값을 쓴다)
+// 관리자가 정한 가격은 '출발점'이다: 정한 분에는 그 가격이고, 그 뒤로는 시세가 움직인 비율만큼 알아서 오르내린다 (정한 시간이 끝나면 원래 시세로)
+export const salePrice = (p, slot = slotOf()) => {
+  const o = overrideOf(p, slot)
+  if (o) {
+    const start = Math.floor(o.from / PRICE_SLOT_MS)
+    const ratio = slot <= start ? 1 : marketPrice(p, slot) / marketPrice(p, start)
+    return Math.max(10, Math.floor((o.price * ratio) / 10) * 10)
+  }
+  return Math.max(10, Math.floor(marketPrice(p, slot) / 10) * 10)
 };
 
 // 정가 대비 지금 가격이 몇 % 싼지(비싸면 음수), 직전 1분보다 얼마나 변했는지(음수 = 내려감)
