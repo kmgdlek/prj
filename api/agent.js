@@ -1,15 +1,12 @@
-import Anthropic from '@anthropic-ai/sdk';
-import { pickProvider } from '../server/aiProvider.js';
 import { searchTour } from '../server/tour.js';
 import { getWeather } from '../server/weather.js';
 import { searchHeritage } from '../server/heritage.js';
 import { findMyth, getMythStory } from '../server/myths.js';
 import { searchProducts } from '../server/products.js';
 
-const CLAUDE_MODEL = 'claude-sonnet-5-5';
 const OPENAI_MODEL = () => process.env.OPENAI_MODEL || 'gpt-4o-mini';   // 계정에서 쓸 수 있는 모델 이름으로 OPENAI_MODEL 환경변수를 바꾸면 된다
 
-// ① 도구 설명서: Claude는 이 설명만 보고 "어떤 도구를 언제 쓸지" 결정한다
+// ① 도구 설명서: 모델은 이 설명만 보고 "어떤 도구를 언제 쓸지" 결정한다
 const tools = [
   {
     name: 'get_myth_story',
@@ -86,7 +83,7 @@ const SYSTEM = `너는 '탐라 신화 여행' 서비스의 이야기꾼 가이�
 - 비가 오거나 강수확률이 높으면 실내 대안(박물관·전시관)을 함께 제안한다.
 - 신화 한 줄 + 갈 만한 장소 + 날씨 팁 순서로, 한국어 5문장 이내로 짧게 답한다.`;
 
-// 도구 한 번 실행: 결과를 돌려주고, 화면에 보여 줄 기록(steps)과 화면이 실행할 동작(actions)을 쌓는다 (두 모델 회사가 함께 쓴다)
+// 도구 한 번 실행: 결과를 돌려주고, 화면에 보여 줄 기록(steps)과 화면이 실행할 동작(actions)을 쌓는다
 async function execTool(name, input, steps, actions) {
   let result;
   try { result = await runTool[name](input ?? {}); }
@@ -96,29 +93,10 @@ async function execTool(name, input, steps, actions) {
   return result;
 }
 
-// ③-a Claude: 생각 → 도구 호출 → 결과 확인 → (반복) → 최종 답
-async function runClaude({ message, history }, steps, actions) {
-  const client = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
-  const messages = [...history.slice(-10), { role: 'user', content: message }]; // 최근 10개만 보내 비용 절약
-  for (let turn = 0; turn < 5; turn++) {
-    const r = await client.messages.create({ model: CLAUDE_MODEL, max_tokens: 1024, system: SYSTEM, tools, messages });
-    if (r.stop_reason !== 'tool_use') return r.content.filter((b) => b.type === 'text').map((b) => b.text).join('\n');
-    messages.push({ role: 'assistant', content: r.content }); // Claude의 도구 호출 요청을 대화에 기록
-    const results = [];
-    for (const block of r.content) {
-      if (block.type !== 'tool_use') continue;
-      const result = await execTool(block.name, block.input, steps, actions);
-      results.push({ type: 'tool_result', tool_use_id: block.id, content: JSON.stringify(result) });
-    }
-    messages.push({ role: 'user', content: results }); // 도구 결과를 Claude에게 돌려줌
-  }
-  return null;
-}
-
-// ③-b OpenAI: 같은 루프. 도구 설명서·결과를 OpenAI 형식(function calling)으로 주고받는다
+// ③ 에이전트 루프(OpenAI function calling): 생각 → 도구 호출 → 결과 확인 → (반복) → 최종 답
 const openaiTools = tools.map((t) => ({ type: 'function', function: { name: t.name, description: t.description, parameters: t.input_schema } }));
-async function runOpenAI({ message, history }, steps, actions) {
-  const messages = [{ role: 'system', content: SYSTEM }, ...history.slice(-10), { role: 'user', content: message }];
+async function runAgent({ message, history }, steps, actions) {
+  const messages = [{ role: 'system', content: SYSTEM }, ...history.slice(-10), { role: 'user', content: message }]; // 최근 10개만 보내 비용 절약
   for (let turn = 0; turn < 5; turn++) {
     const r = await fetch('https://api.openai.com/v1/chat/completions', {
       method: 'POST',
@@ -143,17 +121,16 @@ async function runOpenAI({ message, history }, steps, actions) {
 export default async function handler(req, res) {
   if (req.method !== 'POST') return res.status(405).json({ error: 'POST only' });
   const { message, history = [] } = req.body ?? {};
-  const provider = pickProvider();
-  if (!provider.hasKey) return res.status(500).json({ error: provider.name === 'openai' ? 'OPENAI_API_KEY 가 설정되지 않았어요' : 'ANTHROPIC_API_KEY 가 설정되지 않았어요' });
+  if (!process.env.OPENAI_API_KEY) return res.status(500).json({ error: 'OPENAI_API_KEY 가 설정되지 않았어요' });
   const steps = []; // 화면에 "에이전트가 무엇을 했는지" 보여주기용
   const actions = []; // 화면이 실제로 실행할 동작 (예: 3D 지도 이동)
 
   try {
-    const answer = await (provider.name === 'openai' ? runOpenAI : runClaude)({ message, history }, steps, actions);
+    const answer = await runAgent({ message, history }, steps, actions);
     res.status(200).json({ answer: answer ?? '도구 호출이 너무 많아 중단했어요. 질문을 좁혀 주세요.', steps, actions });
   } catch (e) {
     const msg = e.status === 429 ? '사용량이 많아요. 1분 뒤 다시 시도하세요.'
-      : e.status === 401 ? `${provider.name === 'openai' ? 'OpenAI' : 'Claude'} API 키가 올바르지 않아요`
+      : e.status === 401 ? 'OpenAI API 키가 올바르지 않아요'
       : e.message;
     res.status(e.status ?? 500).json({ error: msg });
   }

@@ -9,7 +9,7 @@
 ![Three.js](https://img.shields.io/badge/Three.js-3D-000000?logo=threedotjs&logoColor=white)
 ![Bootstrap](https://img.shields.io/badge/Bootstrap-vapor-7952B3?logo=bootstrap&logoColor=white)
 ![Supabase](https://img.shields.io/badge/Supabase-DB-3FCF8E?logo=supabase&logoColor=white)
-![Claude](https://img.shields.io/badge/Claude-AI_Agent-D97757)
+![OpenAI](https://img.shields.io/badge/OpenAI-AI_Agent-412991)
 ![Vercel](https://img.shields.io/badge/Deploy-Vercel-000000?logo=vercel&logoColor=white)
 
 제주대 청년도약 부트캠프 1기 · 제주 콘텐츠·문화 IP 프로젝트
@@ -41,7 +41,7 @@
 | 📖 신화 도감 | 신화·전설 26곳 목록(오른쪽, 이 칸만 스크롤) ↔ 3D 지도(왼쪽)가 같은 선택을 공유. 고르면 카메라가 그 장소로 날아가고, 주변 관광지를 TourAPI 로 찾아옴 |
 | 📍 신화 속 장소 | 한국관광공사 TourAPI 검색 결과가 3D 섬 위에 구슬로 표시 |
 | 🏛️ 국가유산 | 국가유산청 오픈API 로 제주의 유산을 검색, 좌표를 3D 에 표시 |
-| 🤖 이야기꾼 AI | Claude 에이전트가 신화·관광·날씨·유산 **6개 도구**(신화·지도 이동·관광·날씨·유산·상품)를 스스로 골라 호출하고, 어떤 도구를 썼는지 화면에 공개 |
+| 🤖 이야기꾼 AI | OpenAI 에이전트가 신화·관광·날씨·유산 **6개 도구**(신화·지도 이동·관광·날씨·유산·상품)를 스스로 골라 호출하고, 어떤 도구를 썼는지 화면에 공개 |
 | 🔐 로그인·회원가입 | Supabase Auth(이메일+비밀번호). 별자리·장바구니·주문이 내 계정에만 보이도록 RLS 로 보호 가입하면 메일 인증 안내(다시 보내기 포함), 인증 링크를 누르면 가입 완료 페이지(`/welcome`)로 도착 |
 | 🛍️ 제주 장터 | 제주 특산품·기념품 20종(태그·정렬·별점·찜). 가격은 1분마다, 재고는 10분마다 바뀌는 타임특가에, 드물게 서서히 오르내리고 아주 드물게 급등(최대 +300%)·급락(최대 -95%)(일반판매가를 넘기도 함, 아래 '시세 규칙'). 시세가 바뀌면 바뀐 자리의 숫자가 위에서 아래로 굴러 바뀌고, 상품 상세에 사진 슬라이더·후기·이어진 신화와 1분봉 차트(최고가 빨간 화살표 · 최저가 파란 화살표 · 일반판매가 회색 선) |
 | 🧾 장바구니·결제 | 쿠폰 · 적립금 · 등급 혜택(추가 할인·적립률·무료배송 기준) · 배송비를 계산하는 결제 요약. 주문하면 재고가 줄고 취소하면 돌아옴 (실제 결제 없음) |
@@ -77,16 +77,16 @@ flowchart LR
   F --> W[기상청 단기예보]
   F --> H[국가유산청]
   F --> M[(myths.js)]
-  F <-->|tool use 루프| C[🤖 Claude]
+  F <-->|tool use 루프| C[🤖 OpenAI]
 ```
 
-- 키는 서버에만. 공공데이터·Claude 키는 `/api` 안에서만 쓰고, 브라우저에는 `VITE_` 값(Supabase anon)만 내려갑니다.
+- 키는 서버에만. 공공데이터·OpenAI 키는 `/api` 안에서만 쓰고, 브라우저에는 `VITE_` 값(Supabase anon)만 내려갑니다.
 - 사진은 서버가 중계. Pixabay 사진을 브라우저가 직접 받으면 요청이 몰릴 때 429 로 깨져서, `/api/img` 가 대신 받아(재시도 포함) 하루 CDN 캐시합니다. 그래도 깨지면 화면이 두 번 다시 불러옵니다.
 - `server/` 공용. 화면용 API(`api/tour.js`)와 에이전트(`api/agent.js`)가 같은 함수를 재사용합니다.
 
 ### 🧪 에이전트 테스트 질문 4개
 
-배포 사이트(`/api/agent`)에 실제로 물어본 결과입니다 (2026-11-02). 도구는 질문에 맞춰 에이전트가 스스로 골랐습니다.
+배포 사이트(`/api/agent`)에 실제로 물어본 결과입니다 (2026-11-02, Claude 모델로 돌린 결과). 이후 OpenAI 로 바꿨으니 같은 질문으로 다시 돌려 결과를 갱신하세요. 도구는 질문에 맞춰 에이전트가 스스로 골랐습니다.
 
 | # | 질문 | 실제 사용한 도구 | 답변 요약 |
 |---|---|---|---|
@@ -122,22 +122,14 @@ insert into shop_admins (user_id) select id from auth.users where email = '관�
 
 로그인하면 메뉴 '내 정보'에 시세 관리가 나타납니다. 가격을 되돌려도 기록은 남아서(`until` 을 지금으로 줄임), 이미 지나간 시간의 차트는 정한 가격 그대로 보입니다. (해제: `delete from shop_admins where user_id = ...`)
 
-### 이야기꾼 AI 모델 바꾸기 (Claude ↔ OpenAI)
+### 이야기꾼 AI 모델
 
-에이전트 루프와 도구 6개는 그대로이고, 모델을 부르는 부분만 `api/agent.js` 안에서 둘로 나뉩니다. 서버 환경변수로 고릅니다.
-
-| 환경변수 | 효과 |
-|---|---|
-| (아무것도 없음) | 키가 있는 쪽을 씀. 둘 다 있으면 **Claude** |
-| `AI_PROVIDER=claude` | Claude (`ANTHROPIC_API_KEY` 필요) |
-| `AI_PROVIDER=openai` | OpenAI (`OPENAI_API_KEY` 필요, 모델은 `OPENAI_MODEL`) |
-
-바꾼 뒤 Vercel 에서 다시 배포하면 됩니다. 어느 쪽을 쓰는지는 첫 화면의 '동작 체크'(서버 /api)와 채팅창 상태에 나옵니다. 아래 테스트 질문 4개는 Claude 로 돌린 결과입니다.
+에이전트는 OpenAI(function calling)로 동작합니다. 서버 환경변수 `OPENAI_API_KEY` 가 필요하고, 모델은 `OPENAI_MODEL`(기본 `gpt-4o-mini`)로 바꿉니다. 키나 모델 이름이 맞지 않으면 채팅창이 오프라인으로 보이거나 오류를 알려 줍니다.
 
 ### 에이전트 루프
 
 ```
-질문 → Claude가 도구 선택 → 서버가 도구 실행 → 결과를 Claude에 전달 → (반복, 최대 5회) → 최종 답
+질문 → 모델이 도구 선택 → 서버가 도구 실행 → 결과를 모델에 전달 → (반복, 최대 5회) → 최종 답
 ```
 
 ## 🧱 폴더 구조
@@ -181,8 +173,8 @@ vercel dev                     # 화면 + /api 서버 함수 → http://localhos
 |---|---|
 | `VITE_SUPABASE_URL` / `VITE_SUPABASE_ANON_KEY` | Supabase 프로젝트 (브라우저 공개 가능) |
 | `DATA_GO_KR_KEY` | 공공데이터포털 Decoding 키 (서버 전용) |
-| `ANTHROPIC_API_KEY` | Claude 키 (서버 전용, 절대 커밋 금지) |
-| `OPENAI_API_KEY` · `AI_PROVIDER` · `OPENAI_MODEL` | (선택) 이야기꾼 AI 를 OpenAI 로 바꿀 때. `AI_PROVIDER=openai` 로 고르고, 모델은 `OPENAI_MODEL`(기본 `gpt-4o-mini`) |
+| `OPENAI_API_KEY` | OpenAI 키 (서버 전용, 절대 커밋 금지) |
+| `OPENAI_MODEL` | (선택) 이야기꾼 AI 가 쓸 모델 이름 (기본 `gpt-4o-mini`) |
 | `PIXABAY_KEY` | Pixabay 무료 키 (서버 전용) |
 
 ### Supabase 준비
