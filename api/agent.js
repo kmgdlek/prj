@@ -5,15 +5,18 @@ import { findMyth, getMythStory } from '../server/myths.js';
 import { searchProducts } from '../server/products.js';
 
 // ── 모델 고르기 ─────────────────────────────────────────────────
-// 모델 이름은 자주 바뀌고, 옛 모델은 새 사용자에게 막히고, 새 모델은 몰려서 응답이 느리거나 끊긴다. 그래서
-//  ① 기본 모델(GEMINI_MODEL 또는 gemini-3.8-flash)로 시작하되 호출마다 시간 제한(12초)을 두고,
-//  ② 못 쓰거나(404·429·503) 시간이 넘으면 이 키로 쓸 수 있는 다른 flash 모델을 Google 에 물어 찾아서(가벼운 lite 먼저) 차례로 넘어가고,
+// 무료 한도는 모델마다 달라서(큰 모델은 하루 20번, lite 모델은 하루 500번 정도) 가벼운 lite 모델부터 쓴다. 그리고 모델 이름은 자주 바뀌고,
+// 옛 모델은 새 사용자에게 막히고, 몰린 모델은 느리거나 끊긴다. 그래서
+//  ① GEMINI_MODEL 을 정했으면 그 모델, 아니면 이 키로 쓸 수 있는 flash 모델을 Google 에 물어 가장 새 lite 모델부터 시작하고, 호출마다 시간 제한(12초)을 두고,
+//  ② 못 쓰거나(404·429·503) 시간이 넘으면 다음 모델(다른 lite → 큰 flash)로 차례로 넘어가고,
 //  ③ 잘 되는 모델을 이 서버가 켜져 있는 동안 기억한다. 한 요청은 25초 안에 끝낸다.
 let learnedModel = null;
 let modelList = null;
-const GEMINI_MODEL = () => learnedModel || process.env.GEMINI_MODEL || 'gemini-3.8-flash';
 const CALL_TIMEOUT = 12000, TOTAL_BUDGET = 25000;
 const API = 'https://generativelanguage.googleapis.com/v1beta';
+
+// 시작할 모델: 직접 정한 것 > 지난번에 잘 됐던 것 > 쓸 수 있는 모델 중 가장 새 lite > (목록을 못 받으면) 기본값
+const startModel = async () => process.env.GEMINI_MODEL || learnedModel || (await discoverModels())[0] || 'gemini-3.8-flash';
 
 async function discoverModels() {
   if (modelList) return modelList;
@@ -134,7 +137,7 @@ async function callGemini(body, st) {
         signal: AbortSignal.timeout(Math.min(CALL_TIMEOUT, left)),
       });
       const data = await r.json().catch(() => ({}));
-      if (r.ok) { if (st.model !== GEMINI_MODEL()) learnedModel = st.model; return data; }
+      if (r.ok) { learnedModel = st.model; return data; }
       lastErr = Object.assign(new Error(data.error?.message ?? r.statusText), { status: r.status });
       const suggested = r.status === 404 && /use models\/([A-Za-z0-9._-]+)/.exec(lastErr.message)?.[1];   // 단종된 모델이면 오류 문구가 새 모델을 알려 준다
       if (suggested && !st.tried.has(suggested)) { st.tried.add(st.model); st.model = suggested; continue; }
@@ -152,7 +155,7 @@ async function callGemini(body, st) {
 }
 
 async function runAgent({ message, history }, steps, actions) {
-  const st = { model: GEMINI_MODEL(), tried: new Set(), deadline: Date.now() + TOTAL_BUDGET };
+  const st = { model: await startModel(), tried: new Set(), deadline: Date.now() + TOTAL_BUDGET };
   // 대화는 Gemini 형식(role: user | model, parts)으로. 첫 칸은 반드시 사용자 말이어야 해서, 앞쪽의 모델 말은 뺀다
   const past = history.slice(-10).map((m) => ({ role: m.role === 'assistant' ? 'model' : 'user', parts: [{ text: String(m.content ?? '') }] }));
   while (past.length && past[0].role !== 'user') past.shift();
