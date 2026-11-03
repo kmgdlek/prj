@@ -5,6 +5,7 @@ import { useAppStore } from '../store/useAppStore'
 import { MYTHS } from '../../server/myths'
 import Scene from '../components/Scene'
 import WeatherLine from '../components/WeatherLine'
+import HeroArt from '../components/HeroArt'
 import HomeExtras from '../components/HomeExtras'
 
 // 지도 오른쪽 바로가기 — 제주 장터가 맨 위
@@ -39,20 +40,28 @@ export default function Home() {
 
   return (
     <>
-      <section className="mb-4">
-        <Badge bg="warning" text="dark" className="mb-2">제주 콘텐츠·문화 IP</Badge>
-        <h1 className="fw-bold display-5 hero-title">설문대할망의 섬, 탐라신화 3D</h1>
-        <p className="text-body-secondary hero-desc">
-          치마폭의 흙으로 한라산을 쌓은 여신과 1만 8천 신의 이야기를, 날씨와 시간에 따라 숨 쉬는 3D 섬 위에서 만나 보세요.<br />
-          신화 {MYTHS.length}곳을 눌러 보고, 이야기꾼 AI에게 물어보고, 제주 장터에서 오르내리는 시세로 쇼핑까지.
-        </p>
-        <div className="d-flex flex-wrap gap-2 mb-2">
-          {FEATURES.map((f) => (
-            <Link key={f.label} to={f.to} className="tag-chip text-decoration-none"><i className={`bi bi-${f.icon} me-1`} />{f.label}</Link>
-          ))}
-        </div>
-        <WeatherLine />
+      <section>
+        <Row className="align-items-center g-4">
+          <Col md={8}>
+            <Badge bg="warning" text="dark" className="mb-2">제주 콘텐츠·문화 IP</Badge>
+            <h1 className="fw-bold display-5 hero-title">설문대할망의 섬, 탐라신화 3D</h1>
+            <p className="text-body-secondary hero-desc">
+              치마폭의 흙으로 한라산을 쌓은 여신과 1만 8천 신의 이야기를, 날씨와 시간에 따라 숨 쉬는 3D 섬 위에서 만나 보세요.<br />
+              신화 {MYTHS.length}곳을 눌러 보고, 이야기꾼 AI에게 물어보고, 제주 장터에서 오르내리는 시세로 쇼핑까지.
+            </p>
+
+            <div className="d-flex flex-wrap gap-2 mb-2">
+              {FEATURES.map((f) => (
+                <Link key={f.label} to={f.to} className="tag-chip text-decoration-none"><i className={`bi bi-${f.icon} me-1`} />{f.label}</Link>
+              ))}
+            </div>
+            <WeatherLine />
+          </Col>
+          <Col md={4} className="d-none d-md-block"><HeroArt /></Col>
+        </Row>
       </section>
+      <hr className="hero-rule" />
+
 
       <Row className="g-3 mb-4">
         <Col md={6}>
