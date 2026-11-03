@@ -102,7 +102,7 @@ export default function Cart() {
                   <Form.Control type="number" min={0} step={100} value={pointsInput} placeholder="0" onChange={(e) => setPointsInput(e.target.value)} />
                   <Button variant="outline-secondary" onClick={() => setPointsInput(String(calc.pointsMax))}>최대 사용</Button>
                 </InputGroup>
-                <div className="small text-body-secondary mt-1">한 번에 상품금액의 50%까지 쓸 수 있어요 (이번 주문 최대 {won(calc.pointsMax)})</div>
+                <div className="small text-body-secondary mt-1">한 번에 상품금액의 50%까지 쓸 수 있어요<br />이번 주문 최대 <b className="text-body">{won(calc.pointsMax)}</b></div>
                 {Number(pointsInput) > calc.pointsMax && <div className="small text-danger">최대 {won(calc.pointsMax)}까지만 적용돼요</div>}
                 {pts.pending > 0 && <div className="small text-body-secondary mt-1">배송완료되면 {won(pts.pending)}이 적립돼요</div>}
 
@@ -124,7 +124,6 @@ export default function Cart() {
                 </div>
                 <div className="small text-body-secondary text-end mb-3">적립 예정 {won(calc.earn)} ({L.earn}%)</div>
                 <Button className="w-100" onClick={() => setPayOpen(true)} disabled={busy}><i className="bi bi-credit-card me-2" />{won(calc.total)} 결제하기</Button>
-                <p className="small text-body-secondary mt-2 mb-0">※ 가상 결제창이 열려요. 실제로 결제되지 않고, 결제하면 주문 내역만 저장됩니다.</p>
               </Card.Body>
             </Card>
           </Col>

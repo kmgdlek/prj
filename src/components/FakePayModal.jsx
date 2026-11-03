@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { Alert, Button, Form, Modal, Nav, ProgressBar, Spinner } from 'react-bootstrap'
+import { Button, Form, Modal, Nav, ProgressBar, Spinner } from 'react-bootstrap'
 import { Link } from 'react-router-dom'
 import { won } from '../lib/format'
 
@@ -34,12 +34,11 @@ export default function FakePayModal({ show, amount, summary, onClose, onPay }) 
   return (
     <Modal show={show} onHide={paying ? undefined : onClose} centered backdrop={paying ? 'static' : true} keyboard={!paying} className="pay-modal">
       <Modal.Header closeButton={!paying} className="border-0 pb-0">
-        <Modal.Title className="fs-5 fw-bold">결제하기 <span className="badge text-bg-warning fw-normal ms-1">데모</span></Modal.Title>
+        <Modal.Title className="fs-5 fw-bold">결제하기</Modal.Title>
       </Modal.Header>
       <Modal.Body>
         {phase === 'pick' && (
           <>
-            <Alert variant="warning" className="py-2 small mb-3"><i className="bi bi-info-circle me-1" />가상 결제창이에요. 실제로 결제되지 않고, 카드 정보도 받지 않아요.</Alert>
             <div className="pay-amount mb-3">
               <div className="small text-body-secondary text-truncate">{summary}</div>
               <div className="fs-2 fw-bold">{won(amount)}</div>
@@ -78,7 +77,7 @@ export default function FakePayModal({ show, amount, summary, onClose, onPay }) 
           <div className="text-center py-3">
             <i className="bi bi-check-circle-fill text-success" style={{ fontSize: '3.5rem' }} />
             <h5 className="fw-bold mt-2">결제가 승인됐어요</h5>
-            <p className="text-body-secondary mb-3">{won(paid)} · 가상 결제라 실제로 빠져나간 돈은 없어요.<br />주문이 접수됐고 배송이 곧 시작돼요.</p>
+            <p className="text-body-secondary mb-3">{won(paid)} ·<br />주문이 접수됐고 배송이 곧 시작돼요.</p>
             <div className="d-grid gap-2">
               <Button as={Link} to="/orders" onClick={onClose}><i className="bi bi-receipt me-1" />주문 내역 보기</Button>
               <Button variant="outline-secondary" onClick={onClose}>계속 쇼핑하기</Button>
