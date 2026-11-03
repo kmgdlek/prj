@@ -419,3 +419,6 @@ body { font-family: 'Pretendard', system-ui, sans-serif; }
 .notif-del { position: absolute; top: .4rem; right: .45rem; width: 24px; height: 24px; border: 0; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: .72rem; color: var(--bs-secondary-color); background: transparent; }
 .notif-del:hover { background: var(--bs-secondary-bg); color: var(--bs-body-color); }
 .notif-li .notif-item { padding-right: 2rem; }
+
+/* 신화 도감 목록의 좋아요 하트: 선택된(파란) 줄에서도 보이게 */
+.myth-list .active .myth-like.btn-outline-danger { --bs-btn-color: #fff; --bs-btn-border-color: rgba(255, 255, 255, .7); --bs-btn-hover-bg: #dc3545; --bs-btn-hover-border-color: #dc3545; }

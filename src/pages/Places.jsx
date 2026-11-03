@@ -33,6 +33,8 @@ export default function Places() {
   }
   useEffect(() => { search() }, [])
 
+  // 같은 장소를 다시 누르면 선택이 풀리고 지도가 처음 모습으로 돌아온다
+  const toggle = (id) => setSelected((cur) => (cur === id ? null : id))
   const pins = places.map((p) => ({ id: p.id, name: p.title, lat: p.lat, lng: p.lng, color: typeOf(p.type).color, size: 0.12, label: false }))
 
   return (
@@ -58,7 +60,7 @@ export default function Places() {
 
       <ErrorAlert error={error} />
       <MapListLayout height={460}
-        map={<Scene height={460} items={pins} selectedId={selected} onSelect={(p) => setSelected(p.id)} />}
+        map={<Scene height={460} items={pins} selectedId={selected} onSelect={(p) => toggle(p.id)} />}
         list={loading ? <Loading /> : places.length === 0 ? <Empty /> : (
           <Row xs={1} sm={2} lg={1} xl={2} className="g-3">
             {places.map((p) => {
@@ -67,8 +69,8 @@ export default function Places() {
                 <Col key={p.id}>
                   <ItemCard title={p.title} subtitle={p.addr} image={p.image}
                     badge={<><i className={`bi bi-${t.icon} me-1`} />{t.label}</>}
-                    active={p.id === selected} onClick={() => setSelected(p.id)}
-                    fav={{ source: 'tour', id: p.id, title: p.title }} />
+                    active={p.id === selected} onClick={() => toggle(p.id)}
+                    fav={{ source: 'tour', id: p.id, title: p.title }} favIcon="heart" />
                 </Col>
               )
             })}

@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import { Col, ListGroup, Row } from 'react-bootstrap'
 import PageHeader from '../components/PageHeader'
-import ItemCard, { FavButton } from '../components/ItemCard'
+import ItemCard, { FavButton, LIKE } from '../components/ItemCard'
 import Scene from '../components/Scene'
 import MapListLayout from '../components/MapListLayout'
 import { Empty, ErrorAlert, Loading } from '../components/Status'
@@ -42,7 +42,7 @@ export default function Myths() {
           <div className="mt-3">
             <div className="d-flex align-items-center gap-2 mb-2">
               <h3 className="fw-bold mb-0">{myth.title}</h3>
-              <FavButton fav={{ source: 'myth', id: myth.id, title: myth.title }} />
+              <FavButton fav={{ source: 'myth', id: myth.id, title: myth.title }} icon="heart" {...LIKE} />
             </div>
             <p className="text-primary small mb-1"><i className="bi bi-geo-alt me-1" />{myth.place}</p>
             <p className="small text-body-secondary"><i className="bi bi-signpost me-1" />주소 · {myth.addr}</p>
@@ -52,11 +52,15 @@ export default function Myths() {
         list={(
           <ListGroup className="myth-list">
             {MYTHS.map((m) => (
-              <ListGroup.Item key={m.id} action active={m.id === myth.id} onClick={() => selectMyth(m.id)}>
-                <span className="myth-dot me-2" style={{ background: m.color, color: m.color }} />
-                <strong>{m.title}</strong>
-                <span className="badge text-bg-light border ms-2 fw-normal">{m.kind}</span>
-                <div className="small opacity-75">{m.place}</div>
+              <ListGroup.Item key={m.id} as="div" action role="button" tabIndex={0} active={m.id === myth.id} className="d-flex align-items-start gap-2"
+                onClick={() => selectMyth(m.id)} onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); selectMyth(m.id) } }}>
+                <div className="flex-grow-1 min-w-0">
+                  <span className="myth-dot me-2" style={{ background: m.color, color: m.color }} />
+                  <strong>{m.title}</strong>
+                  <span className="badge text-bg-light border ms-2 fw-normal">{m.kind}</span>
+                  <div className="small opacity-75">{m.place}</div>
+                </div>
+                <FavButton fav={{ source: 'myth', id: m.id, title: m.title }} icon="heart" label={false} className="flex-shrink-0 myth-like" />
               </ListGroup.Item>
             ))}
           </ListGroup>

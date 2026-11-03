@@ -23,6 +23,8 @@ export default function Heritage() {
   }
   useEffect(() => { search() }, [])
 
+  // 같은 곳을 다시 누르면 선택이 풀리고 지도가 처음 모습으로 돌아온다
+  const toggle = (id) => setSelected((cur) => (cur === id ? null : id))
   const pins = list.map((h, i) => ({ id: `${h.name}-${i}`, name: h.name, lat: h.lat, lng: h.lng, color: '#ff4fa3', size: 0.12, label: false }))
 
   return (
@@ -37,13 +39,13 @@ export default function Heritage() {
 
       <ErrorAlert error={error} />
       <MapListLayout height={460}
-        map={<Scene height={460} items={pins} selectedId={selected} onSelect={(p) => setSelected(p.id)} />}
+        map={<Scene height={460} items={pins} selectedId={selected} onSelect={(p) => toggle(p.id)} />}
         list={loading ? <Loading /> : list.length === 0 ? <Empty /> : (
           <Row xs={1} sm={2} lg={1} xl={2} className="g-3">
             {list.map((h, i) => (
               <Col key={`${h.name}-${i}`}>
                 <ItemCard title={h.name} subtitle={`${h.city ?? ''}`} image={h.image} badge={h.kind}
-                  active={selected === `${h.name}-${i}`} onClick={() => setSelected(`${h.name}-${i}`)}
+                  active={selected === `${h.name}-${i}`} onClick={() => toggle(`${h.name}-${i}`)}
                   fav={{ source: 'heritage', id: h.name, title: h.name }} />
               </Col>
             ))}
